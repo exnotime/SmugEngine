@@ -1,0 +1,29 @@
+{
+    "Shaders":
+    {
+        "Vertex":"shader/test.vert",
+        "Fragment":"shader/test.frag"
+    },
+    "DescriptorSetLayout":
+    [
+        {"Binding":1, "Count":1, "Type":"UniformBuffer"}
+    ],
+    "ColorBlendState":
+    {
+        "LogicOp": "Copy",
+        "logicOpEnable": false,
+        "BlendConstants": [0,0,0,0],
+        "ColorBlendAttachmentStates":
+        [
+            {
+                "blendEnable": false,
+                "SrcColorBlendFactor":"Zero",
+                "DstColorBlendFactor":"Zero",
+                "ColorBlendOp":"Add",
+                "SrcAlphaBlendFactor":"Zero",
+                "DstAlphaBlendFactor":"Zero",
+                "AlphaBlendOp":"Add"
+            }
+        ]
+    }
+}
