@@ -28,9 +28,13 @@ If a source file is updated the cache will be updated as well.
 
 #The ExampleApp
 The example app uses:
+
 glfw3 (for windowing and input) : http://www.glfw.org/docs/latest/
+
 glm (for mathematics) : http://glm.g-truc.net/0.9.8/index.html
+
 par_shapes (to generate a mesh) : https://github.com/prideout/par/blob/master/par_shapes.h
+
 
 * Compile shaderc for your system (available in the Vulkan SDK) and place shaderc_combined.lib (shaderc_combinedD.lib for debug mode) in the lib folder.
 * Use GenerateSolution.sh to generate a .sln file.
