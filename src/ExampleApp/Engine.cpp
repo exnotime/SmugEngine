@@ -24,7 +24,7 @@ void Engine::Init() {
 	ws.Height = 900;
 	ws.HighDPI = false;
 	ws.OpenGL = true;
-	ws.Title = "NaiveEngine";
+	ws.Title = "Tephra";
 	ws.Vsync = true;
 	ws.BorderLess = false;
 	m_Window->Initialize(ws);

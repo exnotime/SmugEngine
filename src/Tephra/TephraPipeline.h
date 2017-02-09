@@ -28,6 +28,7 @@ namespace Tephra {
 		void LoadPipelineFromFile(const vk::Device& device, const std::string& filename, vk::Viewport vp, vk::RenderPass renderPass);
 
 		void SetDefaultVertexState(const vk::PipelineVertexInputStateCreateInfo& vertexState);
+		void SetDefaultMulitSampleState(const vk::PipelineMultisampleStateCreateInfo& msState);
 
 		std::vector<vk::DescriptorSetLayout>& GetDescriptorSetLayouts();
 		vk::Pipeline GetPipeline();
@@ -43,6 +44,9 @@ namespace Tephra {
 
 		vk::PipelineVertexInputStateCreateInfo m_DefaultVertexState;
 		bool m_DefaultVertexStateSet;
+
+		vk::PipelineMultisampleStateCreateInfo m_DefaultMultiSampleState;;
+		bool m_DefaultMultiSampleStateSet;
 
 	public:
 		//mappings to vulkan

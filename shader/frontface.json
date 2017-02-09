@@ -6,7 +6,8 @@
     },
     "DescriptorSetLayout":
     [
-        {"Binding":1, "Count":1, "Type":"UniformBuffer"}
+        {"Binding":0, "Count":1, "Type":"UniformBufferDynamic"},
+        {"Binding":1, "Count":1, "Type":"CombinedImageSampler"}
     ],
     "ColorBlendState":
     {
@@ -28,6 +29,17 @@
     },
     "RasterizationState":
     {
-        "CullMode":"Front"
+        "CullMode":"None"
+    },
+    "DepthStencilState":
+    {
+        "Back":"Zero",
+        "Front":"Keep",
+        "DepthBoundsTestEnable":true,
+        "DepthCompareOp":"LessOrEqual",
+        "DepthTestEnable":true,
+        "DepthWriteEnable":true,
+        "MaxDepthBounds":1.0,
+        "MinDepthBounds":0.0
     }
 }

@@ -6,7 +6,8 @@
     },
     "DescriptorSetLayout":
     [
-        {"Binding":1, "Count":1, "Type":"UniformBuffer"}
+        {"Binding":0, "Count":1, "Type":"UniformBufferDynamic"},
+        {"Binding":1, "Count":1, "Type":"CombinedImageSampler"}
     ],
     "ColorBlendState":
     {

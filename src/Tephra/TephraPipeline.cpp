@@ -358,7 +358,8 @@ std::unordered_map<std::string, vk::Format> Pipeline::ToFormat = {
 #pragma endregion
 
 Pipeline::Pipeline() {
-
+	m_DefaultVertexStateSet = false;
+	m_DefaultMultiSampleStateSet = false;
 }
 
 Pipeline::~Pipeline() {
@@ -509,7 +510,7 @@ vk::PipelineMultisampleStateCreateInfo ReadMultiSampleState(const json& msStateJ
 vk::PipelineRasterizationStateCreateInfo GetDefaultRasterState() {
 	vk::PipelineRasterizationStateCreateInfo rasterState;
 	rasterState.cullMode = vk::CullModeFlagBits::eBack;
-	rasterState.frontFace = vk::FrontFace::eCounterClockwise;
+	rasterState.frontFace = vk::FrontFace::eClockwise;
 	rasterState.depthClampEnable = false;
 	rasterState.rasterizerDiscardEnable = false;
 	rasterState.polygonMode = vk::PolygonMode::eFill;
@@ -697,13 +698,18 @@ void Pipeline::LoadPipelineFromFile(const vk::Device& device, const std::string&
 		inputAssemblyInfo.primitiveRestartEnable = false;
 	}
 	// ms state
-	vk::PipelineMultisampleStateCreateInfo multisampleStateInfo;
+	vk::PipelineMultisampleStateCreateInfo* multisampleStateInfo = nullptr;
 	if (root.find("MultiSampleState") != root.end()) {
 		json msStateJson = root["MultiSampleState"];
-		multisampleStateInfo = ReadMultiSampleState(msStateJson);
+		multisampleStateInfo = new vk::PipelineMultisampleStateCreateInfo();
+		*multisampleStateInfo = ReadMultiSampleState(msStateJson);
+	}
+	else if (m_DefaultMultiSampleStateSet) {
+		// do nothing
 	}
 	else {
-		multisampleStateInfo = GetDefaultMultiSampleState();
+		multisampleStateInfo = new vk::PipelineMultisampleStateCreateInfo();
+		*multisampleStateInfo = GetDefaultMultiSampleState();
 	}
 	//raster state
 	vk::PipelineRasterizationStateCreateInfo rasterInfo;
@@ -723,6 +729,7 @@ void Pipeline::LoadPipelineFromFile(const vk::Device& device, const std::string&
 		}else {
 			tesselationstate.patchControlPoints = 1;
 		}
+		pipelineCreateInfo.pTessellationState = &tesselationstate;
 	}
 	else {
 		pipelineCreateInfo.pTessellationState = nullptr;
@@ -791,13 +798,12 @@ void Pipeline::LoadPipelineFromFile(const vk::Device& device, const std::string&
 	pipelineCreateInfo.layout = m_PipelineLayout;
 	pipelineCreateInfo.pColorBlendState = &blendStateInfo;
 	
-	pipelineCreateInfo.pDepthStencilState = nullptr; // &depthStencilState;
+	pipelineCreateInfo.pDepthStencilState = &depthStencilState;
 	pipelineCreateInfo.pDynamicState = nullptr;
 	pipelineCreateInfo.pInputAssemblyState = &inputAssemblyInfo;
-	pipelineCreateInfo.pMultisampleState = &multisampleStateInfo;
+	pipelineCreateInfo.pMultisampleState = (multisampleStateInfo == nullptr) ? &m_DefaultMultiSampleState : multisampleStateInfo;
 	pipelineCreateInfo.pRasterizationState = &rasterInfo;
 	pipelineCreateInfo.pStages = shaderStages.data();
-	pipelineCreateInfo.pTessellationState = nullptr; // &tesselationstate;
 	pipelineCreateInfo.pVertexInputState = (vertexState == nullptr) ? &m_DefaultVertexState : vertexState;
 	pipelineCreateInfo.pViewportState = &viewportState;
 	pipelineCreateInfo.renderPass = renderPass;
@@ -807,11 +813,17 @@ void Pipeline::LoadPipelineFromFile(const vk::Device& device, const std::string&
 
 	//clean up
 	if (vertexState) delete vertexState;
+	if (multisampleStateInfo) delete multisampleStateInfo;
 }
 
 void Pipeline::SetDefaultVertexState(const vk::PipelineVertexInputStateCreateInfo& vertexState) {
 	m_DefaultVertexState = vertexState;
 	m_DefaultVertexStateSet = true;
+}
+
+void Pipeline::SetDefaultMulitSampleState(const vk::PipelineMultisampleStateCreateInfo& msState) {
+	m_DefaultMultiSampleState = msState;
+	m_DefaultMultiSampleStateSet = true;
 }
 
 std::vector<vk::DescriptorSetLayout>& Pipeline::GetDescriptorSetLayouts() {
@@ -825,3 +837,4 @@ vk::Pipeline Pipeline::GetPipeline() {
 vk::PipelineLayout Pipeline::GetPipelineLayout() {
 	return m_PipelineLayout;
 }
+

@@ -81,6 +81,9 @@ vk::ShaderModule Tephra::LoadShader(const vk::Device& device, const std::string&
 	if (shaderc_result_get_compilation_status(result) != shaderc_compilation_status_success) {
 		const char* errors = shaderc_result_get_error_message(result);
 		printf("Error compiling shader %s \n Errors %s\n", filename.c_str(), errors);
+		shaderc_result_release(result);
+		shaderc_compile_options_release(options);
+		shaderc_compiler_release(compiler);
 		return nullptr;
 	}
 	delete[] code;
@@ -95,6 +98,7 @@ vk::ShaderModule Tephra::LoadShader(const vk::Device& device, const std::string&
 	fclose(fout);
 	//clean up
 	shaderc_result_release(result);
+	shaderc_compile_options_release(options);
 	shaderc_compiler_release(compiler);
 	return module;
 }
