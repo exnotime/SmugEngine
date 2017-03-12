@@ -8,7 +8,6 @@
 #include <par_shapes.h>
 #include "VulkanContext.h"
 #include "Vertex.h"
-
 #include "Input.h"
 
 GraphicsEngine::GraphicsEngine() {
@@ -56,13 +55,9 @@ void GraphicsEngine::CreateContext() {
 	for (uint32_t i = 0; i < instExtCount; i++) {
 		extensions.push_back(instExt[i]);
 	}
-#ifdef _DEBUG
 	extensions.push_back("VK_EXT_debug_report");
-#endif
 	std::vector<const char*> layers;
-#ifdef _DEBUG
 	layers.push_back("VK_LAYER_LUNARG_standard_validation");
-#endif
 
 	vk::InstanceCreateInfo instInfo;
 	instInfo.enabledExtensionCount = extensions.size();
@@ -72,7 +67,6 @@ void GraphicsEngine::CreateContext() {
 	instInfo.ppEnabledLayerNames = &layers[0];
 
 	m_VKContext.Instance = vk::createInstance(instInfo);
-#ifdef _DEBUG
 	/* Load VK_EXT_debug_report entry points in debug builds */
 	PFN_vkCreateDebugReportCallbackEXT vkCreateDebugReportCallbackEXT =
 		reinterpret_cast<PFN_vkCreateDebugReportCallbackEXT>
@@ -90,7 +84,6 @@ void GraphicsEngine::CreateContext() {
 
 	//m_DebugCallbacks = m_VKContext.Instance.createDebugReportCallbackEXT( debugCallbacks);
 	vkCreateDebugReportCallbackEXT(m_VKContext.Instance, &debugCallbacks, nullptr, &m_DebugCallbacks);
-#endif
 
 	auto gpus = m_VKContext.Instance.enumeratePhysicalDevices();
 	if (gpus.size() == 0) {
@@ -134,13 +127,13 @@ void GraphicsEngine::CreateContext() {
 	deviceInfo.enabledLayerCount = devicelayers.size();
 	deviceInfo.ppEnabledLayerNames = &devicelayers[0];
 	deviceInfo.pEnabledFeatures = nullptr;
-
 	VK_DEVICE = VK_PHYS_DEVICE.createDevice(deviceInfo);
 	//get queues
 	*static_cast<vk::Queue*>(&m_vkQueue) = VK_DEVICE.getQueue(m_vkQueue.GetQueueIndex(), 0);
 
 	//set up command buffer
 	m_vkCmdBuffer.Init(VK_DEVICE, m_vkQueue.GetQueueIndex());
+	m_vkMarchCmdBuffer.Init(VK_DEVICE, m_vkQueue.GetQueueIndex());
 }
 
 void GraphicsEngine::CreateSwapChain(GLFWwindow* window, bool vsync) {
@@ -160,8 +153,13 @@ void GraphicsEngine::CreateSwapChain(GLFWwindow* window, bool vsync) {
 		if (f.format == vk::Format::eB8G8R8A8Srgb)
 			format = f;
 	}
+
 	vk::PresentModeKHR mode = vsync ? vk::PresentModeKHR::eFifo : vk::PresentModeKHR::eMailbox;
-	vk::SampleCountFlagBits msaaCount = m_MSAA ? vk::SampleCountFlagBits::e8 : vk::SampleCountFlagBits::e1;
+	vk::SampleCountFlagBits msaaCount = m_MSAA ? vk::SampleCountFlagBits::e4 : vk::SampleCountFlagBits::e1;
+
+	m_VKSwapChain.MSAA = m_MSAA;
+	m_VKSwapChain.Format = format.format;
+	m_VKSwapChain.SampleCount = msaaCount;
 
 	vk::SwapchainCreateInfoKHR swapChainInfo;
 	swapChainInfo.clipped = true;
@@ -172,7 +170,7 @@ void GraphicsEngine::CreateSwapChain(GLFWwindow* window, bool vsync) {
 	swapChainInfo.imageColorSpace = format.colorSpace;
 	swapChainInfo.imageExtent = surfCapabilities.currentExtent;
 	swapChainInfo.imageSharingMode = vk::SharingMode::eExclusive;
-	swapChainInfo.imageUsage = vk::ImageUsageFlagBits::eColorAttachment;
+	swapChainInfo.imageUsage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eStorage;
 	swapChainInfo.minImageCount = surfCapabilities.minImageCount;
 	swapChainInfo.presentMode = mode;
 	swapChainInfo.preTransform = surfCapabilities.currentTransform;
@@ -180,10 +178,10 @@ void GraphicsEngine::CreateSwapChain(GLFWwindow* window, bool vsync) {
 	m_VKSwapChain.SwapChain = VK_DEVICE.createSwapchainKHR(swapChainInfo);
 
 	uint32_t swapChainImageCount;
+	VK_DEVICE.getSwapchainImagesKHR(m_VKSwapChain.SwapChain, &swapChainImageCount, nullptr);
 	if (m_MSAA) {
 		VK_DEVICE.getSwapchainImagesKHR(m_VKSwapChain.SwapChain, &swapChainImageCount, m_VKSwapChain.ResolveImages);
-	}
-	else {
+	} else {
 		VK_DEVICE.getSwapchainImagesKHR(m_VKSwapChain.SwapChain, &swapChainImageCount, m_VKSwapChain.Images);
 	}
 
@@ -207,31 +205,50 @@ void GraphicsEngine::CreateSwapChain(GLFWwindow* window, bool vsync) {
 		imageViewInfo.components = { vk::ComponentSwizzle::eR,vk::ComponentSwizzle::eG,vk::ComponentSwizzle::eB, vk::ComponentSwizzle::eA };
 		imageViewInfo.format = format.format;
 		imageViewInfo.image = m_VKSwapChain.Images[i];
+		imageViewInfo.viewType = vk::ImageViewType::e2D;
 		imageViewInfo.subresourceRange = { vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 };
 		m_VKSwapChain.ImageViews[i] = VK_DEVICE.createImageView(imageViewInfo);
 	}
-	//create depth stencil view
-	vk::ImageCreateInfo dsiInfo;
-	dsiInfo.arrayLayers = 1;
-	dsiInfo.extent = vk::Extent3D(1600, 900, 1);
-	dsiInfo.format = vk::Format::eD24UnormS8Uint;
-	dsiInfo.imageType = vk::ImageType::e2D;
-	dsiInfo.initialLayout = vk::ImageLayout::eUndefined;
-	dsiInfo.mipLevels = 1;
-	dsiInfo.samples = msaaCount;
-	dsiInfo.tiling = vk::ImageTiling::eOptimal;
-	dsiInfo.usage = vk::ImageUsageFlagBits::eDepthStencilAttachment;
-	m_VKSwapChain.DepthStencilImage = VK_DEVICE.createImage(dsiInfo);
+	//create depth stencil
+	for (int i = 0; i < BUFFER_COUNT; i++) {
+		vk::ImageCreateInfo dsiInfo;
+		dsiInfo.arrayLayers = 1;
+		dsiInfo.extent = vk::Extent3D(surfCapabilities.currentExtent.width, surfCapabilities.currentExtent.height, 1);
+		dsiInfo.format = vk::Format::eD24UnormS8Uint;
+		dsiInfo.imageType = vk::ImageType::e2D;
+		dsiInfo.initialLayout = vk::ImageLayout::eUndefined;
+		dsiInfo.mipLevels = 1;
+		dsiInfo.samples = msaaCount;
+		dsiInfo.tiling = vk::ImageTiling::eOptimal;
+		dsiInfo.usage = vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled;
+		m_VKSwapChain.DepthStencilImages[i] = VK_DEVICE.createImage(dsiInfo);
 
-	//bind memory
-	m_TextureMemory.AllocateImage(m_VKSwapChain.DepthStencilImage);
+		if (m_VKSwapChain.MSAA) {
+			dsiInfo.arrayLayers = 1;
+			dsiInfo.extent = vk::Extent3D(surfCapabilities.currentExtent.width, surfCapabilities.currentExtent.height, 1);
+			dsiInfo.format = vk::Format::eD24UnormS8Uint;
+			dsiInfo.imageType = vk::ImageType::e2D;
+			dsiInfo.initialLayout = vk::ImageLayout::eUndefined;
+			dsiInfo.mipLevels = 1;
+			dsiInfo.samples = vk::SampleCountFlagBits::e1;
+			dsiInfo.tiling = vk::ImageTiling::eOptimal;
+			dsiInfo.usage = vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled;
+			m_VKSwapChain.DepthResolveImages[i] = VK_DEVICE.createImage(dsiInfo);
+			m_TextureMemory.AllocateImage(m_VKSwapChain.DepthResolveImages[i]);
+		}
 
-	vk::ImageViewCreateInfo dsiViewInfo;
-	dsiViewInfo.components = { vk::ComponentSwizzle::eR,vk::ComponentSwizzle::eG,vk::ComponentSwizzle::eB, vk::ComponentSwizzle::eA };
-	dsiViewInfo.format = dsiInfo.format;
-	dsiViewInfo.image = m_VKSwapChain.DepthStencilImage;
-	dsiViewInfo.subresourceRange = { vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil, 0, 1, 0, 1 };
-	m_VKSwapChain.DepthStencilImageView = VK_DEVICE.createImageView(dsiViewInfo);
+		//bind memory
+		m_TextureMemory.AllocateImage(m_VKSwapChain.DepthStencilImages[i]);
+		//create View
+		vk::ImageViewCreateInfo dsiViewInfo;
+		dsiViewInfo.components = { vk::ComponentSwizzle::eR,vk::ComponentSwizzle::eG,vk::ComponentSwizzle::eB, vk::ComponentSwizzle::eA };
+		dsiViewInfo.format = dsiInfo.format;
+		dsiViewInfo.image = m_VKSwapChain.DepthStencilImages[i];
+		dsiViewInfo.viewType = vk::ImageViewType::e2D;
+		dsiViewInfo.subresourceRange = { vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil, 0, 1, 0, 1 };
+		m_VKSwapChain.DepthStencilImageViews[i] = VK_DEVICE.createImageView(dsiViewInfo);
+
+	}
 
 	//renderpass
 	vk::RenderPassCreateInfo renderPassInfo;
@@ -249,11 +266,11 @@ void GraphicsEngine::CreateSwapChain(GLFWwindow* window, bool vsync) {
 	attachments.push_back(attachmentDesc);
 
 	attachmentDesc = {};
-	attachmentDesc.format = dsiInfo.format;
+	attachmentDesc.format = vk::Format::eD24UnormS8Uint;
 	attachmentDesc.initialLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
 	attachmentDesc.finalLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
 	attachmentDesc.loadOp = vk::AttachmentLoadOp::eClear;
-	attachmentDesc.storeOp = vk::AttachmentStoreOp::eDontCare;
+	attachmentDesc.storeOp = vk::AttachmentStoreOp::eStore;
 	attachmentDesc.stencilLoadOp = vk::AttachmentLoadOp::eDontCare;
 	attachmentDesc.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
 	attachmentDesc.samples = msaaCount;
@@ -265,9 +282,11 @@ void GraphicsEngine::CreateSwapChain(GLFWwindow* window, bool vsync) {
 	vk::SubpassDescription subPassDesc;
 	subPassDesc.colorAttachmentCount = 1;
 	subPassDesc.inputAttachmentCount = 0;
-	subPassDesc.pColorAttachments = &vk::AttachmentReference(0, vk::ImageLayout::eColorAttachmentOptimal);
+	vk::AttachmentReference colorRef = { 0, vk::ImageLayout::eColorAttachmentOptimal };
+	subPassDesc.pColorAttachments = &colorRef;
 	subPassDesc.pipelineBindPoint = vk::PipelineBindPoint::eGraphics;
-	subPassDesc.pDepthStencilAttachment = &vk::AttachmentReference(1, vk::ImageLayout::eDepthStencilAttachmentOptimal);
+	vk::AttachmentReference depthRef = { 1, vk::ImageLayout::eDepthStencilAttachmentOptimal };
+	subPassDesc.pDepthStencilAttachment = &depthRef;
 	subPassDesc.pInputAttachments = nullptr;
 	subPassDesc.pPreserveAttachments = nullptr;
 	subPassDesc.pResolveAttachments = nullptr;
@@ -282,12 +301,12 @@ void GraphicsEngine::CreateSwapChain(GLFWwindow* window, bool vsync) {
 	framebufferInfo.height = surfCapabilities.currentExtent.height;
 	framebufferInfo.width = surfCapabilities.currentExtent.width;
 	framebufferInfo.layers = 1;
-	vk::ImageView fbViews1[] = { m_VKSwapChain.ImageViews[0], m_VKSwapChain.DepthStencilImageView };
+	vk::ImageView fbViews1[] = { m_VKSwapChain.ImageViews[0], m_VKSwapChain.DepthStencilImageViews[0] };
 	framebufferInfo.pAttachments = fbViews1;
 	framebufferInfo.renderPass = m_RenderPass;
 	m_VKSwapChain.FrameBuffers[0] = VK_DEVICE.createFramebuffer(framebufferInfo);
 
-	vk::ImageView fbViews2[] = { m_VKSwapChain.ImageViews[1], m_VKSwapChain.DepthStencilImageView };
+	vk::ImageView fbViews2[] = { m_VKSwapChain.ImageViews[1], m_VKSwapChain.DepthStencilImageViews[1] };
 	framebufferInfo.pAttachments = fbViews2;
 	m_VKSwapChain.FrameBuffers[1] = VK_DEVICE.createFramebuffer(framebufferInfo);
 
@@ -301,15 +320,16 @@ void GraphicsEngine::Init(GLFWwindow* window) {
 	m_CurrentPipeline = 0;
 	CreateContext();
 	//Allocate memory on gpu
-	m_TextureMemory.Init(VK_DEVICE, VK_PHYS_DEVICE, 1024 * 1024 * 1024, 256 * 1024 * 1024);
-	m_BufferMemory.Init(VK_DEVICE, VK_PHYS_DEVICE);
+	m_TextureMemory.Init(VK_DEVICE, VK_PHYS_DEVICE, 512 * MEGA_BYTE);
+	m_BufferMemory.Init(VK_DEVICE, VK_PHYS_DEVICE, 16 * MEGA_BYTE, 8 * MEGA_BYTE);
 
-	m_MSAA = true;
+	m_MSAA = false;
 	CreateSwapChain(window, true);
 
 	vk::SemaphoreCreateInfo semaphoreInfo;
 	m_ImageAquiredSemaphore = VK_DEVICE.createSemaphore(semaphoreInfo);
 	m_RenderCompleteSemaphore = VK_DEVICE.createSemaphore(semaphoreInfo);
+	m_RayMarchComplete = VK_DEVICE.createSemaphore(semaphoreInfo);
 	vk::FenceCreateInfo fenceInfo;
 	m_Fence[0] = VK_DEVICE.createFence(fenceInfo);
 	m_Fence[1] = VK_DEVICE.createFence(fenceInfo);
@@ -339,11 +359,11 @@ void GraphicsEngine::Init(GLFWwindow* window) {
 	m_Pipelines[1].LoadPipelineFromFile(VK_DEVICE, "shader/wireframe.json", m_Viewport, m_RenderPass);
 	m_Pipelines[2].LoadPipelineFromFile(VK_DEVICE, "shader/frontface.json", m_Viewport, m_RenderPass);
 	//create mesh
-	par_shapes_mesh_s* mesh = par_shapes_create_cube();
-	par_shapes_unweld(mesh, true);
-	par_shapes_compute_normals(mesh);
-	par_shapes_scale(mesh, 2, 2, 2);
-	par_shapes_translate(mesh, -1, -1, -1);
+	par_shapes_mesh_s* mesh = par_shapes_create_subdivided_sphere(5);
+	//par_shapes_unweld(mesh, true);
+	//par_shapes_compute_normals(mesh);
+	//par_shapes_scale(mesh, 2, 2, 2);
+	//par_shapes_translate(mesh, -1, -1, -1);
 	std::vector<Vertex::Vertex> vertices;
 	for (int i = 0; i < mesh->ntriangles * 3; i += 3) {
 		for (int k = 0; k < 3; k++) {
@@ -377,12 +397,12 @@ void GraphicsEngine::Init(GLFWwindow* window) {
 
 	m_UniformBuffer = m_BufferMemory.AllocateBuffer(sizeof(PerFrameBuffer), vk::BufferUsageFlagBits::eUniformBuffer, nullptr);
 
-	m_Texture.Init("assets/grad.dds", m_TextureMemory, VK_DEVICE);
+	m_Texture.Init("assets/skybox.dds", m_TextureMemory, VK_DEVICE);
 
 	vk::DescriptorPoolCreateInfo descPoolInfo;
 	descPoolInfo.maxSets = 1;
 	std::vector<vk::DescriptorPoolSize> poolSizes;
-	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eUniformBufferDynamic, 1));
+	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eUniformBuffer, 1));
 	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eCombinedImageSampler, 1));
 	descPoolInfo.pPoolSizes = poolSizes.data();
 	descPoolInfo.poolSizeCount = poolSizes.size();
@@ -396,7 +416,7 @@ void GraphicsEngine::Init(GLFWwindow* window) {
 
 	vk::WriteDescriptorSet descWrites[2];
 	descWrites[0].descriptorCount = 1;
-	descWrites[0].descriptorType = vk::DescriptorType::eUniformBufferDynamic;
+	descWrites[0].descriptorType = vk::DescriptorType::eUniformBuffer;
 	descWrites[0].dstArrayElement = 0;
 	descWrites[0].dstBinding = 0;
 	descWrites[0].dstSet = m_DescriptorSet;
@@ -417,16 +437,22 @@ void GraphicsEngine::Init(GLFWwindow* window) {
 	VK_DEVICE.updateDescriptorSets(2, descWrites, 0, nullptr);
 
 	m_Camera.SetPosition(glm::vec3(0, 0.5f, -2.0f));
-	m_Camera.LookAt(glm::vec3(0));
 
+	m_SkyBox.Init(VK_DEVICE, VK_PHYS_DEVICE, "assets/skybox.dds", m_Viewport, m_RenderPass, m_MSState);
+	m_Raymarcher.Init(VK_DEVICE, m_VKSwapChain, VK_PHYS_DEVICE);
 	//prepare initial transfer
 	m_vkCmdBuffer.Begin(nullptr, nullptr);
-
-	m_vkCmdBuffer.ImageBarrier(m_VKSwapChain.DepthStencilImage, vk::ImageLayout::eUndefined, vk::ImageLayout::eDepthStencilAttachmentOptimal);
+	m_SkyBox.PrepareUniformBuffer(m_vkCmdBuffer, m_Camera);
+	
 	for (int i = 0; i < BUFFER_COUNT; i++) {
-		m_vkCmdBuffer.ImageBarrier(m_VKSwapChain.Images[i], vk::ImageLayout::eUndefined, vk::ImageLayout::ePresentSrcKHR);
 		if (m_MSAA) {
+			m_vkCmdBuffer.ImageBarrier(m_VKSwapChain.Images[i], vk::ImageLayout::eUndefined, vk::ImageLayout::eColorAttachmentOptimal);
 			m_vkCmdBuffer.ImageBarrier(m_VKSwapChain.ResolveImages[i], vk::ImageLayout::eUndefined, vk::ImageLayout::ePresentSrcKHR);
+
+			m_vkCmdBuffer.ImageBarrier(m_VKSwapChain.DepthStencilImages[i], vk::ImageLayout::eUndefined, vk::ImageLayout::eDepthStencilAttachmentOptimal);
+		} else {
+			m_vkCmdBuffer.ImageBarrier(m_VKSwapChain.DepthStencilImages[i], vk::ImageLayout::eUndefined, vk::ImageLayout::eDepthStencilAttachmentOptimal);
+			m_vkCmdBuffer.ImageBarrier(m_VKSwapChain.Images[i], vk::ImageLayout::eUndefined, vk::ImageLayout::ePresentSrcKHR);
 		}
 	}
 	m_vkCmdBuffer.PushPipelineBarrier();
@@ -453,10 +479,10 @@ void GraphicsEngine::Render() {
 		m_Camera.MoveRelative(glm::vec3(-0.1f, 0, 0));
 	}
 	if (g_Input.IsKeyDown(GLFW_KEY_C)) {
-		m_Camera.MoveWorld(glm::vec3(0, 0.1f, 0));
+		m_Camera.MoveWorld(glm::vec3(0, -0.1f, 0));
 	}
 	if (g_Input.IsKeyDown(GLFW_KEY_SPACE)) {
-		m_Camera.MoveWorld(glm::vec3(0, -0.1f, 0));
+		m_Camera.MoveWorld(glm::vec3(0, 0.1f, 0));
 	}
 
 	m_Camera.YawWorld(g_Input.GetMouseDelta().x * -0.001f);
@@ -465,14 +491,16 @@ void GraphicsEngine::Render() {
 	m_Camera.CalculateViewProjection();
 	//transfer new camera position
 	PerFrameBuffer uniformBuffer;
-	uniformBuffer.ViewProj = m_Camera.GetViewProjection() * glm::scale(glm::vec3(10));
-	uniformBuffer.CameraPos = glm::vec4(m_Camera.GetPosition(),1);
+	uniformBuffer.ViewProj = (m_Camera.GetViewProjection() * glm::translate(glm::vec3(0,2,0)));
+	uniformBuffer.CameraPos = glm::vec4(m_Camera.GetPosition(), 1);
 	uniformBuffer.LightDir = glm::normalize(glm::vec4(0.2f, -1.0f, -0.4f, 1.0f));
 	m_BufferMemory.UpdateBuffer(m_UniformBuffer, sizeof(PerFrameBuffer), (void*)(&uniformBuffer));
 	m_vkCmdBuffer.Reset(VK_DEVICE, VK_FRAME_INDEX);
 
 	m_vkCmdBuffer.Begin(nullptr, nullptr);
 	m_BufferMemory.ScheduleTransfers(m_vkCmdBuffer);
+	m_SkyBox.PrepareUniformBuffer(m_vkCmdBuffer, m_Camera);
+	m_Raymarcher.UpdateUniform(m_vkCmdBuffer, m_Camera);
 	m_vkCmdBuffer.end();
 
 	m_vkQueue.Submit(m_vkCmdBuffer);
@@ -481,8 +509,11 @@ void GraphicsEngine::Render() {
 	m_vkCmdBuffer.Begin(m_VKSwapChain.FrameBuffers[VK_FRAME_INDEX], m_RenderPass);
 
 	//set layout to color attachment for current backbuffer
-	m_vkCmdBuffer.ImageBarrier(m_VKSwapChain.Images[VK_FRAME_INDEX], vk::ImageLayout::ePresentSrcKHR, vk::ImageLayout::eColorAttachmentOptimal);
-	m_vkCmdBuffer.PushPipelineBarrier();
+	if (!m_VKSwapChain.MSAA) {
+		m_vkCmdBuffer.ImageBarrier(m_VKSwapChain.Images[VK_FRAME_INDEX], vk::ImageLayout::ePresentSrcKHR, vk::ImageLayout::eColorAttachmentOptimal);
+		m_vkCmdBuffer.PushPipelineBarrier();
+	}
+	
 	vk::RenderPassBeginInfo renderPassInfo;
 	renderPassInfo.framebuffer = m_VKSwapChain.FrameBuffers[VK_FRAME_INDEX];
 	renderPassInfo.renderPass = m_RenderPass;
@@ -501,14 +532,15 @@ void GraphicsEngine::Render() {
 	renderPassInfo.renderArea = { 0, 0, 1600, 900 };
 
 	m_vkCmdBuffer.beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
+	//skybox
 
+	m_SkyBox.Render(m_vkCmdBuffer);
 	//render here
 	vk::DeviceSize offset = 0;
 	m_vkCmdBuffer.bindVertexBuffers(0, 1, &m_VertexBuffer.BufferHandle, &offset);
 	m_vkCmdBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, m_Pipelines[m_CurrentPipeline].GetPipeline());
 	m_vkCmdBuffer.setViewport(0, 1, &m_Viewport);
-	uint32_t dynamicOffsets[] = {0};
-	m_vkCmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_Pipelines[m_CurrentPipeline].GetPipelineLayout(), 0, 1, &m_DescriptorSet, 1, dynamicOffsets);
+	m_vkCmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_Pipelines[m_CurrentPipeline].GetPipelineLayout(), 0, 1, &m_DescriptorSet, 0, nullptr);
 	m_vkCmdBuffer.draw(m_MeshVertexCount, 1, 0, 0);
 	m_vkCmdBuffer.endRenderPass();
 
@@ -530,13 +562,48 @@ void GraphicsEngine::Render() {
 		resolve.srcSubresource.layerCount = 1;
 		resolve.srcSubresource.mipLevel = 0;
 
-		m_vkCmdBuffer.resolveImage(m_VKSwapChain.Images[VK_FRAME_INDEX], vk::ImageLayout::eColorAttachmentOptimal, m_VKSwapChain.ResolveImages[VK_FRAME_INDEX], vk::ImageLayout::ePresentSrcKHR, resolve);
+		m_vkCmdBuffer.resolveImage(m_VKSwapChain.Images[VK_FRAME_INDEX], vk::ImageLayout::eColorAttachmentOptimal,
+			m_VKSwapChain.ResolveImages[VK_FRAME_INDEX], vk::ImageLayout::ePresentSrcKHR, resolve);
+
+		resolve.dstSubresource.aspectMask = vk::ImageAspectFlagBits::eDepth;
+		resolve.srcSubresource.aspectMask = vk::ImageAspectFlagBits::eDepth;
+		m_vkCmdBuffer.resolveImage(m_VKSwapChain.DepthStencilImages[VK_FRAME_INDEX], vk::ImageLayout::eDepthStencilAttachmentOptimal,
+			m_VKSwapChain.DepthResolveImages[VK_FRAME_INDEX], vk::ImageLayout::eDepthStencilReadOnlyOptimal, resolve);
+	} else {
+		m_vkCmdBuffer.ImageBarrier(m_VKSwapChain.Images[VK_FRAME_INDEX], vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::ePresentSrcKHR);
+		m_vkCmdBuffer.PushPipelineBarrier();
 	}
-	m_vkCmdBuffer.ImageBarrier(m_VKSwapChain.Images[VK_FRAME_INDEX], vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::ePresentSrcKHR);
-	m_vkCmdBuffer.PushPipelineBarrier();
+
 	m_vkCmdBuffer.end();
 
-	m_vkQueue.Submit(m_vkCmdBuffer, m_ImageAquiredSemaphore, m_RenderCompleteSemaphore, m_Fence[VK_FRAME_INDEX]);
+	m_vkQueue.Submit(m_vkCmdBuffer, m_ImageAquiredSemaphore, m_RenderCompleteSemaphore, nullptr);
+	//raymarch
+	m_vkMarchCmdBuffer.reset(vk::CommandBufferResetFlagBits::eReleaseResources);
+	m_vkMarchCmdBuffer.Begin(nullptr, nullptr);
+
+	if (m_VKSwapChain.MSAA) {
+		m_vkMarchCmdBuffer.ImageBarrier(m_VKSwapChain.DepthResolveImages[VK_FRAME_INDEX], vk::ImageLayout::eDepthStencilAttachmentOptimal, vk::ImageLayout::eDepthStencilReadOnlyOptimal);
+		m_vkMarchCmdBuffer.ImageBarrier(m_VKSwapChain.ResolveImages[VK_FRAME_INDEX], vk::ImageLayout::ePresentSrcKHR, vk::ImageLayout::eGeneral);
+	} else {
+		m_vkMarchCmdBuffer.ImageBarrier(m_VKSwapChain.DepthStencilImages[VK_FRAME_INDEX], vk::ImageLayout::eDepthStencilAttachmentOptimal, vk::ImageLayout::eDepthStencilReadOnlyOptimal);
+		m_vkMarchCmdBuffer.ImageBarrier(m_VKSwapChain.Images[VK_FRAME_INDEX], vk::ImageLayout::ePresentSrcKHR, vk::ImageLayout::eGeneral);
+	}
+	m_vkMarchCmdBuffer.PushPipelineBarrier();
+
+	m_Raymarcher.Render(m_vkMarchCmdBuffer, VK_FRAME_INDEX);
+
+	if (m_VKSwapChain.MSAA) {
+		m_vkMarchCmdBuffer.ImageBarrier(m_VKSwapChain.DepthResolveImages[VK_FRAME_INDEX], vk::ImageLayout::eDepthStencilReadOnlyOptimal, vk::ImageLayout::eDepthStencilAttachmentOptimal);
+		m_vkMarchCmdBuffer.ImageBarrier(m_VKSwapChain.ResolveImages[VK_FRAME_INDEX], vk::ImageLayout::eGeneral, vk::ImageLayout::ePresentSrcKHR);
+	} else {
+		m_vkMarchCmdBuffer.ImageBarrier(m_VKSwapChain.DepthStencilImages[VK_FRAME_INDEX], vk::ImageLayout::eDepthStencilReadOnlyOptimal, vk::ImageLayout::eDepthStencilAttachmentOptimal);
+		m_vkMarchCmdBuffer.ImageBarrier(m_VKSwapChain.Images[VK_FRAME_INDEX], vk::ImageLayout::eGeneral, vk::ImageLayout::ePresentSrcKHR);
+	}
+	m_vkMarchCmdBuffer.PushPipelineBarrier();
+
+	m_vkMarchCmdBuffer.end();
+	m_vkQueue.Submit(m_vkMarchCmdBuffer, m_RenderCompleteSemaphore, m_RayMarchComplete, m_Fence[VK_FRAME_INDEX]);
+	//VK_DEVICE.waitIdle();
 }
 
 void GraphicsEngine::Swap() {
@@ -544,12 +611,12 @@ void GraphicsEngine::Swap() {
 	VK_DEVICE.waitForFences(1, &m_Fence[VK_FRAME_INDEX], true, UINT64_MAX);
 	VK_DEVICE.resetFences(1, &m_Fence[VK_FRAME_INDEX]);
 
-	vk::PresentInfoKHR presentInfo;
+	vk::PresentInfoKHR presentInfo = {};
 	presentInfo.pImageIndices = &VK_FRAME_INDEX;
 	presentInfo.swapchainCount = 1;
 	presentInfo.pSwapchains = &m_VKSwapChain.SwapChain;
 	presentInfo.waitSemaphoreCount = 1;
-	presentInfo.pWaitSemaphores = &m_RenderCompleteSemaphore;
+	presentInfo.pWaitSemaphores = &m_RayMarchComplete;
 	m_vkQueue.presentKHR(presentInfo);
 
 	VK_FRAME_INDEX = VK_DEVICE.acquireNextImageKHR(m_VKSwapChain.SwapChain, UINT64_MAX, m_ImageAquiredSemaphore, nullptr).value;

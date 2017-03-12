@@ -18,8 +18,13 @@ struct VulkanSwapChain {
 	vk::Image ResolveImages[BUFFER_COUNT];
 	vk::ImageView ImageViews[BUFFER_COUNT];
 	vk::Framebuffer FrameBuffers[BUFFER_COUNT];
-	vk::Image DepthStencilImage;
-	vk::ImageView DepthStencilImageView;
+	vk::Image DepthStencilImages[BUFFER_COUNT];
+	vk::Image DepthResolveImages[BUFFER_COUNT];
+	vk::ImageView DepthStencilImageViews[BUFFER_COUNT];
+
+	bool MSAA;
+	vk::SampleCountFlags SampleCount;
+	vk::Format Format;
 };
 
 class VulkanCommandBuffer : public vk::CommandBuffer {
@@ -50,6 +55,7 @@ public:
 		inheritanceInfo.framebuffer = frameBuffer;
 		inheritanceInfo.renderPass = renderPass;
 		beginInfo.pInheritanceInfo = &inheritanceInfo;
+		beginInfo.flags = vk::CommandBufferUsageFlagBits::eSimultaneousUse;
 
 		this->begin(&beginInfo);
 	}
@@ -64,7 +70,7 @@ public:
 		imgBarrier.subresourceRange.aspectMask = LayoutToAspectMask(newLayout);
 		imgBarrier.subresourceRange.baseArrayLayer = 0;
 		imgBarrier.subresourceRange.baseMipLevel = 0;
-		imgBarrier.subresourceRange.layerCount = 1;
+		imgBarrier.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
 		imgBarrier.subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
 		m_ImgBarriers.push_back(imgBarrier);
 	}
@@ -87,6 +93,9 @@ private:
 		case vk::ImageLayout::eDepthStencilAttachmentOptimal:
 			return vk::AccessFlagBits::eDepthStencilAttachmentRead | vk::AccessFlagBits::eDepthStencilAttachmentWrite;
 			break;
+		case vk::ImageLayout::eDepthStencilReadOnlyOptimal:
+			return vk::AccessFlagBits::eShaderRead;
+			break;
 		case vk::ImageLayout::ePresentSrcKHR:
 			return vk::AccessFlagBits::eMemoryRead;
 			break;
@@ -98,6 +107,9 @@ private:
 			break;
 		case vk::ImageLayout::eTransferSrcOptimal:
 			return vk::AccessFlagBits::eTransferRead;
+			break;
+		case vk::ImageLayout::eGeneral:
+			return vk::AccessFlagBits::eShaderWrite;
 			break;
 		case vk::ImageLayout::ePreinitialized:
 			return vk::AccessFlags();
@@ -145,8 +157,8 @@ public:
 		}
 		m_QueueInfo.queueCount = 1;
 		m_QueueInfo.queueFamilyIndex = m_QueueIndex;
-		float queuePrio[] = { 0.0f };
-		m_QueueInfo.pQueuePriorities = queuePrio;
+		m_QueuePrio = 0.0f;
+		m_QueueInfo.pQueuePriorities = &m_QueuePrio;
 	}
 
 	void Submit(const std::vector<vk::CommandBuffer>& cmdBuffers, const std::vector<vk::Semaphore> waitSemaphores,
@@ -194,6 +206,7 @@ public:
 
 private:
 	int m_QueueIndex;
+	float m_QueuePrio;
 	vk::DeviceQueueCreateInfo m_QueueInfo;
 
 };

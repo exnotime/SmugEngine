@@ -26,7 +26,6 @@ namespace Tephra {
 		Pipeline();
 		~Pipeline();
 		void LoadPipelineFromFile(const vk::Device& device, const std::string& filename, vk::Viewport vp, vk::RenderPass renderPass);
-
 		void SetDefaultVertexState(const vk::PipelineVertexInputStateCreateInfo& vertexState);
 		void SetDefaultMulitSampleState(const vk::PipelineMultisampleStateCreateInfo& msState);
 

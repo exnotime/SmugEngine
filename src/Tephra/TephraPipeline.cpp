@@ -560,6 +560,7 @@ vk::PipelineRasterizationStateCreateInfo ReadRasterState(const json& rasterState
 void Pipeline::LoadPipelineFromFile(const vk::Device& device, const std::string& filename, vk::Viewport vp, vk::RenderPass renderPass) {
 	std::ifstream fin(filename);
 	if (!fin.is_open()) {
+		printf("Error opening pipeline file %s\n", filename.c_str());
 		fin.close();
 		return;
 	}
@@ -571,7 +572,7 @@ void Pipeline::LoadPipelineFromFile(const vk::Device& device, const std::string&
 		printf("json: %s\n", e.what());
 		return;
 	}
-	vk::GraphicsPipelineCreateInfo pipelineCreateInfo;
+	fin.close();
 	//Find shaders
 	m_ShaderBits = 0;
 	if (root.find("Shaders") != root.end()) {
@@ -644,6 +645,18 @@ void Pipeline::LoadPipelineFromFile(const vk::Device& device, const std::string&
 	pipelineLayoutCreateInfo.pSetLayouts = m_DescSetLayouts.data();
 	pipelineLayoutCreateInfo.setLayoutCount = m_DescSetLayouts.size();
 	m_PipelineLayout = device.createPipelineLayout(pipelineLayoutCreateInfo);
+	//if we use a compute shader we dont need anything else
+	if (m_ShaderBits & (1 << COMPUTE_SHADER)) {
+		vk::ComputePipelineCreateInfo pipelineInfo;
+		pipelineInfo.layout = m_PipelineLayout;
+		vk::PipelineShaderStageCreateInfo computeStage;
+		computeStage.module = m_Shaders[0];
+		computeStage.stage = vk::ShaderStageFlagBits::eCompute;
+		computeStage.pName = "main";
+		pipelineInfo.stage = computeStage;
+		m_Pipeline = device.createComputePipeline(nullptr, pipelineInfo);
+		return;
+	}
 
 	//color blend state
 	vk::PipelineColorBlendStateCreateInfo blendStateInfo;
@@ -721,18 +734,15 @@ void Pipeline::LoadPipelineFromFile(const vk::Device& device, const std::string&
 		rasterInfo = GetDefaultRasterState();
 	}
 	//tesselation state
-	vk::PipelineTessellationStateCreateInfo tesselationstate;
+	vk::PipelineTessellationStateCreateInfo* tesselationstate = nullptr;
 	if (root.find("TesselationState") != root.end()) {
 		json tStateJson = root["TesselationState"];
+		tesselationstate = new vk::PipelineTessellationStateCreateInfo();
 		if (tStateJson.find("PatchControlPoints") != tStateJson.end()) {
-			tesselationstate.patchControlPoints = tStateJson["PatchControlPoints"];
+			tesselationstate->patchControlPoints = tStateJson["PatchControlPoints"];
 		}else {
-			tesselationstate.patchControlPoints = 1;
+			tesselationstate->patchControlPoints = 1;
 		}
-		pipelineCreateInfo.pTessellationState = &tesselationstate;
-	}
-	else {
-		pipelineCreateInfo.pTessellationState = nullptr;
 	}
 	//shader stages
 	std::vector<vk::PipelineShaderStageCreateInfo> shaderStages;
@@ -783,7 +793,6 @@ void Pipeline::LoadPipelineFromFile(const vk::Device& device, const std::string&
 		vertexState->vertexAttributeDescriptionCount = vertexInputDescs.size();
 	}
 
-
 	//viewport state
 	vk::PipelineViewportStateCreateInfo viewportState;
 	viewportState.viewportCount = 1;
@@ -795,10 +804,11 @@ void Pipeline::LoadPipelineFromFile(const vk::Device& device, const std::string&
 	viewportState.pScissors = &scissor;
 
 	//put everything together
+	vk::GraphicsPipelineCreateInfo pipelineCreateInfo;
 	pipelineCreateInfo.layout = m_PipelineLayout;
 	pipelineCreateInfo.pColorBlendState = &blendStateInfo;
-	
 	pipelineCreateInfo.pDepthStencilState = &depthStencilState;
+	pipelineCreateInfo.pTessellationState = (tesselationstate == nullptr) ? tesselationstate : nullptr;
 	pipelineCreateInfo.pDynamicState = nullptr;
 	pipelineCreateInfo.pInputAssemblyState = &inputAssemblyInfo;
 	pipelineCreateInfo.pMultisampleState = (multisampleStateInfo == nullptr) ? &m_DefaultMultiSampleState : multisampleStateInfo;
@@ -814,6 +824,7 @@ void Pipeline::LoadPipelineFromFile(const vk::Device& device, const std::string&
 	//clean up
 	if (vertexState) delete vertexState;
 	if (multisampleStateInfo) delete multisampleStateInfo;
+	if (tesselationstate) delete tesselationstate;
 }
 
 void Pipeline::SetDefaultVertexState(const vk::PipelineVertexInputStateCreateInfo& vertexState) {

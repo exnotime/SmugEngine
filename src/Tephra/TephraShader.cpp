@@ -50,8 +50,12 @@ vk::ShaderModule Tephra::LoadShader(const vk::Device& device, const std::string&
 	struct stat cacheBuf, fileBuf;
 	stat(cacheName.c_str(), &cacheBuf);
 	stat(filename.c_str(), &fileBuf);
-	//also checks if there is a cache
-	if (cacheBuf.st_mtime >= fileBuf.st_mtime) {
+	//either there is no shader at filename or it was created 1 jan 1970
+	if (fileBuf.st_mtime == 0) {
+		printf("Error opening shader %s\n", filename.c_str());
+		return nullptr;
+	}
+	if (cacheBuf.st_mtime > fileBuf.st_mtime) {
 		//there is an up to date cache
 		vk::ShaderModuleCreateInfo shaderInfo;
 		FILE* fin = fopen(cacheName.c_str(), "rb");
@@ -76,6 +80,40 @@ vk::ShaderModule Tephra::LoadShader(const vk::Device& device, const std::string&
 	shaderc_compile_options_set_generate_debug_info(options);
 #endif
 	shaderc_compile_options_set_optimization_level(options, shaderc_optimization_level::shaderc_optimization_level_zero);
+	//include resolver lambda
+	auto includeResolver = [](void* user_data, const char* requested_source, int type,
+		const char* requesting_source, size_t include_depth) -> shaderc_include_result* {
+		std::string filename;
+		if (type == shaderc_include_type_relative) {
+			std::string reqSrc = std::string(requesting_source);
+			filename = reqSrc.substr(0, reqSrc.find_last_of('/')) + '/' + std::string(requested_source);
+		}
+		else if (type == shaderc_include_type_standard) {
+			filename = "shaders/" + std::string(requested_source);
+		}
+		FILE* fin = fopen(filename.c_str(), "rb");
+		fseek(fin, 0, SEEK_END);
+		size_t size = ftell(fin);
+		rewind(fin);
+		char* src = new char[size];
+		fread(src, sizeof(char), size,fin);
+		fclose(fin);
+
+		char* srcfile = new char[filename.size()];
+		strcpy(srcfile, filename.c_str());
+		shaderc_include_result* res = new shaderc_include_result();
+		res->content = src;
+		res->content_length = size;
+		res->source_name = srcfile;
+		res->source_name_length = filename.size();
+		res->user_data = nullptr;
+		return res;
+	};
+
+	auto includeResRelease = [](void* user_data, shaderc_include_result* include_result) {
+		 delete include_result;
+	};
+	shaderc_compile_options_set_include_callbacks(options, includeResolver, includeResRelease, nullptr);
 
 	shaderc_compilation_result_t result = shaderc_compile_into_spv(compiler, code, fileBuf.st_size, shaderType, filename.c_str(), "main", options);
 	if (shaderc_result_get_compilation_status(result) != shaderc_compilation_status_success) {

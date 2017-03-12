@@ -118,15 +118,17 @@ void Memory::AllocateImage(vk::Image img, gli::texture2d* texture, void* data) {
 	if (m_DeviceOffset + memReq.size > m_DeviceSize) {
 		return;
 	}
+	VkDeviceSize size = (texture) ? texture->size() : memReq.size;
 	m_Device.bindImageMemory(img, m_DevMem, m_DeviceOffset);
-	if (data && m_StagingOffset + memReq.size < m_StagingSize) {
+
+	if (data && m_StagingOffset + size < m_StagingSize) {
 		//transfer data to staging buffer
-		void* bufferPtr = m_Device.mapMemory(m_StagingMem, m_StagingOffset, memReq.size);
-		memcpy(bufferPtr, data, memReq.size);
+		void* bufferPtr = m_Device.mapMemory(m_StagingMem, m_StagingOffset, size);
+		memcpy(bufferPtr, data, size);
 		vk::MappedMemoryRange range;
 		range.memory = m_StagingMem;
 		range.offset = m_StagingOffset;
-		range.size = memReq.size;
+		range.size = size;
 		m_Device.flushMappedMemoryRanges(1, &range);
 		m_Device.unmapMemory(m_StagingMem);
 		
@@ -155,6 +157,59 @@ void Memory::AllocateImage(vk::Image img, gli::texture2d* texture, void* data) {
 			m_StagingOffset += memReq.size;
 		}
 		
+	}
+	m_DeviceOffset += memReq.size;
+}
+
+void Memory::AllocateImageCube(vk::Image img, gli::texture_cube* texture, void* data) {
+	vk::MemoryRequirements memReq = m_Device.getImageMemoryRequirements(img);
+	m_DeviceOffset = (m_DeviceOffset + memReq.alignment) & ~memReq.alignment;
+
+	if (m_DeviceOffset + memReq.size > m_DeviceSize) {
+		return;
+	}
+	VkDeviceSize size = (texture) ? texture->size() : memReq.size;
+	m_Device.bindImageMemory(img, m_DevMem, m_DeviceOffset);
+
+	if (data && m_StagingOffset + size < m_StagingSize) {
+		//transfer data to staging buffer
+		void* bufferPtr = m_Device.mapMemory(m_StagingMem, m_StagingOffset, size);
+		memcpy(bufferPtr, data, size);
+		vk::MappedMemoryRange range;
+		range.memory = m_StagingMem;
+		range.offset = m_StagingOffset;
+		range.size = size;
+		m_Device.flushMappedMemoryRanges(1, &range);
+		m_Device.unmapMemory(m_StagingMem);
+
+		if (texture) {
+			TextureTransfer transfer;
+			transfer.Image = img;
+			for (int f = 0; f < texture->faces(); f++) {
+				for (int i = 0; i < texture->levels(); i++) {
+					vk::BufferImageCopy copy;
+					gli::image mip = (*texture)[f][i];
+					copy.bufferOffset = m_StagingOffset;
+					copy.imageExtent = vk::Extent3D(mip.extent().x, mip.extent().y, 1);
+					copy.imageSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
+					copy.imageSubresource.baseArrayLayer = f;
+					copy.imageSubresource.layerCount = 1;
+					copy.imageSubresource.mipLevel = i;
+					transfer.copies.push_back(copy);
+					m_StagingOffset += mip.size();
+				}
+			}
+			m_ImageTransfers.push_back(transfer);
+		}
+		else {
+			vk::BufferCopy copy;
+			copy.dstOffset = m_DeviceOffset;
+			copy.srcOffset = m_StagingOffset;
+			copy.size = memReq.size;
+			m_Transfers.push_back(copy);
+			m_StagingOffset += memReq.size;
+		}
+
 	}
 	m_DeviceOffset += memReq.size;
 }

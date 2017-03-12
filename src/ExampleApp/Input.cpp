@@ -31,8 +31,8 @@ void Input::Update() {
 			m_GamePads[i].LeftY = axes[1];
 			m_GamePads[i].RightX = axes[2];
 			m_GamePads[i].RightY = axes[3];
-			m_GamePads[i].LeftTrigger = axes[4] * 0.5f + 0.5; //modify to 0 -> 1 instead of -1 -> 1
-			m_GamePads[i].RightTrigger = axes[5] * 0.5f + 0.5;
+			m_GamePads[i].LeftTrigger = axes[4] * 0.5f + 0.5f; //modify to 0 -> 1 instead of -1 -> 1
+			m_GamePads[i].RightTrigger = axes[5] * 0.5f + 0.5f;
 			
 			m_GamePads[i].A = buttons[0];
 			m_GamePads[i].B = buttons[1];

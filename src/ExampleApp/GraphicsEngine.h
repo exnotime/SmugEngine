@@ -1,12 +1,13 @@
 #pragma once
 #include <vulkan/vulkan.hpp>
 #include <GLFW/glfw3.h>
-
+#include <Tephra/TephraPipeline.h>
 #include "VulkanContext.h"
 #include "Memory.h"
 #include "Camera.h"
 #include "Texture.h"
-#include <Tephra/TephraPipeline.h>
+#include "SkyBox.h"
+#include "Raymarch.h"
 
 struct PerFrameBuffer {
 	glm::mat4 ViewProj;
@@ -30,6 +31,7 @@ private:
 	VulkanContext m_VKContext;
 	VulkanSwapChain m_VKSwapChain;
 	VulkanCommandBuffer m_vkCmdBuffer;
+	VulkanCommandBuffer m_vkMarchCmdBuffer;
 	VulkanQueue m_vkQueue;
 	Texture m_Texture;
 	Tephra::Pipeline m_Pipelines[3];
@@ -38,6 +40,7 @@ private:
 	vk::RenderPass m_RenderPass;
 	vk::Semaphore m_ImageAquiredSemaphore;
 	vk::Semaphore m_RenderCompleteSemaphore;
+	vk::Semaphore m_RayMarchComplete;
 	vk::Fence m_Fence[BUFFER_COUNT];
 	vk::Viewport m_Viewport;
 
@@ -45,7 +48,7 @@ private:
 	int m_MeshVertexCount;
 
 	Buffer m_UniformBuffer;
-
+	SkyBox m_SkyBox;
 	vk::DescriptorPool m_DescriptorPool;
 	vk::DescriptorSet m_DescriptorSet;
 
@@ -57,9 +60,9 @@ private:
 	bool m_VSync;
 	vk::PipelineMultisampleStateCreateInfo m_MSState;
 
-#ifdef _DEBUG
+	Raymarcher m_Raymarcher;
+
 	VkDebugReportCallbackEXT m_DebugCallbacks;
-#endif
 
 #define VK_DEVICE m_VKContext.Device
 #define VK_PHYS_DEVICE m_VKContext.PhysicalDevice
