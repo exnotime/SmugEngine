@@ -24,16 +24,38 @@ solution "Tephra"
         flags { "Optimize", "FloatFast" }
         targetdir ( "bin/" .. "/release" )
 
-	project "Tephra"
+	project "Core"
         targetname "Tephra"
 		debugdir ""
 		location ( location_path )
 		language "C++"
 		kind "ConsoleApp"
-		files { "src/**"}
+		files { "src/Core/**"}
 		includedirs { "include", "src" }
-		links { "glfw3", "vulkan-1" }
-        configuration { "Debug" }
+		links {  "Graphics", "Assetloader", "glfw3" }
+
+
+    project "Graphics"
+    	targetname "Graphics"
+    	defines { "GRAPHICS_EXPORT", "VK_USE_PLATFORM_WIN32_KHR"}
+    	debugdir ""
+    	location (location_path)
+    	language("C++")
+    	files { "src/Graphics/**"}
+    	includedirs { "include", "src" }
+    	kind "SharedLib"
+    	links { "vulkan-1"}
+    	configuration { "Debug" }
                 links { "shaderc_combinedD" }
         configuration { "Release" }
                 links { "shaderc_combined" }
+
+    project "AssetLoader"
+    	targetname "Assetloader"
+    	defines { "ASSET_EXPORT"}
+    	debugdir ""
+    	location (location_path)
+    	language("C++")
+    	files { "src/Assetloader/**"}
+    	includedirs { "include", "src" }
+    	kind "SharedLib"

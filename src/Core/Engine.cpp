@@ -1,8 +1,16 @@
 #include "engine.h"
+#define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3.h>
+#include <GLFW/glfw3native.h>
 #include <glm/glm.hpp>
 #include "Input.h"
-#include "GraphicsEngine.h"
+#include "Window.h"
+#include "Graphics/GraphicsEngine.h"
+#include "components/CameraComponent.h"
+#include "components/TransformComponent.h"
+#include "datasystem/ComponentManager.h"
+#include "subsystem/SubSystemSet.h"
+#include "subsystem/systems/SSCamera.h"
 
 Engine::Engine() {
 
@@ -11,6 +19,8 @@ Engine::Engine() {
 Engine::~Engine() {
 	delete m_Window;
 	delete m_vkGFX;
+	m_MainSubSystemSet->Clear();
+	delete m_MainSubSystemSet;
 	glfwTerminate();
 }
 
@@ -34,8 +44,17 @@ void Engine::Init() {
 	glfwSetCursorPosCallback(m_Window->GetWindow(), MousePosCallback);
 	g_Input.SetCursorMode(m_Window->GetWindow(), GLFW_CURSOR_DISABLED);
 
+	//set up graphics engine
 	m_vkGFX = new GraphicsEngine();
-	m_vkGFX->Init(m_Window->GetWindow());
+	HWND hWnd = glfwGetWin32Window(m_Window->GetWindow());
+	m_vkGFX->Init(glm::vec2(ws.Width, ws.Height), ws.Vsync, hWnd);
+	//create component buffers
+	g_ComponentManager.AddComponentType(1000, sizeof(TransformComponent), TransformComponent::Flag, "TransformComponent");
+	g_ComponentManager.AddComponentType(10, sizeof(CameraComponent), CameraComponent::Flag, "CameraComponent");
+
+	m_MainSubSystemSet = new SubSystemSet();
+	m_MainSubSystemSet->AddSubSystem(new SSCamera());
+
 }
 
 void Engine::Run() {

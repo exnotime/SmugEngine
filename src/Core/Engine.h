@@ -1,7 +1,7 @@
 #pragma once
-#include "Window.h"
-
+class Window;
 class GraphicsEngine;
+class SubSystemSet;
 
 class Engine {
 public:
@@ -12,4 +12,5 @@ public:
 private:
 	Window* m_Window;
 	GraphicsEngine* m_vkGFX;
+	SubSystemSet* m_MainSubSystemSet;
 };

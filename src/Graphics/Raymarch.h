@@ -1,7 +1,6 @@
 #pragma once
 #include "VulkanContext.h"
-#include <Tephra/TephraPipeline.h>
-#include "Camera.h"
+#include "TephraPipeline.h"
 #include "Memory.h"
 class Raymarcher {
 public: 
@@ -9,7 +8,7 @@ public:
 	~Raymarcher();
 
 	void Init(const vk::Device& device, const VulkanSwapChain& swapChain, const vk::PhysicalDevice& physDev);
-	void UpdateUniform(VulkanCommandBuffer& cmdBuffer, const Camera& cam);
+	void UpdateUniform(VulkanCommandBuffer& cmdBuffer);
 	void Render(VulkanCommandBuffer& cmdBuffer, uint32_t frameIndex);
 private:
 	Tephra::Pipeline m_Pipeline;

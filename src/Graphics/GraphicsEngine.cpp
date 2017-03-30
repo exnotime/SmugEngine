@@ -1,14 +1,10 @@
 #include "GraphicsEngine.h"
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
-#ifdef _WIN32
-#include <Windows.h>
-#endif
 #define PAR_SHAPES_IMPLEMENTATION
 #include <par_shapes.h>
-#include "VulkanContext.h"
 #include "Vertex.h"
-#include "Input.h"
+#include <vulkan/vulkan.h>
 
 GraphicsEngine::GraphicsEngine() {
 
@@ -42,6 +38,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDebugCallback(
 }
 
 void GraphicsEngine::CreateContext() {
+
 	vk::ApplicationInfo appInfo;
 	appInfo.pApplicationName = "Tephra";
 	appInfo.applicationVersion = 1;
@@ -49,15 +46,19 @@ void GraphicsEngine::CreateContext() {
 	appInfo.engineVersion = 1;
 	appInfo.apiVersion = VK_API_VERSION_1_0;
 
-	uint32_t instExtCount = 0;
-	const char** instExt = glfwGetRequiredInstanceExtensions(&instExtCount);
-	std::vector<const char*> extensions;
-	for (uint32_t i = 0; i < instExtCount; i++) {
-		extensions.push_back(instExt[i]);
-	}
-	extensions.push_back("VK_EXT_debug_report");
 	std::vector<const char*> layers;
+	std::vector<const char*> extensions;
+#ifdef _DEBUG
+	extensions.push_back("VK_EXT_debug_report");
+
 	layers.push_back("VK_LAYER_LUNARG_standard_validation");
+#endif
+
+	extensions.push_back("VK_KHR_surface");
+	//extensions.push_back("VK_KHR_swapchain");
+#ifdef _WIN32
+	extensions.push_back("VK_KHR_win32_surface");
+#endif
 
 	vk::InstanceCreateInfo instInfo;
 	instInfo.enabledExtensionCount = extensions.size();
@@ -65,8 +66,9 @@ void GraphicsEngine::CreateContext() {
 	instInfo.ppEnabledExtensionNames = &extensions[0];
 	instInfo.enabledLayerCount = layers.size();
 	instInfo.ppEnabledLayerNames = &layers[0];
-
 	m_VKContext.Instance = vk::createInstance(instInfo);
+
+#ifdef _DEBUG
 	/* Load VK_EXT_debug_report entry points in debug builds */
 	PFN_vkCreateDebugReportCallbackEXT vkCreateDebugReportCallbackEXT =
 		reinterpret_cast<PFN_vkCreateDebugReportCallbackEXT>
@@ -82,9 +84,8 @@ void GraphicsEngine::CreateContext() {
 	debugCallbacks.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT;
 	debugCallbacks.pfnCallback = &VulkanDebugCallback;
 
-	//m_DebugCallbacks = m_VKContext.Instance.createDebugReportCallbackEXT( debugCallbacks);
 	vkCreateDebugReportCallbackEXT(m_VKContext.Instance, &debugCallbacks, nullptr, &m_DebugCallbacks);
-
+#endif
 	auto gpus = m_VKContext.Instance.enumeratePhysicalDevices();
 	if (gpus.size() == 0) {
 		return;
@@ -136,10 +137,8 @@ void GraphicsEngine::CreateContext() {
 	m_vkMarchCmdBuffer.Init(VK_DEVICE, m_vkQueue.GetQueueIndex());
 }
 
-void GraphicsEngine::CreateSwapChain(GLFWwindow* window, bool vsync) {
-	VkSurfaceKHR surf;
-	glfwCreateWindowSurface(m_VKContext.Instance, window, nullptr, &surf);
-	m_VKSwapChain.Surface = surf;
+void GraphicsEngine::CreateSwapChain(VkSurfaceKHR surface) {
+	m_VKSwapChain.Surface = surface;
 
 	VK_PHYS_DEVICE.getSurfaceSupportKHR(m_vkQueue.GetQueueIndex(), m_VKSwapChain.Surface);
 
@@ -154,7 +153,7 @@ void GraphicsEngine::CreateSwapChain(GLFWwindow* window, bool vsync) {
 			format = f;
 	}
 
-	vk::PresentModeKHR mode = vsync ? vk::PresentModeKHR::eFifo : vk::PresentModeKHR::eMailbox;
+	vk::PresentModeKHR mode = m_VSync ? vk::PresentModeKHR::eFifo : vk::PresentModeKHR::eMailbox;
 	vk::SampleCountFlagBits msaaCount = m_MSAA ? vk::SampleCountFlagBits::e4 : vk::SampleCountFlagBits::e1;
 
 	m_VKSwapChain.MSAA = m_MSAA;
@@ -316,15 +315,24 @@ void GraphicsEngine::CreateSwapChain(GLFWwindow* window, bool vsync) {
 	}
 }
 
-void GraphicsEngine::Init(GLFWwindow* window) {
+void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	m_CurrentPipeline = 0;
 	CreateContext();
+
+	vk::Win32SurfaceCreateInfoKHR surfaceInfo = {};
+	surfaceInfo.hwnd = hWnd;
+	surfaceInfo.hinstance = GetModuleHandle(nullptr);
+
+	m_VKSwapChain.Surface = m_VKContext.Instance.createWin32SurfaceKHR(surfaceInfo);
+
 	//Allocate memory on gpu
 	m_TextureMemory.Init(VK_DEVICE, VK_PHYS_DEVICE, 512 * MEGA_BYTE);
 	m_BufferMemory.Init(VK_DEVICE, VK_PHYS_DEVICE, 16 * MEGA_BYTE, 8 * MEGA_BYTE);
 
 	m_MSAA = false;
-	CreateSwapChain(window, true);
+	m_VSync = vsync;
+	m_ScreenSize = windowSize;
+	CreateSwapChain(m_VKSwapChain.Surface);
 
 	vk::SemaphoreCreateInfo semaphoreInfo;
 	m_ImageAquiredSemaphore = VK_DEVICE.createSemaphore(semaphoreInfo);
@@ -336,10 +344,9 @@ void GraphicsEngine::Init(GLFWwindow* window) {
 
 	VK_FRAME_INDEX = VK_DEVICE.acquireNextImageKHR(m_VKSwapChain.SwapChain, UINT64_MAX, m_ImageAquiredSemaphore, nullptr).value;
 	//viewport
-	int w, h;
-	glfwGetWindowSize(window, &w, &h);
-	m_Viewport.width = w;
-	m_Viewport.height = h;
+	
+	m_Viewport.width = m_ScreenSize.x;
+	m_Viewport.height = m_ScreenSize.y;
 	m_Viewport.minDepth = 0.0f;
 	m_Viewport.maxDepth = 1.0f;
 	m_Viewport.x = 0;
@@ -436,13 +443,11 @@ void GraphicsEngine::Init(GLFWwindow* window) {
 
 	VK_DEVICE.updateDescriptorSets(2, descWrites, 0, nullptr);
 
-	m_Camera.SetPosition(glm::vec3(0, 0.5f, -2.0f));
-
 	m_SkyBox.Init(VK_DEVICE, VK_PHYS_DEVICE, "assets/skybox.dds", m_Viewport, m_RenderPass, m_MSState);
 	m_Raymarcher.Init(VK_DEVICE, m_VKSwapChain, VK_PHYS_DEVICE);
 	//prepare initial transfer
 	m_vkCmdBuffer.Begin(nullptr, nullptr);
-	m_SkyBox.PrepareUniformBuffer(m_vkCmdBuffer, m_Camera);
+	m_SkyBox.PrepareUniformBuffer(m_vkCmdBuffer);
 	
 	for (int i = 0; i < BUFFER_COUNT; i++) {
 		if (m_MSAA) {
@@ -466,41 +471,20 @@ void GraphicsEngine::Init(GLFWwindow* window) {
 }
 
 void GraphicsEngine::Render() {
-	if (g_Input.IsKeyDown(GLFW_KEY_W)) {
-		m_Camera.MoveRelative(glm::vec3(0, 0, -0.1f));
-	}
-	if (g_Input.IsKeyDown(GLFW_KEY_S)) {
-		m_Camera.MoveRelative(glm::vec3(0, 0, 0.1f));
-	}
-	if (g_Input.IsKeyDown(GLFW_KEY_D)) {
-		m_Camera.MoveRelative(glm::vec3(0.1f, 0, 0));
-	}
-	if (g_Input.IsKeyDown(GLFW_KEY_A)) {
-		m_Camera.MoveRelative(glm::vec3(-0.1f, 0, 0));
-	}
-	if (g_Input.IsKeyDown(GLFW_KEY_C)) {
-		m_Camera.MoveWorld(glm::vec3(0, -0.1f, 0));
-	}
-	if (g_Input.IsKeyDown(GLFW_KEY_SPACE)) {
-		m_Camera.MoveWorld(glm::vec3(0, 0.1f, 0));
-	}
 
-	m_Camera.YawWorld(g_Input.GetMouseDelta().x * -0.001f);
-	m_Camera.PitchRelative(g_Input.GetMouseDelta().y * 0.001f);
-
-	m_Camera.CalculateViewProjection();
+	//m_Camera.CalculateViewProjection();
 	//transfer new camera position
 	PerFrameBuffer uniformBuffer;
-	uniformBuffer.ViewProj = (m_Camera.GetViewProjection() * glm::translate(glm::vec3(0,2,0)));
-	uniformBuffer.CameraPos = glm::vec4(m_Camera.GetPosition(), 1);
+	//uniformBuffer.ViewProj = (m_Camera.GetViewProjection() * glm::translate(glm::vec3(0,2,0)));
+	//uniformBuffer.CameraPos = glm::vec4(m_Camera.GetPosition(), 1);
 	uniformBuffer.LightDir = glm::normalize(glm::vec4(0.2f, -1.0f, -0.4f, 1.0f));
 	m_BufferMemory.UpdateBuffer(m_UniformBuffer, sizeof(PerFrameBuffer), (void*)(&uniformBuffer));
 	m_vkCmdBuffer.Reset(VK_DEVICE, VK_FRAME_INDEX);
 
 	m_vkCmdBuffer.Begin(nullptr, nullptr);
 	m_BufferMemory.ScheduleTransfers(m_vkCmdBuffer);
-	m_SkyBox.PrepareUniformBuffer(m_vkCmdBuffer, m_Camera);
-	m_Raymarcher.UpdateUniform(m_vkCmdBuffer, m_Camera);
+	m_SkyBox.PrepareUniformBuffer(m_vkCmdBuffer);
+	m_Raymarcher.UpdateUniform(m_vkCmdBuffer);
 	m_vkCmdBuffer.end();
 
 	m_vkQueue.Submit(m_vkCmdBuffer);
@@ -603,7 +587,6 @@ void GraphicsEngine::Render() {
 
 	m_vkMarchCmdBuffer.end();
 	m_vkQueue.Submit(m_vkMarchCmdBuffer, m_RenderCompleteSemaphore, m_RayMarchComplete, m_Fence[VK_FRAME_INDEX]);
-	//VK_DEVICE.waitIdle();
 }
 
 void GraphicsEngine::Swap() {

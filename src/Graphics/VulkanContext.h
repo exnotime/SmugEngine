@@ -7,7 +7,6 @@ struct VulkanContext {
 	vk::Instance Instance;
 	vk::Device Device;
 	vk::PhysicalDevice PhysicalDevice;
-	vk::Queue GFXQueue;
 	uint32_t FrameIndex;
 };
 

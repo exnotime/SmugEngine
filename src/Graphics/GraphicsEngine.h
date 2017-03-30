@@ -1,13 +1,17 @@
 #pragma once
-#include <vulkan/vulkan.hpp>
-#include <GLFW/glfw3.h>
-#include <Tephra/TephraPipeline.h>
+#include "GraphicsExport.h"
+
+#include "TephraPipeline.h"
 #include "VulkanContext.h"
 #include "Memory.h"
-#include "Camera.h"
 #include "Texture.h"
 #include "SkyBox.h"
 #include "Raymarch.h"
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#endif
+
 
 struct PerFrameBuffer {
 	glm::mat4 ViewProj;
@@ -15,18 +19,18 @@ struct PerFrameBuffer {
 	glm::vec4 LightDir;
 };
 
-class GraphicsEngine {
+class GFX_DLL GraphicsEngine {
 public:
 	GraphicsEngine();
 	~GraphicsEngine();
-	void Init(GLFWwindow* window);
+	void Init(glm::vec2 windowSize, bool vsync, HWND hWnd);
 	void Render();
 	void Swap();
 	void NextPipeline();
 	void PrevPipeline();
 private:
 	void CreateContext();
-	void CreateSwapChain(GLFWwindow* window, bool vsync);
+	void CreateSwapChain(VkSurfaceKHR surface);
 
 	VulkanContext m_VKContext;
 	VulkanSwapChain m_VKSwapChain;
@@ -52,12 +56,12 @@ private:
 	vk::DescriptorPool m_DescriptorPool;
 	vk::DescriptorSet m_DescriptorSet;
 
-	Camera m_Camera;
 	Memory m_BufferMemory;
 	Memory m_TextureMemory;
 
 	bool m_MSAA;
 	bool m_VSync;
+	glm::vec2 m_ScreenSize;
 	vk::PipelineMultisampleStateCreateInfo m_MSState;
 
 	Raymarcher m_Raymarcher;
