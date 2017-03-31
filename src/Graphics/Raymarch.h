@@ -8,7 +8,7 @@ public:
 	~Raymarcher();
 
 	void Init(const vk::Device& device, const VulkanSwapChain& swapChain, const vk::PhysicalDevice& physDev);
-	void UpdateUniform(VulkanCommandBuffer& cmdBuffer);
+	void UpdateUniforms(VulkanCommandBuffer& cmdBuffer, const glm::mat4& viewProj, const glm::vec3& position);
 	void Render(VulkanCommandBuffer& cmdBuffer, uint32_t frameIndex);
 private:
 	Tephra::Pipeline m_Pipeline;

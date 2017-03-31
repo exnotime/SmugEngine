@@ -8,7 +8,7 @@ Camera::Camera() {
 	m_CamData.Forward = glm::vec3(0, 0, 1);
 	m_CamData.Right = glm::vec3(1, 0, 0);
 	m_CamData.Up = glm::vec3(0, -1, 0);
-	m_CamData.Fov = 0.61f;
+	m_CamData.Fov = 0.8f;
 	m_CamData.Near = 0.1f;
 	m_CamData.Far = 100.0f;
 	m_CamData.Width = 16;
@@ -24,7 +24,7 @@ void Camera::CalculateViewProjection() {
 									0, -1, 0, 0,
 									0, 0, 0.5f, 0.5f,
 									0, 0, 0, 1 };
-	m_CamData.ProjView = (correction * m_CamData.Proj) * m_CamData.View;
+	m_CamData.ProjView = m_CamData.Proj * m_CamData.View;
 }
 
 void Camera::MoveWorld(const glm::vec3& distanceToMove) {

@@ -2,8 +2,12 @@
 #include "Core/components/CameraComponent.h"
 #include "Core/datasystem/ComponentManager.h"
 #include "Core/entity/EntityManager.h"
-
 #include "Core/Input.h"
+#include <Graphics/GraphicsEngine.h>
+#include "../../GlobalSystems.h"
+#include "../../Camera.h"
+
+#define CAMERA_SPEED 20.0f
 SSCamera::SSCamera(){
 
 }
@@ -26,29 +30,35 @@ void SSCamera::Update(const double deltaTime) {
 		if (e.ComponentBitfield & flag) {
 			CameraComponent* cc = (CameraComponent*)g_ComponentManager.GetComponent(e, CameraComponent::Flag);
 			
-			glm::dvec3 velocity = glm::vec3(0.0f);
+			glm::vec3 velocity = glm::vec3(0.0f);
+			float speed = CAMERA_SPEED * deltaTime;
 			if (g_Input.IsKeyDown(GLFW_KEY_W)) {
-				velocity += glm::dvec3(0, 0, 1);
+				cc->Cam.MoveRelative(glm::vec3(0, 0, -0.1f));
 			}
 			if (g_Input.IsKeyDown(GLFW_KEY_S)) {
-				velocity += glm::dvec3(0, 0, -1);
+				cc->Cam.MoveRelative(glm::vec3(0, 0, 0.1f));
 			}
 			if (g_Input.IsKeyDown(GLFW_KEY_A)) {
-				velocity += glm::dvec3(-1, 0, 0);
+				cc->Cam.MoveRelative(glm::vec3(-0.1f, 0, 0));
 			}
 			if (g_Input.IsKeyDown(GLFW_KEY_D)) {
-				velocity += glm::dvec3(1, 0, 0);
+				cc->Cam.MoveRelative(glm::vec3(0.1f, 0, 0));
 			}
 			if (g_Input.IsKeyDown(GLFW_KEY_SPACE)) {
-				cc->Cam.MoveWorld(glm::vec3(0, -1 * deltaTime, 0));
+				cc->Cam.MoveWorld(glm::vec3(0, speed, 0));
 			}
 			if (g_Input.IsKeyDown(GLFW_KEY_C)) {
-				cc->Cam.MoveWorld(glm::vec3(0, 1 * deltaTime, 0));
+				cc->Cam.MoveWorld(glm::vec3(0, -speed, 0));
 			}
-			cc->Cam.MoveRelative(velocity * deltaTime);
+
+			cc->Cam.YawWorld(g_Input.GetMouseDelta().x * -0.001f);
+			cc->Cam.PitchRelative(g_Input.GetMouseDelta().y * 0.001f);
+
+			cc->Cam.CalculateViewProjection();
+
+			globals::g_Gfx->GetRenderQueue()->AddCamera(cc->Cam.GetData());
 		}
 	}
-
 }
 
 void SSCamera::Shutdown() {

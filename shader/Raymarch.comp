@@ -23,7 +23,7 @@ vec2 map(vec3 p){
     vec3 repP = opTwist(p); //opRepeat(, vec3(10, 0, 10));
     float box = udRoundBox(repP, vec3(1), 0.5, vec3(0, 0, 0));
     float sphere = sdSphere(p, 2.4f, vec3(0,-2,0));
-    return vec2(opUnion(opBlend(sphere, box), plane), 1);
+    return vec2(opBlend(sphere, box), 1);
 }
 
 vec3 CastRay(vec3 ro, vec3 rd){

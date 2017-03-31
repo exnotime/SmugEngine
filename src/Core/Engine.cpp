@@ -5,12 +5,15 @@
 #include <glm/glm.hpp>
 #include "Input.h"
 #include "Window.h"
-#include "Graphics/GraphicsEngine.h"
+
 #include "components/CameraComponent.h"
 #include "components/TransformComponent.h"
 #include "datasystem/ComponentManager.h"
 #include "subsystem/SubSystemSet.h"
 #include "subsystem/systems/SSCamera.h"
+#include "GlobalSystems.h"
+#include "Timer.h"
+#include "AssetLoader/AssetLoader.h" //temp
 
 Engine::Engine() {
 
@@ -18,9 +21,10 @@ Engine::Engine() {
 
 Engine::~Engine() {
 	delete m_Window;
-	delete m_vkGFX;
 	m_MainSubSystemSet->Clear();
 	delete m_MainSubSystemSet;
+	delete m_GlobalTimer;
+	globals::Clear();
 	glfwTerminate();
 }
 
@@ -45,36 +49,38 @@ void Engine::Init() {
 	g_Input.SetCursorMode(m_Window->GetWindow(), GLFW_CURSOR_DISABLED);
 
 	//set up graphics engine
-	m_vkGFX = new GraphicsEngine();
+	globals::g_Gfx = new GraphicsEngine();
 	HWND hWnd = glfwGetWin32Window(m_Window->GetWindow());
-	m_vkGFX->Init(glm::vec2(ws.Width, ws.Height), ws.Vsync, hWnd);
+	globals::g_Gfx->Init(glm::vec2(ws.Width, ws.Height), ws.Vsync, hWnd);
 	//create component buffers
 	g_ComponentManager.AddComponentType(1000, sizeof(TransformComponent), TransformComponent::Flag, "TransformComponent");
 	g_ComponentManager.AddComponentType(10, sizeof(CameraComponent), CameraComponent::Flag, "CameraComponent");
 
 	m_MainSubSystemSet = new SubSystemSet();
 	m_MainSubSystemSet->AddSubSystem(new SSCamera());
+	m_MainSubSystemSet->StartSubSystems();
 
+	m_GlobalTimer = new Timer();
+	m_GlobalTimer->Reset();
 }
 
 void Engine::Run() {
 	int mode = GLFW_CURSOR_DISABLED;
 	while (!glfwWindowShouldClose(m_Window->GetWindow())) {
+
 		if (g_Input.IsKeyPushed(GLFW_KEY_L)) {
 			mode = (mode == GLFW_CURSOR_NORMAL) ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL;
 			g_Input.SetCursorMode(m_Window->GetWindow(), mode);
 		}
-		if (g_Input.IsKeyPushed(GLFW_KEY_RIGHT)) {
-			m_vkGFX->NextPipeline();
-		}
-		if (g_Input.IsKeyPushed(GLFW_KEY_LEFT)) {
-			m_vkGFX->PrevPipeline();
-		}
-		m_vkGFX->Render();
-		m_vkGFX->Swap();
 
-		if (g_Input.IsKeyDown(GLFW_KEY_ESCAPE))
+		if (g_Input.IsKeyDown(GLFW_KEY_ESCAPE)) {
 			break;
+		}
+
+		m_MainSubSystemSet->UpdateSubSystems(m_GlobalTimer->Tick());
+
+		globals::g_Gfx->Render();
+		globals::g_Gfx->Swap();
 
 		g_Input.Update();
 		glfwPollEvents();

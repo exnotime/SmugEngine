@@ -472,11 +472,13 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 
 void GraphicsEngine::Render() {
 
-	//m_Camera.CalculateViewProjection();
 	//transfer new camera position
+	RenderQueue& rq = m_RenderQueues[VK_FRAME_INDEX];
+	CameraData cd = rq.GetCameras()[0];
+
 	PerFrameBuffer uniformBuffer;
-	//uniformBuffer.ViewProj = (m_Camera.GetViewProjection() * glm::translate(glm::vec3(0,2,0)));
-	//uniformBuffer.CameraPos = glm::vec4(m_Camera.GetPosition(), 1);
+	uniformBuffer.ViewProj = (cd.ProjView * (glm::translate(glm::vec3(0,2,0)) * glm::scale(glm::vec3(2.0f))));
+	uniformBuffer.CameraPos = glm::vec4(cd.Position, 1);
 	uniformBuffer.LightDir = glm::normalize(glm::vec4(0.2f, -1.0f, -0.4f, 1.0f));
 	m_BufferMemory.UpdateBuffer(m_UniformBuffer, sizeof(PerFrameBuffer), (void*)(&uniformBuffer));
 	m_vkCmdBuffer.Reset(VK_DEVICE, VK_FRAME_INDEX);
@@ -484,7 +486,7 @@ void GraphicsEngine::Render() {
 	m_vkCmdBuffer.Begin(nullptr, nullptr);
 	m_BufferMemory.ScheduleTransfers(m_vkCmdBuffer);
 	m_SkyBox.PrepareUniformBuffer(m_vkCmdBuffer);
-	m_Raymarcher.UpdateUniform(m_vkCmdBuffer);
+	m_Raymarcher.UpdateUniforms(m_vkCmdBuffer, cd.ProjView, cd.Position);
 	m_vkCmdBuffer.end();
 
 	m_vkQueue.Submit(m_vkCmdBuffer);
@@ -602,6 +604,8 @@ void GraphicsEngine::Swap() {
 	presentInfo.pWaitSemaphores = &m_RayMarchComplete;
 	m_vkQueue.presentKHR(presentInfo);
 
+	m_RenderQueues[VK_FRAME_INDEX].Clear();
+
 	VK_FRAME_INDEX = VK_DEVICE.acquireNextImageKHR(m_VKSwapChain.SwapChain, UINT64_MAX, m_ImageAquiredSemaphore, nullptr).value;
 }
 
@@ -611,4 +615,8 @@ void GraphicsEngine::NextPipeline() {
 
 void GraphicsEngine::PrevPipeline() {
 	m_CurrentPipeline = (m_CurrentPipeline + 2) % 3;
+}
+
+RenderQueue* GraphicsEngine::GetRenderQueue() {
+	return &m_RenderQueues[VK_FRAME_INDEX];
 }

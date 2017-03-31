@@ -7,6 +7,7 @@
 #include "Texture.h"
 #include "SkyBox.h"
 #include "Raymarch.h"
+#include "RenderQueue.h"
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
@@ -28,6 +29,7 @@ public:
 	void Swap();
 	void NextPipeline();
 	void PrevPipeline();
+	RenderQueue* GetRenderQueue();
 private:
 	void CreateContext();
 	void CreateSwapChain(VkSurfaceKHR surface);
@@ -65,8 +67,9 @@ private:
 	vk::PipelineMultisampleStateCreateInfo m_MSState;
 
 	Raymarcher m_Raymarcher;
-
 	VkDebugReportCallbackEXT m_DebugCallbacks;
+
+	RenderQueue m_RenderQueues[BUFFER_COUNT];
 
 #define VK_DEVICE m_VKContext.Device
 #define VK_PHYS_DEVICE m_VKContext.PhysicalDevice

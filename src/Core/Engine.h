@@ -1,7 +1,7 @@
 #pragma once
 class Window;
-class GraphicsEngine;
 class SubSystemSet;
+class Timer;
 
 class Engine {
 public:
@@ -11,6 +11,6 @@ public:
 	void Run();
 private:
 	Window* m_Window;
-	GraphicsEngine* m_vkGFX;
 	SubSystemSet* m_MainSubSystemSet;
+	Timer* m_GlobalTimer;
 };
