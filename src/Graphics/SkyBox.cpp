@@ -69,12 +69,13 @@ void SkyBox::Init(const vk::Device& device, const vk::PhysicalDevice& physDev, c
 }
 
 //TODO: add camera data
-void SkyBox::PrepareUniformBuffer(VulkanCommandBuffer cmdBuffer) {
+void SkyBox::PrepareUniformBuffer(VulkanCommandBuffer cmdBuffer, glm::mat4 viewProj, glm::mat4 world) {
 	struct perFrameBuffer {
 		glm::mat4 vp;
 		glm::mat4 w;
 	} pfb;
-
+	pfb.vp = viewProj;
+	pfb.w = world;
 	m_Memory.UpdateBuffer(m_UBO, sizeof(perFrameBuffer), &pfb);
 	m_Memory.ScheduleTransfers(cmdBuffer);
 }

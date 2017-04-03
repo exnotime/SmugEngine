@@ -344,7 +344,6 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 
 	VK_FRAME_INDEX = VK_DEVICE.acquireNextImageKHR(m_VKSwapChain.SwapChain, UINT64_MAX, m_ImageAquiredSemaphore, nullptr).value;
 	//viewport
-	
 	m_Viewport.width = m_ScreenSize.x;
 	m_Viewport.height = m_ScreenSize.y;
 	m_Viewport.minDepth = 0.0f;
@@ -367,10 +366,7 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	m_Pipelines[2].LoadPipelineFromFile(VK_DEVICE, "shader/frontface.json", m_Viewport, m_RenderPass);
 	//create mesh
 	par_shapes_mesh_s* mesh = par_shapes_create_subdivided_sphere(5);
-	//par_shapes_unweld(mesh, true);
-	//par_shapes_compute_normals(mesh);
-	//par_shapes_scale(mesh, 2, 2, 2);
-	//par_shapes_translate(mesh, -1, -1, -1);
+
 	std::vector<Vertex::Vertex> vertices;
 	for (int i = 0; i < mesh->ntriangles * 3; i += 3) {
 		for (int k = 0; k < 3; k++) {
@@ -447,7 +443,7 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	m_Raymarcher.Init(VK_DEVICE, m_VKSwapChain, VK_PHYS_DEVICE);
 	//prepare initial transfer
 	m_vkCmdBuffer.Begin(nullptr, nullptr);
-	m_SkyBox.PrepareUniformBuffer(m_vkCmdBuffer);
+	//m_SkyBox.PrepareUniformBuffer(m_vkCmdBuffer, CameraData);
 	
 	for (int i = 0; i < BUFFER_COUNT; i++) {
 		if (m_MSAA) {
@@ -471,13 +467,12 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 }
 
 void GraphicsEngine::Render() {
-
-	//transfer new camera position
+	//transfer new camera data
 	RenderQueue& rq = m_RenderQueues[VK_FRAME_INDEX];
 	CameraData cd = rq.GetCameras()[0];
 
 	PerFrameBuffer uniformBuffer;
-	uniformBuffer.ViewProj = (cd.ProjView * (glm::translate(glm::vec3(0,2,0)) * glm::scale(glm::vec3(2.0f))));
+	uniformBuffer.ViewProj = (cd.ProjView * (glm::translate(glm::vec3(0,10,0)) * glm::scale(glm::vec3(2.0f))));
 	uniformBuffer.CameraPos = glm::vec4(cd.Position, 1);
 	uniformBuffer.LightDir = glm::normalize(glm::vec4(0.2f, -1.0f, -0.4f, 1.0f));
 	m_BufferMemory.UpdateBuffer(m_UniformBuffer, sizeof(PerFrameBuffer), (void*)(&uniformBuffer));
@@ -485,7 +480,7 @@ void GraphicsEngine::Render() {
 
 	m_vkCmdBuffer.Begin(nullptr, nullptr);
 	m_BufferMemory.ScheduleTransfers(m_vkCmdBuffer);
-	m_SkyBox.PrepareUniformBuffer(m_vkCmdBuffer);
+	m_SkyBox.PrepareUniformBuffer(m_vkCmdBuffer, cd.ProjView, glm::translate(cd.Position));
 	m_Raymarcher.UpdateUniforms(m_vkCmdBuffer, cd.ProjView, cd.Position);
 	m_vkCmdBuffer.end();
 
@@ -515,11 +510,10 @@ void GraphicsEngine::Render() {
 	vk::ClearValue clearValues[] = { clearColor, clearDepth };
 	renderPassInfo.clearValueCount = 2;
 	renderPassInfo.pClearValues = clearValues;
-	renderPassInfo.renderArea = { 0, 0, 1600, 900 };
+	renderPassInfo.renderArea = { 0, 0, (uint32_t)m_ScreenSize.x, (uint32_t)m_ScreenSize.y };
 
 	m_vkCmdBuffer.beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
 	//skybox
-
 	m_SkyBox.Render(m_vkCmdBuffer);
 	//render here
 	vk::DeviceSize offset = 0;

@@ -12,7 +12,7 @@ layout (binding = 0) uniform WVP{
 };
 #include "lighting.glsl"
 
-layout(binding = 1) uniform samplerCube g_Tex;
+layout(binding = 4) uniform samplerCube g_Tex;
 
 void main(){
     vec3 normal = normalize(NormalW);
@@ -21,7 +21,7 @@ void main(){
     vec3 toCam = normalize(CamPos.xyz - PosW);
     float spec = 0.0f;
     if(diff > 0){
-        spec = BlinnSpecular(normal, lightDir, toCam, 2.0);
+        spec = BlinnSpecular(normal, lightDir, toCam, 8.0);
     }
     vec4 texColor = texture(g_Tex, reflect(-toCam, normal));
     float lightColor = diff + spec + 0.01f;
