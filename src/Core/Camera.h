@@ -31,7 +31,7 @@ struct CameraLens {
 	float		Far = 1000.0f;	// Maximum distance from camera for rendered objects.
 };
 
-// Basic camera provided by the Graphics Engine. Should not be controlled directly by input devices (use inheritance or similar instead).
+// Basic camera provided by the Graphics Engine. Should not be controlled directly by input devices (use inheritance or similar instead)(Fuck this!).
 class Camera {
   public:
 	  Camera();

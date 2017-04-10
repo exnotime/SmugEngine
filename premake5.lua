@@ -32,8 +32,7 @@ solution "Tephra"
 		kind "ConsoleApp"
 		files { "src/Core/**"}
 		includedirs { "include", "src" }
-		links {  "Graphics", "Assetloader", "glfw3" }
-
+		links {  "Graphics", "AssetLoader", "glfw3" }
 
     project "Graphics"
     	targetname "Graphics"
@@ -44,18 +43,19 @@ solution "Tephra"
     	files { "src/Graphics/**"}
     	includedirs { "include", "src" }
     	kind "SharedLib"
-    	links { "vulkan-1"}
+    	links { "vulkan-1", "AssetLoader"}
     	configuration { "Debug" }
                 links { "shaderc_combinedD" }
         configuration { "Release" }
                 links { "shaderc_combined" }
 
     project "AssetLoader"
-    	targetname "Assetloader"
+    	targetname "AssetLoader"
     	defines { "ASSET_EXPORT"}
     	debugdir ""
     	location (location_path)
     	language("C++")
     	files { "src/Assetloader/**"}
     	includedirs { "include", "src" }
+        links { "assimp" }
     	kind "SharedLib"
