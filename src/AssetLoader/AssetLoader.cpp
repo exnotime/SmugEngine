@@ -1,18 +1,13 @@
 #include "AssetLoader.h"
 #include <string>
 #include <stdio.h>
+AssetLoader* AssetLoader::m_Instance = 0;
+
 AssetLoader::AssetLoader(){}
 AssetLoader::~AssetLoader(){}
 
 void AssetLoader::SetResourceAllocator(ResourceAllocator allocator) {
 	m_Allocator = allocator;
-}
-
-AssetLoader* AssetLoader::GetInstance() {
-	if (!m_Instance) {
-		m_Instance = new AssetLoader();
-	}
-	return m_Instance;
 }
 
 bool IsTexture(const std::string& ext) {
@@ -41,7 +36,7 @@ ResourceHandle AssetLoader::LoadAsset(const char* filename) {
 		TextureInfo texInfo;
 		error = m_TexLoader.LoadTexture(file, texInfo);
 		if (!error) {
-			ResourceHandle handle = m_Allocator.AllocTexture(texInfo);
+			ResourceHandle handle = m_Allocator.AllocTexture(texInfo, m_Allocator.TextureData);
 			handle &= (32 << RT_TEXTURE);
 			return handle;
 		}
@@ -50,7 +45,7 @@ ResourceHandle AssetLoader::LoadAsset(const char* filename) {
 		ModelInfo modelInfo;
 		error = m_ModelLoader.LoadModel(file, modelInfo);
 		if (!error) {
-			ResourceHandle handle = m_Allocator.AllocModel(modelInfo);
+			ResourceHandle handle = m_Allocator.AllocModel(modelInfo, m_Allocator.ModelData);
 			handle &= (32 << RT_MODEL);
 			return handle;
 		}

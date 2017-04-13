@@ -42,7 +42,7 @@ char* ModelLoader::LoadModel(const std::string& filename, ModelInfo& model) {
 		if (scene->HasMaterials()) {
 			model.MaterialCount = scene->mNumMaterials;
 			model.Materials = new MaterialInfo[model.MaterialCount];
-			for (int m = 0; m < scene->mNumMeshes; ++m) {
+			for (int m = 0; m < model.MaterialCount; ++m) {
 				aiMaterial* mat = scene->mMaterials[m];
 				std::string dir = filename.substr(0, filename.find_last_of('/') + 1);
 				aiString path;

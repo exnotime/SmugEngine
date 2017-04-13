@@ -17,5 +17,5 @@ private:
 	Buffer m_UBO;
 	vk::DescriptorSet m_DescSet;
 	vk::DescriptorPool m_DescPool;
-	Texture m_Texture;
+	VkTexture m_Texture;
 };

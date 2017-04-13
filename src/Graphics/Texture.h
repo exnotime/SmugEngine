@@ -2,10 +2,10 @@
 #include <string>
 #include <glm/glm.hpp>
 #include "Memory.h"
-class Texture {
+class VkTexture {
 public:
-	Texture();
-	~Texture();
+	VkTexture();
+	~VkTexture();
 
 	void Init(const std::string& filename, Memory& memory, const vk::Device& device);
 	vk::DescriptorImageInfo GetDescriptorInfo();

@@ -50,9 +50,11 @@ class ResourceHandler {
 public:
 	ResourceHandler();
 	~ResourceHandler();
-	void Init(const VulkanCommandBuffer& cmdBuffer, MemoryBudget);
+	void Init(const vk::Device& device, const vk::PhysicalDevice& physDev, MemoryBudget budget);
 	const Model& GetModel(uint64_t handle);
 
+	ResourceHandle AllocateModel(const ModelInfo& model);
+	ResourceHandle AllocateTexture(const TextureInfo& tex);
 private:
 	std::vector<Model> m_Models;
 	std::vector<Texture> m_Textures;

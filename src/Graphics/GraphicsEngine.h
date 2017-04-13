@@ -8,6 +8,7 @@
 #include "SkyBox.h"
 #include "Raymarch.h"
 #include "RenderQueue.h"
+#include "ResourceHandler.h"
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
@@ -39,7 +40,7 @@ private:
 	VulkanCommandBuffer m_vkCmdBuffer;
 	VulkanCommandBuffer m_vkMarchCmdBuffer;
 	VulkanQueue m_vkQueue;
-	Texture m_Texture;
+	VkTexture m_Texture;
 	Tephra::Pipeline m_Pipelines[3];
 	int m_CurrentPipeline;
 
@@ -70,6 +71,7 @@ private:
 	VkDebugReportCallbackEXT m_DebugCallbacks;
 
 	RenderQueue m_RenderQueues[BUFFER_COUNT];
+	ResourceHandler m_Resources;
 
 #define VK_DEVICE m_VKContext.Device
 #define VK_PHYS_DEVICE m_VKContext.PhysicalDevice

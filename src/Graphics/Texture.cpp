@@ -2,14 +2,14 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb-master/stb_image.h"
 #include <gli/gli.hpp>
-Texture::Texture() {
+VkTexture::VkTexture() {
 
 }
-Texture::~Texture() {
+VkTexture::~VkTexture() {
 
 }
 
-void Texture::Init(const std::string& filename, Memory& memory, const vk::Device& device) {
+void VkTexture::Init(const std::string& filename, Memory& memory, const vk::Device& device) {
 
 	//stbi_uc* imageData = stbi_load(filename.c_str(), &m_Width, &m_Height, &m_Channels, STBI_rgb_alpha);
 
@@ -97,7 +97,7 @@ void Texture::Init(const std::string& filename, Memory& memory, const vk::Device
 	//STBI_FREE(imageData);
 }
 
-vk::DescriptorImageInfo Texture::GetDescriptorInfo() {
+vk::DescriptorImageInfo VkTexture::GetDescriptorInfo() {
 	vk::DescriptorImageInfo info;
 	info.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
 	info.imageView = m_View;

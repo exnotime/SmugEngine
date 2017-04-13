@@ -351,9 +351,9 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	m_Viewport.x = 0;
 	m_Viewport.y = 0;
 	//load pipelines
-	m_Pipelines[0].SetDefaultVertexState(Vertex::GetVertexState());
-	m_Pipelines[1].SetDefaultVertexState(Vertex::GetVertexState());
-	m_Pipelines[2].SetDefaultVertexState(Vertex::GetVertexState());
+	m_Pipelines[0].SetDefaultVertexState(Geometry::GetVertexState());
+	m_Pipelines[1].SetDefaultVertexState(Geometry::GetVertexState());
+	m_Pipelines[2].SetDefaultVertexState(Geometry::GetVertexState());
 
 	if (m_MSAA) {
 		m_Pipelines[0].SetDefaultMulitSampleState(m_MSState);
@@ -367,10 +367,10 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	//create mesh
 	par_shapes_mesh_s* mesh = par_shapes_create_subdivided_sphere(5);
 
-	std::vector<Vertex::Vertex> vertices;
+	std::vector<Geometry::Vertex> vertices;
 	for (int i = 0; i < mesh->ntriangles * 3; i += 3) {
 		for (int k = 0; k < 3; k++) {
-			Vertex::Vertex v;
+			Geometry::Vertex v;
 			v.PosL = glm::vec3(mesh->points[mesh->triangles[i + k] * 3], mesh->points[mesh->triangles[i + k] * 3 + 1], mesh->points[mesh->triangles[i + k] * 3 + 2]);
 			v.Normal = glm::vec3(mesh->normals[mesh->triangles[i + k] * 3], mesh->normals[mesh->triangles[i + k] * 3 + 1], mesh->normals[mesh->triangles[i + k] * 3 + 2]);
 			if (!mesh->tcoords) {
@@ -395,7 +395,7 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	m_MeshVertexCount = vertices.size();
 
 	//create vertex buffer
-	m_VertexBuffer = m_BufferMemory.AllocateBuffer(sizeof(Vertex::Vertex) * vertices.size(), vk::BufferUsageFlagBits::eVertexBuffer, vertices.data());
+	m_VertexBuffer = m_BufferMemory.AllocateBuffer(sizeof(Geometry::Vertex) * vertices.size(), vk::BufferUsageFlagBits::eVertexBuffer, vertices.data());
 	par_shapes_free_mesh(mesh);
 
 	m_UniformBuffer = m_BufferMemory.AllocateBuffer(sizeof(PerFrameBuffer), vk::BufferUsageFlagBits::eUniformBuffer, nullptr);
@@ -441,6 +441,11 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 
 	m_SkyBox.Init(VK_DEVICE, VK_PHYS_DEVICE, "assets/skybox.dds", m_Viewport, m_RenderPass, m_MSState);
 	m_Raymarcher.Init(VK_DEVICE, m_VKSwapChain, VK_PHYS_DEVICE);
+
+	MemoryBudget memBudget;
+	memBudget.GeometryBudget = 256 * MEGA_BYTE;
+	memBudget.MaterialBudget = 512 * MEGA_BYTE;
+	m_Resources.Init(VK_DEVICE, VK_PHYS_DEVICE, memBudget);
 	//prepare initial transfer
 	m_vkCmdBuffer.Begin(nullptr, nullptr);
 	//m_SkyBox.PrepareUniformBuffer(m_vkCmdBuffer, CameraData);

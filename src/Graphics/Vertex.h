@@ -2,7 +2,7 @@
 #include <glm/glm.hpp>
 #include <vulkan/vulkan.hpp>
 
-namespace Vertex {
+namespace Geometry {
 	struct Vertex {
 		glm::vec3 PosL;
 		glm::vec3 Normal;
