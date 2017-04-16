@@ -17,26 +17,27 @@ char* ModelLoader::LoadModel(const std::string& filename, ModelInfo& model) {
 		if (scene->HasMeshes()) {
 			model.MeshCount = scene->mNumMeshes;
 			model.Meshes = new MeshInfo[model.MeshCount];
+			uint32_t indexCount = 0;
 			for (int m = 0; m < model.MeshCount; ++m) {
 				MeshInfo& meshInfo = model.Meshes[m];
 				aiMesh* mesh = scene->mMeshes[m];
-
 				meshInfo.Material = mesh->mMaterialIndex;
 				meshInfo.VertexCount = mesh->mNumVertices;
 				meshInfo.Vertices = new Vertex[meshInfo.VertexCount];
  				for (int v = 0; v < meshInfo.VertexCount; ++v) {
 					meshInfo.Vertices[v].Position = glm::vec3(mesh->mVertices[v].x, mesh->mVertices[v].y, mesh->mVertices[v].z);
-					meshInfo.Vertices[v].Normal = glm::vec3(mesh->mNormals[v].x, mesh->mNormals[v].y, mesh->mNormals[v].z);
-					meshInfo.Vertices[v].Tangent = glm::vec3(mesh->mTangents[v].x, mesh->mTangents[v].y, mesh->mTangents[v].z);
+					meshInfo.Vertices[v].Normal = glm::normalize(glm::vec3(mesh->mNormals[v].x, mesh->mNormals[v].y, mesh->mNormals[v].z));
+					meshInfo.Vertices[v].Tangent = glm::normalize(glm::vec3(mesh->mTangents[v].x, mesh->mTangents[v].y, mesh->mTangents[v].z));
 					meshInfo.Vertices[v].TexCoord = glm::vec2(mesh->mTextureCoords[0][v].x, mesh->mTextureCoords[0][v].y);
 				}
 				meshInfo.IndexCount = mesh->mNumFaces * 3;
 				meshInfo.Indices = new uint32_t[meshInfo.IndexCount];
 				for (int f = 0; f < mesh->mNumFaces; ++f) {
-					meshInfo.Indices[f * 3] = mesh->mFaces[f].mIndices[0];
-					meshInfo.Indices[f * 3 + 1] = mesh->mFaces[f].mIndices[1];
-					meshInfo.Indices[f * 3 + 2] = mesh->mFaces[f].mIndices[2];
+					meshInfo.Indices[f * 3] = indexCount + mesh->mFaces[f].mIndices[0];
+					meshInfo.Indices[f * 3 + 1] = indexCount + mesh->mFaces[f].mIndices[1];
+					meshInfo.Indices[f * 3 + 2] = indexCount + mesh->mFaces[f].mIndices[2];
 				}
+				indexCount += meshInfo.VertexCount;
 			}
 		}
 		if (scene->HasMaterials()) {

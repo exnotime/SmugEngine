@@ -2,6 +2,8 @@
 #include <vulkan/vulkan.hpp>
 #include "VulkanContext.h"
 #include <gli/gli.hpp>
+#include <AssetLoader/Resources.h>
+
 #define MEGA_BYTE 1024 * 1024
 #define DEFAULT_DEVICE_SIZE 256 * MEGA_BYTE
 #define DEFAULT_STAGING_SIZE 64 * MEGA_BYTE
@@ -27,11 +29,12 @@ public:
 	~Memory();
 
 	void Init(const vk::Device& device,const vk::PhysicalDevice& physDev, uint64_t deviceSize = DEFAULT_DEVICE_SIZE, uint64_t stageSize = DEFAULT_STAGING_SIZE);
-	Buffer AllocateBuffer(uint64_t size, vk::BufferUsageFlagBits usage, void* data = nullptr);
-	void AllocateImage(vk::Format format, uint32_t width, uint32_t height, uint32_t depth, uint32_t mipsCount, vk::ImageUsageFlagBits usage);
+	Buffer AllocateBuffer(uint64_t size, vk::BufferUsageFlags usage, void* data = nullptr);
 	void AllocateImage(vk::Image img, gli::texture2d* texture = nullptr, void* data = nullptr);
+	void AllocateImage(vk::Image img, const TextureInfo& texInfo);
 	void AllocateImageCube(vk::Image img, gli::texture_cube* texture = nullptr, void* data = nullptr);
-	void ScheduleTransfers(VulkanCommandBuffer cmdBuffer);
+	void AllocateImageCube(vk::Image img, const TextureInfo& texInfo);
+	void ScheduleTransfers(VulkanCommandBuffer& cmdBuffer);
 	void UpdateBuffer(Buffer buffer, uint64_t size, void* data);
 
 private:

@@ -6,6 +6,7 @@ namespace Geometry {
 	struct Vertex {
 		glm::vec3 PosL;
 		glm::vec3 Normal;
+		glm::vec3 Tangent;
 		glm::vec2 TexCoord;
 	};
 
@@ -20,7 +21,19 @@ namespace Geometry {
 			vk::VertexInputBindingDescription bindDesc;
 			bindDesc.binding = 0;
 			bindDesc.inputRate = vk::VertexInputRate::eVertex;
-			bindDesc.stride = sizeof(Vertex);
+			bindDesc.stride = sizeof(glm::vec3);
+			VertexBindings.push_back(bindDesc);
+			bindDesc.binding = 1;
+			bindDesc.inputRate = vk::VertexInputRate::eVertex;
+			bindDesc.stride = sizeof(glm::vec3);
+			VertexBindings.push_back(bindDesc);
+			bindDesc.binding = 2;
+			bindDesc.inputRate = vk::VertexInputRate::eVertex;
+			bindDesc.stride = sizeof(glm::vec3);
+			VertexBindings.push_back(bindDesc);
+			bindDesc.binding = 3;
+			bindDesc.inputRate = vk::VertexInputRate::eVertex;
+			bindDesc.stride = sizeof(glm::vec2);
 			VertexBindings.push_back(bindDesc);
 			//input attributes
 			vk::VertexInputAttributeDescription attrDesc;
@@ -29,16 +42,21 @@ namespace Geometry {
 			attrDesc.location = 0;
 			attrDesc.offset = 0;
 			VertexAttributes.push_back(attrDesc);//posl
-			attrDesc.binding = 0;
+			attrDesc.binding = 1;
 			attrDesc.format = vk::Format::eR32G32B32Sfloat;
 			attrDesc.location = 1;
-			attrDesc.offset = sizeof(glm::vec3);
+			attrDesc.offset = 0;
 			VertexAttributes.push_back(attrDesc);//normal
-			attrDesc.binding = 0;
-			attrDesc.format = vk::Format::eR32G32Sfloat;
+			attrDesc.binding = 2;
+			attrDesc.format = vk::Format::eR32G32B32Sfloat;
 			attrDesc.location = 2;
-			attrDesc.offset = sizeof(glm::vec3) * 2;
-			VertexAttributes.push_back(attrDesc); //uv
+			attrDesc.offset = 0;
+			VertexAttributes.push_back(attrDesc); //tangent
+			attrDesc.binding = 3;
+			attrDesc.format = vk::Format::eR32G32Sfloat;
+			attrDesc.location = 3;
+			attrDesc.offset = 0;
+			VertexAttributes.push_back(attrDesc); //texcoord
 
 			VertexState.pVertexBindingDescriptions = VertexBindings.data();
 			VertexState.vertexBindingDescriptionCount = VertexBindings.size();

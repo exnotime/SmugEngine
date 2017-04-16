@@ -17,6 +17,7 @@
 
 struct PerFrameBuffer {
 	glm::mat4 ViewProj;
+	glm::mat4 World;
 	glm::vec4 CameraPos;
 	glm::vec4 LightDir;
 };
@@ -26,10 +27,9 @@ public:
 	GraphicsEngine();
 	~GraphicsEngine();
 	void Init(glm::vec2 windowSize, bool vsync, HWND hWnd);
+	void TransferToGPU();
 	void Render();
 	void Swap();
-	void NextPipeline();
-	void PrevPipeline();
 	RenderQueue* GetRenderQueue();
 private:
 	void CreateContext();
@@ -40,8 +40,7 @@ private:
 	VulkanCommandBuffer m_vkCmdBuffer;
 	VulkanCommandBuffer m_vkMarchCmdBuffer;
 	VulkanQueue m_vkQueue;
-	VkTexture m_Texture;
-	Tephra::Pipeline m_Pipelines[3];
+	Tephra::Pipeline m_Pipeline;
 	int m_CurrentPipeline;
 
 	vk::RenderPass m_RenderPass;
@@ -50,9 +49,6 @@ private:
 	vk::Semaphore m_RayMarchComplete;
 	vk::Fence m_Fence[BUFFER_COUNT];
 	vk::Viewport m_Viewport;
-
-	Buffer m_VertexBuffer;
-	int m_MeshVertexCount;
 
 	Buffer m_UniformBuffer;
 	SkyBox m_SkyBox;

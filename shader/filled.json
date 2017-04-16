@@ -4,10 +4,14 @@
         "Vertex":"shader/test.vert",
         "Fragment":"shader/test.frag"
     },
-    "DescriptorSetLayout":
+    "DescriptorSetLayouts":
     [
-        {"Binding":0, "Count":1, "Type":"UniformBuffer"},
-        {"Binding":4, "Count":1, "Type":"CombinedImageSampler"}
+        [
+            {"Binding":0, "Count":1, "Type":"UniformBuffer"}
+        ],
+        [
+            {"Binding":0, "Count":4, "Type":"CombinedImageSampler"}
+        ]
     ],
     "ColorBlendState":
     {

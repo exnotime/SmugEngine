@@ -37,7 +37,7 @@ ResourceHandle AssetLoader::LoadAsset(const char* filename) {
 		error = m_TexLoader.LoadTexture(file, texInfo);
 		if (!error) {
 			ResourceHandle handle = m_Allocator.AllocTexture(texInfo, m_Allocator.TextureData);
-			handle &= (32 << RT_TEXTURE);
+			handle |= (RT_TEXTURE << 32);
 			return handle;
 		}
 	}
@@ -46,7 +46,7 @@ ResourceHandle AssetLoader::LoadAsset(const char* filename) {
 		error = m_ModelLoader.LoadModel(file, modelInfo);
 		if (!error) {
 			ResourceHandle handle = m_Allocator.AllocModel(modelInfo, m_Allocator.ModelData);
-			handle &= (32 << RT_MODEL);
+			handle |= (RT_MODEL << 32);
 			return handle;
 		}
 	}

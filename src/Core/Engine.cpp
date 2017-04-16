@@ -62,7 +62,8 @@ void Engine::Init() {
 
 	m_GlobalTimer = new Timer();
 	m_GlobalTimer->Reset();
-	g_AssetLoader->LoadAsset("assets/sandbag/Sandbag.obj");
+	g_AssetLoader->LoadAsset("assets/KoopaTroopa/Koopa.obj");
+	globals::g_Gfx->TransferToGPU();
 }
 
 void Engine::Run() {

@@ -606,25 +606,26 @@ void Pipeline::LoadPipelineFromFile(const vk::Device& device, const std::string&
 		return;
 	}
 	//descriptor set
-	if (root.find("DescriptorSetLayout") != root.end()) {
-		json descSetLayout = root["DescriptorSetLayout"];
-		std::vector<vk::DescriptorSetLayoutBinding> bindings;
+	if (root.find("DescriptorSetLayouts") != root.end()) {
+		json descSetLayouts = root["DescriptorSetLayouts"];
+		for (auto& layout : descSetLayouts) {
+			std::vector<vk::DescriptorSetLayoutBinding> bindings;
 
-		for (auto& bind : descSetLayout) {
-			vk::DescriptorSetLayoutBinding binding;
-			binding.binding = bind["Binding"];
-			binding.descriptorCount = bind["Count"];
-			binding.descriptorType = ToDescriptorType[bind["Type"]];
-			binding.stageFlags = vk::ShaderStageFlagBits::eAll; //keep the stage set to all for now
-			bindings.push_back(binding);
+			for (auto& bind : layout) {
+				vk::DescriptorSetLayoutBinding binding;
+				binding.binding = bind["Binding"];
+				binding.descriptorCount = bind["Count"];
+				binding.descriptorType = ToDescriptorType[bind["Type"]];
+				binding.stageFlags = vk::ShaderStageFlagBits::eAll; //keep the stage set to all for now
+				bindings.push_back(binding);
+			}
+			vk::DescriptorSetLayoutCreateInfo descSetCreateInfo;
+			descSetCreateInfo.bindingCount = bindings.size();
+			descSetCreateInfo.pBindings = bindings.data();
+			vk::DescriptorSetLayout layout;
+			layout = device.createDescriptorSetLayout(descSetCreateInfo);
+			m_DescSetLayouts.push_back(layout);
 		}
-
-		vk::DescriptorSetLayoutCreateInfo descSetCreateInfo;
-		descSetCreateInfo.bindingCount = bindings.size();
-		descSetCreateInfo.pBindings = bindings.data();
-		vk::DescriptorSetLayout layout;
-		layout = device.createDescriptorSetLayout(descSetCreateInfo);
-		m_DescSetLayouts.push_back(layout);
 	}
 	//push constants
 	std::vector<vk::PushConstantRange> pushConstRanges;

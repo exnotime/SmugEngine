@@ -351,62 +351,20 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	m_Viewport.x = 0;
 	m_Viewport.y = 0;
 	//load pipelines
-	m_Pipelines[0].SetDefaultVertexState(Geometry::GetVertexState());
-	m_Pipelines[1].SetDefaultVertexState(Geometry::GetVertexState());
-	m_Pipelines[2].SetDefaultVertexState(Geometry::GetVertexState());
+	m_Pipeline.SetDefaultVertexState(Geometry::GetVertexState());
 
 	if (m_MSAA) {
-		m_Pipelines[0].SetDefaultMulitSampleState(m_MSState);
-		m_Pipelines[1].SetDefaultMulitSampleState(m_MSState);
-		m_Pipelines[2].SetDefaultMulitSampleState(m_MSState);
+		m_Pipeline.SetDefaultMulitSampleState(m_MSState);
 	}
 
-	m_Pipelines[0].LoadPipelineFromFile(VK_DEVICE, "shader/filled.json", m_Viewport, m_RenderPass);
-	m_Pipelines[1].LoadPipelineFromFile(VK_DEVICE, "shader/wireframe.json", m_Viewport, m_RenderPass);
-	m_Pipelines[2].LoadPipelineFromFile(VK_DEVICE, "shader/frontface.json", m_Viewport, m_RenderPass);
-	//create mesh
-	par_shapes_mesh_s* mesh = par_shapes_create_subdivided_sphere(5);
-
-	std::vector<Geometry::Vertex> vertices;
-	for (int i = 0; i < mesh->ntriangles * 3; i += 3) {
-		for (int k = 0; k < 3; k++) {
-			Geometry::Vertex v;
-			v.PosL = glm::vec3(mesh->points[mesh->triangles[i + k] * 3], mesh->points[mesh->triangles[i + k] * 3 + 1], mesh->points[mesh->triangles[i + k] * 3 + 2]);
-			v.Normal = glm::vec3(mesh->normals[mesh->triangles[i + k] * 3], mesh->normals[mesh->triangles[i + k] * 3 + 1], mesh->normals[mesh->triangles[i + k] * 3 + 2]);
-			if (!mesh->tcoords) {
-				if (v.Normal == glm::vec3(0, 0, -1) || v.Normal == glm::vec3(0, 0, 1)) {
-					v.TexCoord.x = v.PosL.x * 0.5f + 0.5f;
-					v.TexCoord.y = v.PosL.y * 0.5f + 0.5f;
-				}
-				else if (v.Normal == glm::vec3(0, -1, 0) || v.Normal == glm::vec3(0, 1, 0)) {
-					v.TexCoord.x = v.PosL.x * 0.5f + 0.5f;
-					v.TexCoord.y = v.PosL.z * 0.5f + 0.5f;
-				}
-				else if (v.Normal == glm::vec3(-1, 0, 0) || v.Normal == glm::vec3(1, 0, 0)) {
-					v.TexCoord.x = v.PosL.z * 0.5f + 0.5f;
-					v.TexCoord.y = v.PosL.y * 0.5f + 0.5f;
-				}
-			} else {
-				v.TexCoord = glm::vec2(mesh->tcoords[mesh->triangles[i + k] * 3], mesh->tcoords[mesh->triangles[i + k] * 3 + 1]);
-			}
-			vertices.push_back(v);
-		}
-	}
-	m_MeshVertexCount = vertices.size();
-
-	//create vertex buffer
-	m_VertexBuffer = m_BufferMemory.AllocateBuffer(sizeof(Geometry::Vertex) * vertices.size(), vk::BufferUsageFlagBits::eVertexBuffer, vertices.data());
-	par_shapes_free_mesh(mesh);
-
+	m_Pipeline.LoadPipelineFromFile(VK_DEVICE, "shader/filled.json", m_Viewport, m_RenderPass);
+	
 	m_UniformBuffer = m_BufferMemory.AllocateBuffer(sizeof(PerFrameBuffer), vk::BufferUsageFlagBits::eUniformBuffer, nullptr);
-
-	m_Texture.Init("assets/skybox.dds", m_TextureMemory, VK_DEVICE);
 
 	vk::DescriptorPoolCreateInfo descPoolInfo;
 	descPoolInfo.maxSets = 1;
 	std::vector<vk::DescriptorPoolSize> poolSizes;
 	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eUniformBuffer, 1));
-	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eCombinedImageSampler, 1));
 	descPoolInfo.pPoolSizes = poolSizes.data();
 	descPoolInfo.poolSizeCount = poolSizes.size();
 	m_DescriptorPool = VK_DEVICE.createDescriptorPool(descPoolInfo);
@@ -414,10 +372,10 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	vk::DescriptorSetAllocateInfo descSetAllocInfo;
 	descSetAllocInfo.descriptorPool = m_DescriptorPool;
 	descSetAllocInfo.descriptorSetCount = 1;
-	descSetAllocInfo.pSetLayouts = m_Pipelines[m_CurrentPipeline].GetDescriptorSetLayouts().data();
+	descSetAllocInfo.pSetLayouts = &m_Pipeline.GetDescriptorSetLayouts()[0];
 	VK_DEVICE.allocateDescriptorSets(&descSetAllocInfo, &m_DescriptorSet);
 
-	vk::WriteDescriptorSet descWrites[2];
+	vk::WriteDescriptorSet descWrites[1];
 	descWrites[0].descriptorCount = 1;
 	descWrites[0].descriptorType = vk::DescriptorType::eUniformBuffer;
 	descWrites[0].dstArrayElement = 0;
@@ -429,15 +387,7 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	descBufferInfo.range = VK_WHOLE_SIZE;
 	descWrites[0].pBufferInfo = &descBufferInfo;
 
-	descWrites[1].descriptorCount = 1;
-	descWrites[1].descriptorType = vk::DescriptorType::eCombinedImageSampler;
-	descWrites[1].dstArrayElement = 0;
-	descWrites[1].dstBinding = 1;
-	descWrites[1].dstSet = m_DescriptorSet;
-	vk::DescriptorImageInfo imgInfo = m_Texture.GetDescriptorInfo();
-	descWrites[1].pImageInfo = &imgInfo;
-
-	VK_DEVICE.updateDescriptorSets(2, descWrites, 0, nullptr);
+	VK_DEVICE.updateDescriptorSets(1, descWrites, 0, nullptr);
 
 	m_SkyBox.Init(VK_DEVICE, VK_PHYS_DEVICE, "assets/skybox.dds", m_Viewport, m_RenderPass, m_MSState);
 	m_Raymarcher.Init(VK_DEVICE, m_VKSwapChain, VK_PHYS_DEVICE);
@@ -445,10 +395,9 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	MemoryBudget memBudget;
 	memBudget.GeometryBudget = 256 * MEGA_BYTE;
 	memBudget.MaterialBudget = 512 * MEGA_BYTE;
-	m_Resources.Init(VK_DEVICE, VK_PHYS_DEVICE, memBudget);
+	m_Resources.Init(&VK_DEVICE, VK_PHYS_DEVICE, memBudget);
 	//prepare initial transfer
 	m_vkCmdBuffer.Begin(nullptr, nullptr);
-	//m_SkyBox.PrepareUniformBuffer(m_vkCmdBuffer, CameraData);
 	
 	for (int i = 0; i < BUFFER_COUNT; i++) {
 		if (m_MSAA) {
@@ -477,7 +426,10 @@ void GraphicsEngine::Render() {
 	CameraData cd = rq.GetCameras()[0];
 
 	PerFrameBuffer uniformBuffer;
-	uniformBuffer.ViewProj = (cd.ProjView * (glm::translate(glm::vec3(0,10,0)) * glm::scale(glm::vec3(2.0f))));
+	static float angle = 0.0;
+	angle += 0.01f;
+	uniformBuffer.World = glm::translate(glm::vec3(10, 3, 0)) * glm::scale(glm::vec3(10.0f)) * glm::rotate(angle, glm::vec3(0, 1, 0));
+	uniformBuffer.ViewProj = cd.ProjView * uniformBuffer.World;
 	uniformBuffer.CameraPos = glm::vec4(cd.Position, 1);
 	uniformBuffer.LightDir = glm::normalize(glm::vec4(0.2f, -1.0f, -0.4f, 1.0f));
 	m_BufferMemory.UpdateBuffer(m_UniformBuffer, sizeof(PerFrameBuffer), (void*)(&uniformBuffer));
@@ -521,12 +473,25 @@ void GraphicsEngine::Render() {
 	//skybox
 	m_SkyBox.Render(m_vkCmdBuffer);
 	//render here
-	vk::DeviceSize offset = 0;
-	m_vkCmdBuffer.bindVertexBuffers(0, 1, &m_VertexBuffer.BufferHandle, &offset);
-	m_vkCmdBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, m_Pipelines[m_CurrentPipeline].GetPipeline());
+	
+	ResourceHandle modelHandle = (2 << 32);
+	const Model& model = m_Resources.GetModel(modelHandle);
+	
+	vk::Buffer vertexBuffers[] = { model.VertexBuffers[0].BufferHandle, model.VertexBuffers[1].BufferHandle,
+		model.VertexBuffers[2].BufferHandle, model.VertexBuffers[3].BufferHandle };
+	vk::DeviceSize offset[] = { 0,0,0,0 };
+	m_vkCmdBuffer.bindVertexBuffers(0, 4, vertexBuffers, offset);
+
+	m_vkCmdBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipeline());
 	m_vkCmdBuffer.setViewport(0, 1, &m_Viewport);
-	m_vkCmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_Pipelines[m_CurrentPipeline].GetPipelineLayout(), 0, 1, &m_DescriptorSet, 0, nullptr);
-	m_vkCmdBuffer.draw(m_MeshVertexCount, 1, 0, 0);
+	m_vkCmdBuffer.bindIndexBuffer(model.IndexBuffer.BufferHandle, 0, vk::IndexType::eUint16);
+	for (int m = 0; m < model.MeshCount; ++m) {
+		Mesh& mesh = model.Meshes[m];
+		vk::DescriptorSet descSets[] = { m_DescriptorSet, mesh.Material };
+		m_vkCmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipelineLayout(), 0, 2, descSets, 0, nullptr);
+		m_vkCmdBuffer.drawIndexed(mesh.IndexCount, 1, mesh.IndexOffset, 0, 0);
+	}
+
 	m_vkCmdBuffer.endRenderPass();
 
 	if (m_MSAA) {
@@ -608,14 +573,16 @@ void GraphicsEngine::Swap() {
 	VK_FRAME_INDEX = VK_DEVICE.acquireNextImageKHR(m_VKSwapChain.SwapChain, UINT64_MAX, m_ImageAquiredSemaphore, nullptr).value;
 }
 
-void GraphicsEngine::NextPipeline() {
-	m_CurrentPipeline = (++m_CurrentPipeline) % 3;
-}
-
-void GraphicsEngine::PrevPipeline() {
-	m_CurrentPipeline = (m_CurrentPipeline + 2) % 3;
-}
-
 RenderQueue* GraphicsEngine::GetRenderQueue() {
 	return &m_RenderQueues[VK_FRAME_INDEX];
+}
+
+void GraphicsEngine::TransferToGPU() {
+	m_vkCmdBuffer.Reset(VK_DEVICE, VK_FRAME_INDEX);
+	m_vkCmdBuffer.Begin(nullptr, nullptr);
+	m_Resources.ScheduleTransfer(m_vkCmdBuffer);
+	m_vkCmdBuffer.end();
+
+	m_vkQueue.Submit(m_vkCmdBuffer);
+	VK_DEVICE.waitIdle();
 }

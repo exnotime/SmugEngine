@@ -11,6 +11,8 @@ struct ASSET_DLL TextureInfo {
 	uint32_t MipCount;
 	uint32_t Layers;
 	uint32_t Format; //matches ogl/vulkan format
+	uint32_t BPP;
+	uint32_t LinearSize;
 	void* Data = nullptr;
 };
 

@@ -5,9 +5,9 @@
 #define EPS 0.00001
 #define GAMMA 1.0
 #define saturate(x) clamp(x, 0.0, 1.0)
-layout(binding = 0) uniform samplerCube g_DiffEnvMap;
-layout(binding = 1) uniform samplerCube g_SpecEnvMap;
-layout(binding = 2) uniform sampler2D g_IBLTex;
+layout(binding = 5) uniform samplerCube g_DiffEnvMap;
+layout(binding = 6) uniform samplerCube g_SpecEnvMap;
+layout(binding = 7) uniform sampler2D g_IBLTex;
 
 
 float LambertDiffuse(vec3 normal, vec3 lightDir){

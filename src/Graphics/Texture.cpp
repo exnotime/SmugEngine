@@ -93,8 +93,84 @@ void VkTexture::Init(const std::string& filename, Memory& memory, const vk::Devi
 	sampInfo.mipmapMode = vk::SamplerMipmapMode::eLinear;
 	sampInfo.unnormalizedCoordinates = false;
 	m_Sampler = device.createSampler(sampInfo);
+}
 
-	//STBI_FREE(imageData);
+void VkTexture::Init(const TextureInfo& texInfo, Memory& memory, const vk::Device& device) {
+	if (texInfo.Layers == 6) {
+		vk::ImageCreateInfo imageInfo;
+		imageInfo.arrayLayers = texInfo.Layers;
+		imageInfo.extent = vk::Extent3D(texInfo.Width, texInfo.Height, 1);
+		imageInfo.format = static_cast<vk::Format>(texInfo.Format);
+		imageInfo.imageType = vk::ImageType::e2D;
+		imageInfo.initialLayout = vk::ImageLayout::eUndefined;
+		imageInfo.mipLevels = texInfo.MipCount;
+		imageInfo.samples = vk::SampleCountFlagBits::e1;
+		imageInfo.usage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst;
+		imageInfo.tiling = vk::ImageTiling::eOptimal;
+		m_Image = device.createImage(imageInfo);
+
+		memory.AllocateImageCube(m_Image, texInfo);
+
+		vk::ImageViewCreateInfo viewInfo;
+		viewInfo.components = { vk::ComponentSwizzle::eR,vk::ComponentSwizzle::eG ,vk::ComponentSwizzle::eB ,vk::ComponentSwizzle::eA };
+		viewInfo.format = imageInfo.format;
+		viewInfo.image = m_Image;
+		viewInfo.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
+		viewInfo.subresourceRange.baseArrayLayer = 0;
+		viewInfo.subresourceRange.baseMipLevel = 0;
+		viewInfo.subresourceRange.layerCount = texInfo.Layers;
+		viewInfo.subresourceRange.levelCount = texInfo.MipCount;
+		viewInfo.viewType = vk::ImageViewType::eCube;
+
+		m_View = device.createImageView(viewInfo);
+
+	}
+	else if (texInfo.Layers == 1) { //2D texture
+		vk::ImageCreateInfo imageInfo;
+		imageInfo.arrayLayers = 1;
+		imageInfo.extent = vk::Extent3D(texInfo.Width, texInfo.Height, 1);
+		imageInfo.format = static_cast<vk::Format>(texInfo.Format);
+		imageInfo.imageType = vk::ImageType::e2D;
+		imageInfo.initialLayout = vk::ImageLayout::eUndefined;
+		imageInfo.mipLevels = texInfo.MipCount;
+		imageInfo.samples = vk::SampleCountFlagBits::e1;
+		imageInfo.usage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst;
+		imageInfo.tiling = vk::ImageTiling::eOptimal;
+
+		m_Image = device.createImage(imageInfo);
+		memory.AllocateImage(m_Image, texInfo);
+
+		vk::ImageViewCreateInfo viewInfo;
+		viewInfo.components = { vk::ComponentSwizzle::eR,vk::ComponentSwizzle::eG ,vk::ComponentSwizzle::eB ,vk::ComponentSwizzle::eA };
+		viewInfo.format = imageInfo.format;
+		viewInfo.image = m_Image;
+		viewInfo.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
+		viewInfo.subresourceRange.baseArrayLayer = 0;
+		viewInfo.subresourceRange.baseMipLevel = 0;
+		viewInfo.subresourceRange.layerCount = 1;
+		viewInfo.subresourceRange.levelCount = texInfo.MipCount;
+		viewInfo.viewType = vk::ImageViewType::e2D;
+
+		m_View = device.createImageView(viewInfo);
+	}
+
+	vk::SamplerCreateInfo sampInfo;
+	sampInfo.addressModeU = vk::SamplerAddressMode::eRepeat;
+	sampInfo.addressModeV = vk::SamplerAddressMode::eRepeat;
+	sampInfo.addressModeW = vk::SamplerAddressMode::eRepeat;
+	sampInfo.anisotropyEnable = true;
+	sampInfo.maxAnisotropy = 16.0f;
+	sampInfo.borderColor = vk::BorderColor::eFloatOpaqueBlack;
+	sampInfo.compareEnable = false;
+	sampInfo.compareOp = vk::CompareOp::eNever;
+	sampInfo.magFilter = vk::Filter::eLinear;
+	sampInfo.minFilter = vk::Filter::eLinear;
+	sampInfo.maxLod = texInfo.MipCount;
+	sampInfo.minLod = 0.0f;
+	sampInfo.mipLodBias = 0.0f;
+	sampInfo.mipmapMode = vk::SamplerMipmapMode::eLinear;
+	sampInfo.unnormalizedCoordinates = false;
+	m_Sampler = device.createSampler(sampInfo);
 }
 
 vk::DescriptorImageInfo VkTexture::GetDescriptorInfo() {

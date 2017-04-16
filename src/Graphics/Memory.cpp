@@ -61,7 +61,7 @@ void Memory::Init(const vk::Device& device, const vk::PhysicalDevice& physDev, u
 	m_StagingOffset = 0;
 }
 
-Buffer Memory::AllocateBuffer(uint64_t size, vk::BufferUsageFlagBits usage, void* data) {
+Buffer Memory::AllocateBuffer(uint64_t size, vk::BufferUsageFlags usage, void* data) {
 	if (m_DeviceOffset + size > m_DeviceSize) {
 		return Buffer();
 	}
@@ -104,11 +104,6 @@ Buffer Memory::AllocateBuffer(uint64_t size, vk::BufferUsageFlagBits usage, void
 	m_DeviceOffset += size;
 
 	return buf;
-}
-
-void Memory::AllocateImage(vk::Format format, uint32_t width, uint32_t height, uint32_t depth, uint32_t mipsCount, vk::ImageUsageFlagBits usage) {
-	//TODO: fill in
-
 }
 
 void Memory::AllocateImage(vk::Image img, gli::texture2d* texture, void* data) {
@@ -157,6 +152,57 @@ void Memory::AllocateImage(vk::Image img, gli::texture2d* texture, void* data) {
 			m_StagingOffset += memReq.size;
 		}
 		
+	}
+	m_DeviceOffset += memReq.size;
+}
+
+void Memory::AllocateImage(vk::Image img, const TextureInfo& texInfo) {
+	vk::MemoryRequirements memReq = m_Device.getImageMemoryRequirements(img);
+	m_DeviceOffset = (m_DeviceOffset + memReq.alignment - 1) & ~(memReq.alignment - 1);
+
+	if (m_DeviceOffset + memReq.size > m_DeviceSize) {
+		return;
+	}
+	VkDeviceSize size = (texInfo.Data) ? texInfo.LinearSize : memReq.size;
+	m_Device.bindImageMemory(img, m_DevMem, m_DeviceOffset);
+
+	if (texInfo.Data && m_StagingOffset + size < m_StagingSize) {
+		//transfer data to staging buffer
+		void* bufferPtr = m_Device.mapMemory(m_StagingMem, m_StagingOffset, size);
+		memcpy(bufferPtr, texInfo.Data, size);
+		vk::MappedMemoryRange range;
+		range.memory = m_StagingMem;
+		range.offset = m_StagingOffset;
+		range.size = size;
+		m_Device.flushMappedMemoryRanges(1, &range);
+		m_Device.unmapMemory(m_StagingMem);
+
+		if (texInfo.Data) {
+			TextureTransfer transfer;
+			transfer.Image = img;
+			int w = texInfo.Width, h = texInfo.Height;
+			for (int i = 0; i < texInfo.MipCount; i++) {
+				vk::BufferImageCopy copy;
+				copy.bufferOffset = m_StagingOffset;
+				copy.imageExtent = vk::Extent3D(w, h, 1);
+				copy.imageSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
+				copy.imageSubresource.baseArrayLayer = 0;
+				copy.imageSubresource.layerCount = 1;
+				copy.imageSubresource.mipLevel = i;
+				transfer.copies.push_back(copy);
+				m_StagingOffset += w * h * texInfo.BPP;
+				w >>= 1; h >>= 1;
+			}
+			m_ImageTransfers.push_back(transfer);
+		}
+		else {
+			vk::BufferCopy copy;
+			copy.dstOffset = m_DeviceOffset;
+			copy.srcOffset = m_StagingOffset;
+			copy.size = memReq.size;
+			m_Transfers.push_back(copy);
+			m_StagingOffset += memReq.size;
+		}
 	}
 	m_DeviceOffset += memReq.size;
 }
@@ -214,7 +260,61 @@ void Memory::AllocateImageCube(vk::Image img, gli::texture_cube* texture, void* 
 	m_DeviceOffset += memReq.size;
 }
 
-void Memory::ScheduleTransfers(VulkanCommandBuffer cmdBuffer) {
+void Memory::AllocateImageCube(vk::Image img, const TextureInfo& texInfo) {
+	vk::MemoryRequirements memReq = m_Device.getImageMemoryRequirements(img);
+	m_DeviceOffset = (m_DeviceOffset + memReq.alignment) & ~memReq.alignment;
+
+	if (m_DeviceOffset + memReq.size > m_DeviceSize) {
+		return;
+	}
+	VkDeviceSize size = (texInfo.Data) ? texInfo.LinearSize : memReq.size;
+	m_Device.bindImageMemory(img, m_DevMem, m_DeviceOffset);
+
+	if (texInfo.Data && m_StagingOffset + size < m_StagingSize) {
+		//transfer data to staging buffer
+		void* bufferPtr = m_Device.mapMemory(m_StagingMem, m_StagingOffset, size);
+		memcpy(bufferPtr, texInfo.Data, size);
+		vk::MappedMemoryRange range;
+		range.memory = m_StagingMem;
+		range.offset = m_StagingOffset;
+		range.size = size;
+		m_Device.flushMappedMemoryRanges(1, &range);
+		m_Device.unmapMemory(m_StagingMem);
+
+		if (texInfo.Data) {
+			TextureTransfer transfer;
+			transfer.Image = img;
+			for (int f = 0; f < texInfo.Layers; f++) {
+				int w = texInfo.Width, h = texInfo.Height;
+				for (int i = 0; i < texInfo.MipCount; i++) {
+					vk::BufferImageCopy copy;
+					copy.bufferOffset = m_StagingOffset;
+					copy.imageExtent = vk::Extent3D(w, h, 1);
+					copy.imageSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
+					copy.imageSubresource.baseArrayLayer = f;
+					copy.imageSubresource.layerCount = 1;
+					copy.imageSubresource.mipLevel = i;
+					transfer.copies.push_back(copy);
+					m_StagingOffset += w * h * texInfo.BPP;
+					w >>= 1; h >>= 1;
+				}
+			}
+			m_ImageTransfers.push_back(transfer);
+		}
+		else {
+			vk::BufferCopy copy;
+			copy.dstOffset = m_DeviceOffset;
+			copy.srcOffset = m_StagingOffset;
+			copy.size = memReq.size;
+			m_Transfers.push_back(copy);
+			m_StagingOffset += memReq.size;
+		}
+
+	}
+	m_DeviceOffset += memReq.size;
+}
+
+void Memory::ScheduleTransfers(VulkanCommandBuffer& cmdBuffer) {
 	if (!m_Transfers.empty()) {
 		//transfer data from staging buffer to device buffer
 		cmdBuffer.copyBuffer(m_StagingBuffer, m_DeviceBuffer, m_Transfers);
@@ -234,6 +334,7 @@ void Memory::ScheduleTransfers(VulkanCommandBuffer cmdBuffer) {
 			cmdBuffer.ImageBarrier(t.Image, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal);
 		}
 		cmdBuffer.PushPipelineBarrier();
+		m_ImageTransfers.clear();
 	}
 	//nothing can do work until all transfers are finished
 	cmdBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTopOfPipe, vk::DependencyFlagBits::eByRegion, nullptr, nullptr, nullptr);
