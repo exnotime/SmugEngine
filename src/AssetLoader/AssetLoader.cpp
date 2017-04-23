@@ -1,10 +1,16 @@
 #include "AssetLoader.h"
 #include <string>
 #include <stdio.h>
-AssetLoader* AssetLoader::m_Instance = 0;
 
 AssetLoader::AssetLoader(){}
-AssetLoader::~AssetLoader(){}
+
+AssetLoader::~AssetLoader(){
+}
+
+AssetLoader& AssetLoader::GetInstance() {
+	static AssetLoader instance;
+	return instance;
+}
 
 void AssetLoader::SetResourceAllocator(ResourceAllocator allocator) {
 	m_Allocator = allocator;
@@ -46,6 +52,21 @@ ResourceHandle AssetLoader::LoadAsset(const char* filename) {
 		error = m_ModelLoader.LoadModel(file, modelInfo);
 		if (!error) {
 			ResourceHandle handle = m_Allocator.AllocModel(modelInfo, m_Allocator.ModelData);
+			//clean up model
+			for (int i = 0; i < modelInfo.MaterialCount; ++i) {
+				SAFE_DELETE(modelInfo.Materials[i].Albedo.Data);
+				SAFE_DELETE(modelInfo.Materials[i].Normal.Data);
+				SAFE_DELETE(modelInfo.Materials[i].Roughness.Data);
+				SAFE_DELETE(modelInfo.Materials[i].Metal.Data);
+			}
+			SAFE_DELETE(modelInfo.Materials);
+
+			for (int i = 0; i < modelInfo.MeshCount; ++i) {
+				SAFE_DELETE(modelInfo.Meshes[i].Indices);
+				SAFE_DELETE(modelInfo.Meshes[i].Vertices);
+			}
+			SAFE_DELETE(modelInfo.Meshes);
+
 			handle |= (RT_MODEL << 32);
 			return handle;
 		}

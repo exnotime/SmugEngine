@@ -1,7 +1,9 @@
 #version 430 core
 layout(location = 0) in vec3 PosW;
 layout(location = 1) in vec3 NormalW;
-layout(location = 2) in vec2 TexCoordOut;
+layout(location = 2) in vec3 TangentW;
+layout(location = 3) in vec2 TexCoordOut;
+layout(location = 4) in vec3 BiNormOut;
 
 layout(location = 0) out vec4 outColor;
 
@@ -13,21 +15,27 @@ layout (set = 0, binding = 0) uniform WVP{
 };
 #include "lighting.glsl"
 
-layout(set = 1, binding = 0) uniform sampler2D g_Albedo;
-layout(set = 1, binding = 1) uniform sampler2D g_Normal;
-layout(set = 1, binding = 2) uniform sampler2D g_Roughness;
-layout(set = 1, binding = 3) uniform sampler2D g_Metal;
+layout(set = 1, binding = 0) uniform sampler2D g_Material[4];
+
+vec3 CalcBumpedNormal(vec3 Bump, vec3 Normal, vec3 Tangent, vec3 BiNorm){
+    vec3 normal = normalize(Normal);
+    vec3 tangent = normalize(Tangent);
+    vec3 binorm = normalize(BiNorm);
+
+    mat3 TBN = mat3(tangent,binorm,normal);
+    vec3 newNormal = TBN * Bump;
+    return normalize(newNormal);
+}
 
 void main(){
-    vec3 normal = normalize(NormalW);
+    vec3 bump = texture(g_Material[1], TexCoordOut).xyz * 2.0 - 1.0;
+    vec3 normal = CalcBumpedNormal(bump, NormalW, TangentW,BiNormOut);
     vec3 lightDir = normalize(LightDir.xyz);
-    float diff = LambertDiffuse(normal, lightDir);
     vec3 toCam = normalize(CamPos.xyz - PosW);
-    float spec = 0.0f;
-    if(diff > 0){
-        spec = BlinnSpecular(normal, lightDir, toCam, 8.0);
-    }
-    vec4 texColor = texture(g_Albedo, TexCoordOut);
-    float lightColor = diff + spec + 0.01f;
-    outColor = clamp(vec4((texColor * lightColor).rgb , 1), 0, 1);
+    vec3 texColor = pow(texture(g_Material[0], TexCoordOut).rgb, vec3(2.2));
+    float r = texture(g_Material[2], TexCoordOut).r;
+    float m = texture(g_Material[3], TexCoordOut).r;
+    vec3 lightColor = CalcDirLight(lightDir, texColor, normal, toCam, r, m);
+    lightColor += CalcIBLLight( normal, toCam, texColor, r, m);
+    outColor = saturate(vec4(lightColor, 1));
 }

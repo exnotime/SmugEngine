@@ -326,7 +326,7 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	m_VKSwapChain.Surface = m_VKContext.Instance.createWin32SurfaceKHR(surfaceInfo);
 
 	//Allocate memory on gpu
-	m_TextureMemory.Init(VK_DEVICE, VK_PHYS_DEVICE, 512 * MEGA_BYTE);
+	m_TextureMemory.Init(VK_DEVICE, VK_PHYS_DEVICE, 768 * MEGA_BYTE);
 	m_BufferMemory.Init(VK_DEVICE, VK_PHYS_DEVICE, 16 * MEGA_BYTE, 8 * MEGA_BYTE);
 
 	m_MSAA = false;
@@ -362,20 +362,29 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	m_UniformBuffer = m_BufferMemory.AllocateBuffer(sizeof(PerFrameBuffer), vk::BufferUsageFlagBits::eUniformBuffer, nullptr);
 
 	vk::DescriptorPoolCreateInfo descPoolInfo;
-	descPoolInfo.maxSets = 1;
+	descPoolInfo.maxSets = 2;
 	std::vector<vk::DescriptorPoolSize> poolSizes;
-	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eUniformBuffer, 1));
+	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eUniformBuffer, 1000));
+	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eCombinedImageSampler, 3));
 	descPoolInfo.pPoolSizes = poolSizes.data();
 	descPoolInfo.poolSizeCount = poolSizes.size();
 	m_DescriptorPool = VK_DEVICE.createDescriptorPool(descPoolInfo);
 
+	//uniform set
 	vk::DescriptorSetAllocateInfo descSetAllocInfo;
 	descSetAllocInfo.descriptorPool = m_DescriptorPool;
 	descSetAllocInfo.descriptorSetCount = 1;
 	descSetAllocInfo.pSetLayouts = &m_Pipeline.GetDescriptorSetLayouts()[0];
 	VK_DEVICE.allocateDescriptorSets(&descSetAllocInfo, &m_DescriptorSet);
 
-	vk::WriteDescriptorSet descWrites[1];
+	//ibl set
+	descSetAllocInfo;
+	descSetAllocInfo.descriptorPool = m_DescriptorPool;
+	descSetAllocInfo.descriptorSetCount = 1;
+	descSetAllocInfo.pSetLayouts = &m_Pipeline.GetDescriptorSetLayouts()[2];
+	VK_DEVICE.allocateDescriptorSets(&descSetAllocInfo, &m_IBLDescSet);
+
+	vk::WriteDescriptorSet descWrites[3];
 	descWrites[0].descriptorCount = 1;
 	descWrites[0].descriptorType = vk::DescriptorType::eUniformBuffer;
 	descWrites[0].dstArrayElement = 0;
@@ -386,8 +395,27 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	descBufferInfo.offset = 0;
 	descBufferInfo.range = VK_WHOLE_SIZE;
 	descWrites[0].pBufferInfo = &descBufferInfo;
-
-	VK_DEVICE.updateDescriptorSets(1, descWrites, 0, nullptr);
+	//ibl tex
+	m_IBLTex.Init("assets/IBLTex.dds", m_TextureMemory, VK_DEVICE);
+	m_SkyRad.Init("assets/skybox_irr.dds", m_TextureMemory, VK_DEVICE);
+	m_SkyIrr.Init("assets/skybox_rad.dds", m_TextureMemory, VK_DEVICE);
+	descWrites[1].descriptorCount = 1;
+	descWrites[1].descriptorType = vk::DescriptorType::eCombinedImageSampler;
+	descWrites[1].dstArrayElement = 0;
+	descWrites[1].dstBinding = 0;
+	descWrites[1].dstSet = m_IBLDescSet;
+	descWrites[2].descriptorCount = 2;
+	descWrites[2].descriptorType = vk::DescriptorType::eCombinedImageSampler;
+	descWrites[2].dstArrayElement = 0;
+	descWrites[2].dstBinding = 1;
+	descWrites[2].dstSet = m_IBLDescSet;
+	vk::DescriptorImageInfo imageInfo[3];
+	imageInfo[0] = m_IBLTex.GetDescriptorInfo();
+	imageInfo[1] = m_SkyRad.GetDescriptorInfo();
+	imageInfo[2] = m_SkyIrr.GetDescriptorInfo();
+	descWrites[1].pImageInfo = &imageInfo[0];
+	descWrites[2].pImageInfo = &imageInfo[1];
+	VK_DEVICE.updateDescriptorSets(3, descWrites, 0, nullptr);
 
 	m_SkyBox.Init(VK_DEVICE, VK_PHYS_DEVICE, "assets/skybox.dds", m_Viewport, m_RenderPass, m_MSState);
 	m_Raymarcher.Init(VK_DEVICE, m_VKSwapChain, VK_PHYS_DEVICE);
@@ -473,7 +501,6 @@ void GraphicsEngine::Render() {
 	//skybox
 	m_SkyBox.Render(m_vkCmdBuffer);
 	//render here
-	
 	ResourceHandle modelHandle = (2 << 32);
 	const Model& model = m_Resources.GetModel(modelHandle);
 	
@@ -487,8 +514,8 @@ void GraphicsEngine::Render() {
 	m_vkCmdBuffer.bindIndexBuffer(model.IndexBuffer.BufferHandle, 0, vk::IndexType::eUint16);
 	for (int m = 0; m < model.MeshCount; ++m) {
 		Mesh& mesh = model.Meshes[m];
-		vk::DescriptorSet descSets[] = { m_DescriptorSet, mesh.Material };
-		m_vkCmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipelineLayout(), 0, 2, descSets, 0, nullptr);
+		vk::DescriptorSet descSets[] = { m_DescriptorSet, mesh.Material, m_IBLDescSet };
+		m_vkCmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipelineLayout(), 0, 3, descSets, 0, nullptr);
 		m_vkCmdBuffer.drawIndexed(mesh.IndexCount, 1, mesh.IndexOffset, 0, 0);
 	}
 
@@ -540,7 +567,7 @@ void GraphicsEngine::Render() {
 	}
 	m_vkMarchCmdBuffer.PushPipelineBarrier();
 
-	m_Raymarcher.Render(m_vkMarchCmdBuffer, VK_FRAME_INDEX);
+	m_Raymarcher.Render(m_vkMarchCmdBuffer, VK_FRAME_INDEX, m_IBLDescSet);
 
 	if (m_VKSwapChain.MSAA) {
 		m_vkMarchCmdBuffer.ImageBarrier(m_VKSwapChain.DepthResolveImages[VK_FRAME_INDEX], vk::ImageLayout::eDepthStencilReadOnlyOptimal, vk::ImageLayout::eDepthStencilAttachmentOptimal);

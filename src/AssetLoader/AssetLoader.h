@@ -25,23 +25,16 @@ struct ASSET_DLL ResourceAllocator {
 
 };
 #define g_AssetLoader AssetLoader::GetInstance()
-
+#define SAFE_DELETE(x) if(x) delete x
 class ASSET_DLL AssetLoader {
 public:
 	~AssetLoader();
 	void SetResourceAllocator(ResourceAllocator allocator);
 	ResourceHandle LoadAsset(const char* filename);
 
-	static AssetLoader* GetInstance() {
-		if (!m_Instance) {
-			m_Instance = new AssetLoader();
-		}
-		return m_Instance;
-	}
-	
+	static AssetLoader& GetInstance();
 private:
 	AssetLoader();
-	static AssetLoader* m_Instance;
 
 	ResourceAllocator m_Allocator;
 	TextureLoader m_TexLoader;

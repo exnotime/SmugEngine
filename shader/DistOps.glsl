@@ -36,9 +36,9 @@ float opIntersect(float d1, float d2){
     return max(d1,d2);
 }
 
-vec3 opTwist( vec3 p ) {
-    float c = cos(1*p.y);
-    float s = sin(1*p.y);
+vec3 opTwist( vec3 p, float t) {
+    float c = cos(t*p.y);
+    float s = sin(t*p.y);
     mat2  m = mat2(c,-s,s,c);
     return vec3(m*p.xz,p.y);
 }

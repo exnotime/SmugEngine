@@ -28,7 +28,7 @@ struct CameraLens {
 	int			WindowWidth = 1280;		// Width of view port.
 	int			WindowHeight = 720;		// Height of view port.
 	float		Near = 0.5f;		// Minimum distance from camera for rendered objects.
-	float		Far = 1000.0f;	// Maximum distance from camera for rendered objects.
+	float		Far = 250.0f;	// Maximum distance from camera for rendered objects.
 };
 
 // Basic camera provided by the Graphics Engine. Should not be controlled directly by input devices (use inheritance or similar instead)(Fuck this!).

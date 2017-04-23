@@ -6,7 +6,9 @@ layout (location = 3) in vec2 TexCoord;
 
 layout (location = 0) out vec3 PosW;
 layout (location = 1) out vec3 NormalW;
-layout (location = 2) out vec2 TexCoordOut;
+layout (location = 2) out vec3 TangentW;
+layout (location = 3) out vec2 TexCoordOut;
+layout (location = 4) out vec3 BiNormOut;
 
 layout (binding = 0) uniform WVP{
     mat4 wvp;
@@ -19,5 +21,7 @@ void main(){
     gl_Position = wvp * vec4(posL,1);
     PosW = (world * vec4(posL,1)).xyz;
     NormalW = (world * vec4(NormalL,0)).xyz;
+    TangentW = (world * vec4(TangentL,0)).xyz;
+    BiNormOut = cross(NormalW, TangentW);
     TexCoordOut = TexCoord;
 }

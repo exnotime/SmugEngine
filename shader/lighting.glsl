@@ -5,9 +5,8 @@
 #define EPS 0.00001
 #define GAMMA 1.0
 #define saturate(x) clamp(x, 0.0, 1.0)
-layout(binding = 5) uniform samplerCube g_DiffEnvMap;
-layout(binding = 6) uniform samplerCube g_SpecEnvMap;
-layout(binding = 7) uniform sampler2D g_IBLTex;
+layout(set = 2,binding = 0) uniform sampler2D g_IBLTex;
+layout(set = 2,binding = 1) uniform samplerCube g_IBLCube[2];
 
 
 float LambertDiffuse(vec3 normal, vec3 lightDir){
@@ -73,7 +72,7 @@ vec3 CookTorranceSpecular(vec3 normal, vec3 lightDir, vec3 toEye, float roughnes
 	float ndotv = saturate(dot(toEye, normal));
 	float vdoth = saturate(dot(halfWayVector, toEye));
 
-	float ior = mix(1.5, 3.0, metal);
+	float ior = mix(1.0, 3.0, metal);
 	float f0 = IORToF0(ior);
 	vec3 F0 = vec3(f0,f0,f0);
 	F0 = mix(F0, F0 * baseColor, metal);
@@ -111,11 +110,11 @@ vec3 AproximateIBLSpecular(vec3 F0 , float roughness, vec3 normal, vec3 toeye){
  	float NoV = saturate(dot(normal, toeye));
  	NoV = max(EPS, NoV);
  	vec3 R = 2 * dot(normal, toeye) * normal - toeye;
- 	ivec2 texDim = textureSize(g_SpecEnvMap, 0);
+ 	ivec2 texDim = textureSize(g_IBLCube[1], 0);
 	float numMips = ceil(log2(float(max(texDim.x,texDim.y)))) - 1.0f;
 	float mipLevel = numMips * roughness;
 
-	vec3 color = pow(textureLod(g_SpecEnvMap, R, mipLevel).rgb, vec3(GAMMA));
+	vec3 color = pow(textureLod(g_IBLCube[1], R, mipLevel).rgb, vec3(GAMMA));
 	vec2 envBRDF = texture(g_IBLTex, vec2(roughness, NoV)).rg;
 
 	return color * (envBRDF.x * F0 + envBRDF.y);
@@ -129,7 +128,7 @@ vec3 CalcIBLLight( vec3 inNormal, vec3 toeye, vec3 baseColor, float roughness, f
 	vec3 F0 = vec3(f0,f0,f0);
 	F0 = mix(F0, F0 * baseColor, metal);
 
- 	vec3 irradiance = pow(texture(g_DiffEnvMap, inNormal).rgb, vec3(GAMMA));
+ 	vec3 irradiance = pow(texture(g_IBLCube[0], inNormal).rgb, vec3(GAMMA));
  	vec3 diffuse = baseColor * irradiance;
  	vec3 specular = AproximateIBLSpecular(F0, roughness, inNormal, toeye);
  	specular = saturate(specular);

@@ -15,13 +15,13 @@ layout(binding = 2) uniform PerFrame{
 #include "lighting.glsl"
 
 float near = 0.1;
-float far = 1000.0;
+float far = 250.0;
 int MaxIt = 64;
 
 vec2 map(vec3 p){
     float plane = udPlane(p, normalize(vec4(0,-1,0,-10)));
-    vec3 repP = opTwist(p); //opRepeat(, vec3(10, 0, 10));
-    float box = udRoundBox(repP, vec3(1), 0.5, vec3(0, 0, 0));
+    vec3 repP = opTwist(p,0.75f);
+    float box = udRoundBox(repP, vec3(2,1,2), 0.1, vec3(0, 0, 0));
     float sphere = sdSphere(p, 2.4f, vec3(0,-2,0));
     return vec2(opBlend(sphere, box), 1);
 }
@@ -70,28 +70,15 @@ void main() {
     //calc posw and normal
     vec3 posw = (ro + rd * res.x );
     vec3 normal = CalcNormal(posw);
-    vec3 color = vec3(0.5, 0.5, 0.5);
+    vec3 color = vec3(0.5, 0.7, 0.5);
     //raytrace plane so we dont get ugly artifacts
-    vec3 pn = vec3(0,1,0);
-    vec3 po = vec3(0,-10,0);
-    float t1 = RaytraceFloor(ro,rd,pn,po);
-    if(t1 < res.x && t1 >= near && t1 <= far){
-        res.x = t1;
-        posw = (ro + rd * res.x );
-        normal = pn;
-        color = getFloorTexture(posw);
-    }
-    
     float d = texture(g_DepthTex, vec2(screenPos)).r;
     d = near / (far - d * (far - near)); //linearize the depth buffer
     if( d >= (res.x - near) / (far - near)){
         const vec3 lightDir = normalize(vec3(0.2f, -1.0f, -0.4f));
-        float diff = LambertDiffuse(normal, lightDir);
-        float spec = 0;
-        if(diff > 0){
-            spec = BlinnSpecular(normal, lightDir, normalize(CamPos.xyz - posw), 4.0);
-        }
-        vec3 litColor = (diff + spec + 0.01) * color;
+        const vec3 toCam = normalize(CamPos.xyz - posw);
+        vec3 litColor = CalcDirLight(lightDir, color, normal, toCam, 0.9f, 0.0f);
+        litColor += CalcIBLLight( normal, toCam, color, 0.9f, 0.0f);
         imageStore(output_img, screenPos, vec4(litColor,1));
     }
 }

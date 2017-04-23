@@ -48,6 +48,8 @@ public:
 	~ResourceHandler();
 	void Init(vk::Device* device, const vk::PhysicalDevice& physDev, MemoryBudget budget);
 	void ScheduleTransfer(VulkanCommandBuffer& cmdBuffer);
+	void Clear();
+
 	const Model& GetModel(ResourceHandle handle);
 
 	ResourceHandle AllocateModel(const ModelInfo& model);

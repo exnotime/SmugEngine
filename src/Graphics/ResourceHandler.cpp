@@ -5,7 +5,7 @@ ResourceHandler::ResourceHandler() {
 
 }
 ResourceHandler::~ResourceHandler() {
-
+	Clear();
 }
 
 ResourceHandle AllocModel(const ModelInfo& model, void* userData) {
@@ -32,7 +32,7 @@ void ResourceHandler::Init(vk::Device* device, const vk::PhysicalDevice& physDev
 	allocator.AllocTexture = AllocTexture;
 	allocator.ModelData = this;
 	allocator.TextureData = this;
-	g_AssetLoader->SetResourceAllocator(allocator);
+	g_AssetLoader.SetResourceAllocator(allocator);
 	//descriptor pool
 	vk::DescriptorPoolCreateInfo poolInfo;
 	poolInfo.maxSets = MAX_MATERIALS;
@@ -71,7 +71,10 @@ void ResourceHandler::Init(vk::Device* device, const vk::PhysicalDevice& physDev
 	texInfo.Data = malloc(4);
 	memset(texInfo.Data, 0xFFFFFFFF, 4); // RGBA = 1,1,1,1
 	m_DefaultAlbedo.Init(texInfo, m_MaterialMemory, *device);
-	memset(texInfo.Data, 0xFFFF8080, 4); // RGBA = 0.5, 0.5, 1, 1
+	((uint8_t*)texInfo.Data)[0] = 128;
+	((uint8_t*)texInfo.Data)[1] = 128;
+	((uint8_t*)texInfo.Data)[2] = 255;
+	((uint8_t*)texInfo.Data)[3] = 255;
 	m_DefaultNormal.Init(texInfo, m_MaterialMemory, *device);
 	texInfo.LinearSize = 1;
 	texInfo.Format = (uint32_t)vk::Format::eR8Unorm;
@@ -79,6 +82,7 @@ void ResourceHandler::Init(vk::Device* device, const vk::PhysicalDevice& physDev
 	m_DefaultRoughness.Init(texInfo, m_MaterialMemory, *device);
 	memset(texInfo.Data, 0x0, 1);
 	m_DefaultMetal.Init(texInfo, m_MaterialMemory, *device);
+	free(texInfo.Data);
 
 	m_Device = device;
 }
@@ -195,4 +199,10 @@ void ResourceHandler::ScheduleTransfer(VulkanCommandBuffer& cmdBuffer) {
 	m_VertexMemory[TEXCOORD].ScheduleTransfers(cmdBuffer);
 	m_IndexMemory.ScheduleTransfers(cmdBuffer);
 	m_MaterialMemory.ScheduleTransfers(cmdBuffer);
+}
+
+void ResourceHandler::Clear() {
+	for (auto& m : m_Models) {
+		SAFE_DELETE(m.Meshes);
+	}
 }

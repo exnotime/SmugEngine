@@ -53,7 +53,7 @@ void Engine::Init() {
 	HWND hWnd = glfwGetWin32Window(m_Window->GetWindow());
 	globals::g_Gfx->Init(glm::vec2(ws.Width, ws.Height), ws.Vsync, hWnd);
 	//create component buffers
-	g_ComponentManager.AddComponentType(1000, sizeof(TransformComponent), TransformComponent::Flag, "TransformComponent");
+	g_ComponentManager.AddComponentType(100, sizeof(TransformComponent), TransformComponent::Flag, "TransformComponent");
 	g_ComponentManager.AddComponentType(10, sizeof(CameraComponent), CameraComponent::Flag, "CameraComponent");
 
 	m_MainSubSystemSet = new SubSystemSet();
@@ -62,7 +62,7 @@ void Engine::Init() {
 
 	m_GlobalTimer = new Timer();
 	m_GlobalTimer->Reset();
-	g_AssetLoader->LoadAsset("assets/KoopaTroopa/Koopa.obj");
+	g_AssetLoader.LoadAsset("assets/KoopaTroopa/Koopa.dae");
 	globals::g_Gfx->TransferToGPU();
 }
 

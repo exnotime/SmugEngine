@@ -10,7 +10,7 @@ ModelLoader::~ModelLoader() {}
 
 char* ModelLoader::LoadModel(const std::string& filename, ModelInfo& model) {
 	Assimp::Importer importer;
-	const aiScene* scene = importer.ReadFile(filename, aiProcess_CalcTangentSpace | aiProcess_FlipUVs | aiProcess_GenSmoothNormals
+	const aiScene* scene = importer.ReadFile(filename, aiProcess_CalcTangentSpace | aiProcess_FlipUVs
 		| aiProcess_GenUVCoords | aiProcess_JoinIdenticalVertices | aiProcess_Triangulate);
 	if (scene) {
 		//meshes
@@ -27,7 +27,12 @@ char* ModelLoader::LoadModel(const std::string& filename, ModelInfo& model) {
  				for (int v = 0; v < meshInfo.VertexCount; ++v) {
 					meshInfo.Vertices[v].Position = glm::vec3(mesh->mVertices[v].x, mesh->mVertices[v].y, mesh->mVertices[v].z);
 					meshInfo.Vertices[v].Normal = glm::normalize(glm::vec3(mesh->mNormals[v].x, mesh->mNormals[v].y, mesh->mNormals[v].z));
-					meshInfo.Vertices[v].Tangent = glm::normalize(glm::vec3(mesh->mTangents[v].x, mesh->mTangents[v].y, mesh->mTangents[v].z));
+					glm::vec3 t = glm::normalize(glm::vec3(mesh->mTangents[v].x, mesh->mTangents[v].y, mesh->mTangents[v].z));
+					glm::vec3 b = glm::normalize(glm::vec3(mesh->mBitangents[v].x, mesh->mBitangents[v].y, mesh->mBitangents[v].z));
+					if (glm::dot(glm::cross(meshInfo.Vertices[v].Normal, t), b) < 0.0f) {
+						t *= -1;
+					}
+					meshInfo.Vertices[v].Tangent = t;
 					meshInfo.Vertices[v].TexCoord = glm::vec2(mesh->mTextureCoords[0][v].x, mesh->mTextureCoords[0][v].y);
 				}
 				meshInfo.IndexCount = mesh->mNumFaces * 3;
@@ -52,8 +57,14 @@ char* ModelLoader::LoadModel(const std::string& filename, ModelInfo& model) {
 					mat->GetTexture(aiTextureType_DIFFUSE, 0, &path);
 					texLoader.LoadTexture(dir + path.data, model.Materials[m].Albedo);
 				}
+				//obj stores normals in height
 				if (mat->GetTextureCount(aiTextureType_HEIGHT)) {
 					mat->GetTexture(aiTextureType_HEIGHT, 0, &path);
+					texLoader.LoadTexture(dir + path.data, model.Materials[m].Normal);
+				}
+				//dae in normals
+				if (mat->GetTextureCount(aiTextureType_NORMALS)) {
+					mat->GetTexture(aiTextureType_NORMALS, 0, &path);
 					texLoader.LoadTexture(dir + path.data, model.Materials[m].Normal);
 				}
 				if (mat->GetTextureCount(aiTextureType_SPECULAR)) {
@@ -64,6 +75,14 @@ char* ModelLoader::LoadModel(const std::string& filename, ModelInfo& model) {
 					mat->GetTexture(aiTextureType_SHININESS, 0, &path);
 					texLoader.LoadTexture(dir + path.data, model.Materials[m].Metal);
 				}
+			}
+		}
+		else {
+			//force default material
+			model.MaterialCount = 1;
+			model.Materials = new MaterialInfo();
+			for (int m = 0; m < model.MeshCount; ++m) {
+				model.Meshes[m].Material = 0;
 			}
 		}
 	}

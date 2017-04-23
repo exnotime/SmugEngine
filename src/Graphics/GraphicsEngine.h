@@ -1,6 +1,5 @@
 #pragma once
 #include "GraphicsExport.h"
-
 #include "TephraPipeline.h"
 #include "VulkanContext.h"
 #include "Memory.h"
@@ -54,6 +53,11 @@ private:
 	SkyBox m_SkyBox;
 	vk::DescriptorPool m_DescriptorPool;
 	vk::DescriptorSet m_DescriptorSet;
+
+	VkTexture m_IBLTex;
+	VkTexture m_SkyRad;
+	VkTexture m_SkyIrr;
+	vk::DescriptorSet m_IBLDescSet;
 
 	Memory m_BufferMemory;
 	Memory m_TextureMemory;

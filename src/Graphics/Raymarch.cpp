@@ -126,8 +126,9 @@ void Raymarcher::UpdateUniforms(VulkanCommandBuffer& cmdBuffer, const glm::mat4&
 	m_BufferMem.ScheduleTransfers(cmdBuffer);
 }
 
-void Raymarcher::Render(VulkanCommandBuffer& cmdBuffer, uint32_t frameIndex) {
+void Raymarcher::Render(VulkanCommandBuffer& cmdBuffer, uint32_t frameIndex, vk::DescriptorSet& ibl) {
 	cmdBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, m_Pipeline.GetPipeline());
 	cmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, m_Pipeline.GetPipelineLayout(), 0, m_DescSets[frameIndex], nullptr);
+	cmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, m_Pipeline.GetPipelineLayout(), 2, ibl, nullptr);
 	cmdBuffer.dispatch(50, 29, 1);
 }

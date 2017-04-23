@@ -190,7 +190,7 @@ void Memory::AllocateImage(vk::Image img, const TextureInfo& texInfo) {
 				copy.imageSubresource.layerCount = 1;
 				copy.imageSubresource.mipLevel = i;
 				transfer.copies.push_back(copy);
-				m_StagingOffset += w * h * texInfo.BPP;
+				m_StagingOffset += w * h * (texInfo.BPP  / 8);
 				w >>= 1; h >>= 1;
 			}
 			m_ImageTransfers.push_back(transfer);
