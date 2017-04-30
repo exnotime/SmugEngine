@@ -1,10 +1,8 @@
 #include "GraphicsEngine.h"
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
-#define PAR_SHAPES_IMPLEMENTATION
-#include <par_shapes.h>
-#include "Vertex.h"
 #include <vulkan/vulkan.h>
+#include "Vertex.h"
 
 GraphicsEngine::GraphicsEngine() {
 
@@ -92,7 +90,6 @@ void GraphicsEngine::CreateContext() {
 	}
 	//grab first available GPU
 	for (auto& gpu : gpus) {
-		bool lp = gpu.getFeatures().largePoints;
 		if (gpu.getProperties().deviceType == vk::PhysicalDeviceType::eDiscreteGpu ||
 			gpu.getProperties().deviceType == vk::PhysicalDeviceType::eIntegratedGpu) {
 			VK_PHYS_DEVICE = gpu;
@@ -149,8 +146,11 @@ void GraphicsEngine::CreateSwapChain(VkSurfaceKHR surface) {
 	vk::SurfaceFormatKHR format = formats[0];
 	//find out if we support srgb format
 	for (auto& f : formats) {
-		if (f.format == vk::Format::eB8G8R8A8Srgb)
+		if (f.format == vk::Format::eB8G8R8A8Srgb) {
 			format = f;
+			m_VKSwapChain.SRGB = true;
+		}
+			
 	}
 
 	vk::PresentModeKHR mode = m_VSync ? vk::PresentModeKHR::eFifo : vk::PresentModeKHR::eMailbox;
@@ -325,13 +325,17 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 
 	m_VKSwapChain.Surface = m_VKContext.Instance.createWin32SurfaceKHR(surfaceInfo);
 
-	//Allocate memory on gpu
-	m_TextureMemory.Init(VK_DEVICE, VK_PHYS_DEVICE, 768 * MEGA_BYTE);
-	m_BufferMemory.Init(VK_DEVICE, VK_PHYS_DEVICE, 16 * MEGA_BYTE, 8 * MEGA_BYTE);
-
 	m_MSAA = false;
 	m_VSync = vsync;
 	m_ScreenSize = windowSize;
+
+	//Allocate memory on gpu
+	//TODO: MSAA
+	uint64_t fboSize = (uint64_t)(m_ScreenSize.x * m_ScreenSize.y * 4 * (2 * BUFFER_COUNT)); //size of rgba and depth + stencil
+	fboSize += 16 * MEGA_BYTE; //3 * 256 * 256 * 6 + mipchain // cubemaps
+	m_TextureMemory.Init(VK_DEVICE, VK_PHYS_DEVICE, fboSize);
+	m_BufferMemory.Init(VK_DEVICE, VK_PHYS_DEVICE, BUFFER_COUNT * 8 * MEGA_BYTE, 4 * MEGA_BYTE);
+
 	CreateSwapChain(m_VKSwapChain.Surface);
 
 	vk::SemaphoreCreateInfo semaphoreInfo;
@@ -359,10 +363,14 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 
 	m_Pipeline.LoadPipelineFromFile(VK_DEVICE, "shader/filled.json", m_Viewport, m_RenderPass);
 	
-	m_UniformBuffer = m_BufferMemory.AllocateBuffer(sizeof(PerFrameBuffer), vk::BufferUsageFlagBits::eUniformBuffer, nullptr);
+	m_PerFrameBuffer = m_BufferMemory.AllocateBuffer(sizeof(PerFrameBuffer), vk::BufferUsageFlagBits::eUniformBuffer, nullptr);
+
+	for (int q = 0; q < BUFFER_COUNT; ++q) {
+		m_RenderQueues[q].Init(m_BufferMemory);
+	}
 
 	vk::DescriptorPoolCreateInfo descPoolInfo;
-	descPoolInfo.maxSets = 2;
+	descPoolInfo.maxSets = 2 + BUFFER_COUNT;
 	std::vector<vk::DescriptorPoolSize> poolSizes;
 	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eUniformBuffer, 1000));
 	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eCombinedImageSampler, 3));
@@ -370,58 +378,83 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	descPoolInfo.poolSizeCount = poolSizes.size();
 	m_DescriptorPool = VK_DEVICE.createDescriptorPool(descPoolInfo);
 
-	//uniform set
-	vk::DescriptorSetAllocateInfo descSetAllocInfo;
-	descSetAllocInfo.descriptorPool = m_DescriptorPool;
-	descSetAllocInfo.descriptorSetCount = 1;
-	descSetAllocInfo.pSetLayouts = &m_Pipeline.GetDescriptorSetLayouts()[0];
-	VK_DEVICE.allocateDescriptorSets(&descSetAllocInfo, &m_DescriptorSet);
+	{
+		//uniform set
+		vk::DescriptorSetAllocateInfo descSetAllocInfo;
+		descSetAllocInfo.descriptorPool = m_DescriptorPool;
+		descSetAllocInfo.descriptorSetCount = 1;
+		descSetAllocInfo.pSetLayouts = &m_Pipeline.GetDescriptorSetLayouts()[0];
+		VK_DEVICE.allocateDescriptorSets(&descSetAllocInfo, &m_PerFrameSet);
 
-	//ibl set
-	descSetAllocInfo;
-	descSetAllocInfo.descriptorPool = m_DescriptorPool;
-	descSetAllocInfo.descriptorSetCount = 1;
-	descSetAllocInfo.pSetLayouts = &m_Pipeline.GetDescriptorSetLayouts()[2];
-	VK_DEVICE.allocateDescriptorSets(&descSetAllocInfo, &m_IBLDescSet);
+		//ibl set
+		descSetAllocInfo.descriptorPool = m_DescriptorPool;
+		descSetAllocInfo.descriptorSetCount = 1;
+		descSetAllocInfo.pSetLayouts = &m_Pipeline.GetDescriptorSetLayouts()[1];
+		VK_DEVICE.allocateDescriptorSets(&descSetAllocInfo, &m_IBLDescSet);
 
-	vk::WriteDescriptorSet descWrites[3];
-	descWrites[0].descriptorCount = 1;
-	descWrites[0].descriptorType = vk::DescriptorType::eUniformBuffer;
-	descWrites[0].dstArrayElement = 0;
-	descWrites[0].dstBinding = 0;
-	descWrites[0].dstSet = m_DescriptorSet;
+		//renderqueue sets
+		descSetAllocInfo.descriptorSetCount = 1;
+		descSetAllocInfo.pSetLayouts = &m_Pipeline.GetDescriptorSetLayouts()[2];
+		vk::DescriptorSet set;
+		for (int i = 0; i < BUFFER_COUNT; ++i) {
+			VK_DEVICE.allocateDescriptorSets(&descSetAllocInfo, &set);
+			m_RenderQueues[i].SetDescSet(set);
+		}
+	}
+
+	vk::WriteDescriptorSet descWrites[3 + BUFFER_COUNT];
+	uint32_t c = 0;
+	descWrites[c].descriptorCount = 1;
+	descWrites[c].descriptorType = vk::DescriptorType::eUniformBuffer;
+	descWrites[c].dstArrayElement = 0;
+	descWrites[c].dstBinding = 0;
+	descWrites[c].dstSet = m_PerFrameSet;
 	vk::DescriptorBufferInfo descBufferInfo;
-	descBufferInfo.buffer = m_UniformBuffer.BufferHandle;
+	descBufferInfo.buffer = m_PerFrameBuffer.BufferHandle;
 	descBufferInfo.offset = 0;
 	descBufferInfo.range = VK_WHOLE_SIZE;
-	descWrites[0].pBufferInfo = &descBufferInfo;
+	descWrites[c++].pBufferInfo = &descBufferInfo;
 	//ibl tex
 	m_IBLTex.Init("assets/IBLTex.dds", m_TextureMemory, VK_DEVICE);
-	m_SkyRad.Init("assets/skybox_irr.dds", m_TextureMemory, VK_DEVICE);
-	m_SkyIrr.Init("assets/skybox_rad.dds", m_TextureMemory, VK_DEVICE);
-	descWrites[1].descriptorCount = 1;
-	descWrites[1].descriptorType = vk::DescriptorType::eCombinedImageSampler;
-	descWrites[1].dstArrayElement = 0;
-	descWrites[1].dstBinding = 0;
-	descWrites[1].dstSet = m_IBLDescSet;
-	descWrites[2].descriptorCount = 2;
-	descWrites[2].descriptorType = vk::DescriptorType::eCombinedImageSampler;
-	descWrites[2].dstArrayElement = 0;
-	descWrites[2].dstBinding = 1;
-	descWrites[2].dstSet = m_IBLDescSet;
+	m_SkyRad.Init("assets/skybox_rad.dds", m_TextureMemory, VK_DEVICE);
+	m_SkyIrr.Init("assets/skybox_irr.dds", m_TextureMemory, VK_DEVICE);
 	vk::DescriptorImageInfo imageInfo[3];
 	imageInfo[0] = m_IBLTex.GetDescriptorInfo();
 	imageInfo[1] = m_SkyRad.GetDescriptorInfo();
 	imageInfo[2] = m_SkyIrr.GetDescriptorInfo();
-	descWrites[1].pImageInfo = &imageInfo[0];
-	descWrites[2].pImageInfo = &imageInfo[1];
-	VK_DEVICE.updateDescriptorSets(3, descWrites, 0, nullptr);
+	descWrites[c].descriptorCount = 1;
+	descWrites[c].descriptorType = vk::DescriptorType::eCombinedImageSampler;
+	descWrites[c].dstArrayElement = 0;
+	descWrites[c].dstBinding = 0;
+	descWrites[c].pImageInfo = &imageInfo[0];
+	descWrites[c++].dstSet = m_IBLDescSet;
+	descWrites[c].descriptorCount = 2;
+	descWrites[c].descriptorType = vk::DescriptorType::eCombinedImageSampler;
+	descWrites[c].dstArrayElement = 0;
+	descWrites[c].dstBinding = 1;
+	descWrites[c].pImageInfo = &imageInfo[1];
+	descWrites[c++].dstSet = m_IBLDescSet;
 
-	m_SkyBox.Init(VK_DEVICE, VK_PHYS_DEVICE, "assets/skybox.dds", m_Viewport, m_RenderPass, m_MSState);
+	vk::DescriptorBufferInfo bufferInfos[BUFFER_COUNT];
+	for (int q = 0; q < BUFFER_COUNT; ++q) {
+		descWrites[c + q].descriptorCount = 1;
+		descWrites[c + q].descriptorType = vk::DescriptorType::eUniformBufferDynamic;
+		descWrites[c + q].dstArrayElement = 0;
+		descWrites[c + q].dstBinding = 0;
+		descWrites[c + q].dstSet = m_RenderQueues[q].GetDescriptorSet();
+		
+		bufferInfos[q].buffer = m_RenderQueues[q].GetUniformBuffer().BufferHandle;
+		bufferInfos[q].offset = 0;
+		bufferInfos[q].range = VK_WHOLE_SIZE;
+		descWrites[c + q].pBufferInfo = &bufferInfos[q];
+	}
+	VK_DEVICE.updateDescriptorSets(3 + BUFFER_COUNT, descWrites, 0, nullptr);
+	
+	m_SkyBox.Init(VK_DEVICE, VK_PHYS_DEVICE, "assets/skybox_rad.dds", m_Viewport, m_RenderPass, m_MSState);
 	m_Raymarcher.Init(VK_DEVICE, m_VKSwapChain, VK_PHYS_DEVICE);
 
 	MemoryBudget memBudget;
-	memBudget.GeometryBudget = 256 * MEGA_BYTE;
+	memBudget.GeometryBudget = 64 * MEGA_BYTE;
 	memBudget.MaterialBudget = 512 * MEGA_BYTE;
 	m_Resources.Init(&VK_DEVICE, VK_PHYS_DEVICE, memBudget);
 	//prepare initial transfer
@@ -454,13 +487,12 @@ void GraphicsEngine::Render() {
 	CameraData cd = rq.GetCameras()[0];
 
 	PerFrameBuffer uniformBuffer;
-	static float angle = 0.0;
-	angle += 0.01f;
-	uniformBuffer.World = glm::translate(glm::vec3(10, 3, 0)) * glm::scale(glm::vec3(10.0f)) * glm::rotate(angle, glm::vec3(0, 1, 0));
-	uniformBuffer.ViewProj = cd.ProjView * uniformBuffer.World;
+	uniformBuffer.ViewProj = cd.ProjView;
 	uniformBuffer.CameraPos = glm::vec4(cd.Position, 1);
 	uniformBuffer.LightDir = glm::normalize(glm::vec4(0.2f, -1.0f, -0.4f, 1.0f));
-	m_BufferMemory.UpdateBuffer(m_UniformBuffer, sizeof(PerFrameBuffer), (void*)(&uniformBuffer));
+	m_BufferMemory.UpdateBuffer(m_PerFrameBuffer, sizeof(PerFrameBuffer), (void*)(&uniformBuffer));
+	rq.ScheduleTransfer(m_BufferMemory);
+
 	m_vkCmdBuffer.Reset(VK_DEVICE, VK_FRAME_INDEX);
 
 	m_vkCmdBuffer.Begin(nullptr, nullptr);
@@ -506,17 +538,26 @@ void GraphicsEngine::Render() {
 	
 	vk::Buffer vertexBuffers[] = { model.VertexBuffers[0].BufferHandle, model.VertexBuffers[1].BufferHandle,
 		model.VertexBuffers[2].BufferHandle, model.VertexBuffers[3].BufferHandle };
-	vk::DeviceSize offset[] = { 0,0,0,0 };
-	m_vkCmdBuffer.bindVertexBuffers(0, 4, vertexBuffers, offset);
+	vk::DeviceSize offsets[] = { 0,0,0,0 };
+	m_vkCmdBuffer.bindVertexBuffers(0, 4, vertexBuffers, offsets);
 
 	m_vkCmdBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipeline());
 	m_vkCmdBuffer.setViewport(0, 1, &m_Viewport);
 	m_vkCmdBuffer.bindIndexBuffer(model.IndexBuffer.BufferHandle, 0, vk::IndexType::eUint16);
-	for (int m = 0; m < model.MeshCount; ++m) {
-		Mesh& mesh = model.Meshes[m];
-		vk::DescriptorSet descSets[] = { m_DescriptorSet, mesh.Material, m_IBLDescSet };
-		m_vkCmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipelineLayout(), 0, 3, descSets, 0, nullptr);
-		m_vkCmdBuffer.drawIndexed(mesh.IndexCount, 1, mesh.IndexOffset, 0, 0);
+
+	vk::DescriptorSet sets[] = { m_PerFrameSet , m_IBLDescSet };
+	m_vkCmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipelineLayout(), 0, 2, sets, 0, nullptr);
+
+	uint32_t uniformOffset = 0;
+	for (auto object : rq.GetModels()) {
+		m_vkCmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipelineLayout(), 2, 1, &rq.GetDescriptorSet(), 1, &uniformOffset);
+
+		for (int m = 0; m < model.MeshCount; ++m) {
+			Mesh& mesh = model.Meshes[m];
+			m_vkCmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipelineLayout(), 3, 1, &mesh.Material, 0, nullptr);
+			m_vkCmdBuffer.drawIndexed(mesh.IndexCount, 1, mesh.IndexOffset, 0, 0);
+		}
+		uniformOffset += sizeof(ShaderInput);
 	}
 
 	m_vkCmdBuffer.endRenderPass();
@@ -567,7 +608,7 @@ void GraphicsEngine::Render() {
 	}
 	m_vkMarchCmdBuffer.PushPipelineBarrier();
 
-	m_Raymarcher.Render(m_vkMarchCmdBuffer, VK_FRAME_INDEX, m_IBLDescSet);
+	m_Raymarcher.Render(m_vkMarchCmdBuffer, VK_FRAME_INDEX, m_IBLDescSet, m_ScreenSize);
 
 	if (m_VKSwapChain.MSAA) {
 		m_vkMarchCmdBuffer.ImageBarrier(m_VKSwapChain.DepthResolveImages[VK_FRAME_INDEX], vk::ImageLayout::eDepthStencilReadOnlyOptimal, vk::ImageLayout::eDepthStencilAttachmentOptimal);

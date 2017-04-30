@@ -37,7 +37,7 @@
     {
         "Back":"Zero",
         "Front":"Keep",
-        "DepthBoundsTestEnable":true,
+        "DepthBoundsTestEnable":false,
         "DepthCompareOp":"LessOrEqual",
         "DepthTestEnable":true,
         "DepthWriteEnable":true

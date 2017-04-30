@@ -437,7 +437,7 @@ vk::PipelineColorBlendStateCreateInfo ReadColorBlendState(const json& blendState
 vk::PipelineDepthStencilStateCreateInfo GetDefaultDepthStencilstate() {
 	vk::PipelineDepthStencilStateCreateInfo depthStencilCreateInfo;
 	depthStencilCreateInfo.back = vk::StencilOp::eZero;
-	depthStencilCreateInfo.depthBoundsTestEnable = true;
+	depthStencilCreateInfo.depthBoundsTestEnable = false;
 	depthStencilCreateInfo.depthCompareOp = vk::CompareOp::eLessOrEqual;
 	depthStencilCreateInfo.depthTestEnable = true;
 	depthStencilCreateInfo.depthWriteEnable = true;

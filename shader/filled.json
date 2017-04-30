@@ -10,11 +10,14 @@
             {"Binding":0, "Count":1, "Type":"UniformBuffer"}
         ],
         [
-            {"Binding":0, "Count":4, "Type":"CombinedImageSampler"}
-        ],
-        [
             {"Binding":0, "Count":1, "Type":"CombinedImageSampler"},
             {"Binding":1, "Count":2, "Type":"CombinedImageSampler"}
+        ],
+        [
+            {"Binding":0, "Count":1, "Type":"UniformBufferDynamic"}
+        ],
+        [
+            {"Binding":0, "Count":4, "Type":"CombinedImageSampler"}
         ]
     ],
     "ColorBlendState":

@@ -2,7 +2,7 @@ solution "Tephra"
     configurations { "Debug", "Release" }
         flags{ "Unicode", "NoPCH" }
         local vulkan_dir = os.getenv("VULKAN_SDK");
-        libdirs { "lib", vulkan_dir .. "/bin"  }
+        libdirs { "lib", vulkan_dir .. "/bin", vulkan_dir .. "/lib" }
         includedirs { "include", vulkan_dir .. "/include"}
         platforms{"x64" }
 
@@ -13,6 +13,8 @@ solution "Tephra"
             location ( location_path )
             location_path = location_path .. "/projects"
         end
+    
+    disablewarnings { "4251" }
 
     configuration { "Debug" }
         defines { "DEBUG" }
@@ -23,6 +25,7 @@ solution "Tephra"
         defines { "NDEBUG", "RELEASE" }
         flags { "Optimize", "FloatFast" }
         targetdir ( "bin/" .. "/release" )
+
 
 	project "Core"
         targetname "Tephra"

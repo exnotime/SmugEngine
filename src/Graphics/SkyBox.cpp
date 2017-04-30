@@ -1,6 +1,10 @@
 #include "SkyBox.h"
+#define PAR_SHAPES_IMPLEMENTATION
 #include <par_shapes.h>
 #include <glm/gtx/transform.hpp>
+
+
+
 SkyBox::SkyBox() {
 
 }

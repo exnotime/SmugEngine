@@ -16,7 +16,6 @@
 
 struct PerFrameBuffer {
 	glm::mat4 ViewProj;
-	glm::mat4 World;
 	glm::vec4 CameraPos;
 	glm::vec4 LightDir;
 };
@@ -49,16 +48,16 @@ private:
 	vk::Fence m_Fence[BUFFER_COUNT];
 	vk::Viewport m_Viewport;
 
-	Buffer m_UniformBuffer;
+	Buffer m_PerFrameBuffer;
 	SkyBox m_SkyBox;
 	vk::DescriptorPool m_DescriptorPool;
-	vk::DescriptorSet m_DescriptorSet;
-
+	vk::DescriptorSet m_PerFrameSet;
+	//ibl
 	VkTexture m_IBLTex;
 	VkTexture m_SkyRad;
 	VkTexture m_SkyIrr;
 	vk::DescriptorSet m_IBLDescSet;
-
+	//uniform and FBO memory
 	Memory m_BufferMemory;
 	Memory m_TextureMemory;
 

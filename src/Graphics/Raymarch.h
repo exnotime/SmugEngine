@@ -9,7 +9,7 @@ public:
 
 	void Init(const vk::Device& device, const VulkanSwapChain& swapChain, const vk::PhysicalDevice& physDev);
 	void UpdateUniforms(VulkanCommandBuffer& cmdBuffer, const glm::mat4& viewProj, const glm::vec3& position);
-	void Render(VulkanCommandBuffer& cmdBuffer, uint32_t frameIndex, vk::DescriptorSet& ibl);
+	void Render(VulkanCommandBuffer& cmdBuffer, uint32_t frameIndex, vk::DescriptorSet& ibl, glm::vec2 screenSize);
 private:
 	Tephra::Pipeline m_Pipeline;
 	vk::Image m_TargetImage;

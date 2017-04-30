@@ -16,7 +16,9 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #pragma once
 #include <vulkan/vulkan.hpp>
 #ifndef SHADER_CACHE_DIR
+#define USE_SHADER_CACHE 0
 #define SHADER_CACHE_DIR "./shader/cache/"
+
 #endif
 
 namespace Tephra {

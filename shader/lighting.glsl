@@ -2,11 +2,11 @@
 #define PI 3.141592653589793
 #define M_INV_PI 0.31830988618379067153776752674503
 #define MOD3 vec3(443.8975,397.2973, 491.1871)
-#define EPS 0.00001
-#define GAMMA 1.0
+#define EPS 0.0001
+#define GAMMA 2.2
 #define saturate(x) clamp(x, 0.0, 1.0)
-layout(set = 2,binding = 0) uniform sampler2D g_IBLTex;
-layout(set = 2,binding = 1) uniform samplerCube g_IBLCube[2];
+layout(set = 1,binding = 0) uniform sampler2D g_IBLTex;
+layout(set = 1,binding = 1) uniform samplerCube g_IBLCube[2];
 
 
 float LambertDiffuse(vec3 normal, vec3 lightDir){
@@ -64,57 +64,85 @@ float G1V ( float dotNV, float k ) {
 	return 1.0 / (dotNV*(1.0 - k) + k);
 }
 
+float DistributionGGX(vec3 N, vec3 H, float a){
+    float a2     = a*a;
+    float NdotH  = max(dot(N, H), 0.0);
+    float NdotH2 = NdotH*NdotH;
+	
+    float nom    = a2;
+    float denom  = (NdotH2 * (a2 - 1.0) + 1.0);
+    denom        = PI * denom * denom;
+	
+    return nom / denom;
+}
+
+float GeometrySchlickGGX(float NdotV, float k)
+{
+    float nom   = NdotV;
+    float denom = NdotV * (1.0 - k) + k;
+	
+    return nom / denom;
+}
+  
+float GeometrySmith(vec3 N, vec3 V, vec3 L, float k)
+{
+    float NdotV = max(dot(N, V), 0.0);
+    float NdotL = max(dot(N, L), 0.0);
+    float ggx1 = GeometrySchlickGGX(NdotV, k);
+    float ggx2 = GeometrySchlickGGX(NdotL, k);
+	
+    return ggx1 * ggx2;
+}
+
 vec3 CookTorranceSpecular(vec3 normal, vec3 lightDir, vec3 toEye, float roughness, float metal, vec3 baseColor) {
-	vec3 halfWayVector = normalize(toEye + lightDir);
-	float hdotl = saturate(dot(halfWayVector, lightDir));
-	float ndotl = saturate(dot(normal, lightDir));
-	float ndoth = saturate(dot(halfWayVector, normal));
+	vec3 halfWayVector = normalize(toEye + -lightDir);
+	float ndotl = saturate(dot(lightDir, normal));
 	float ndotv = saturate(dot(toEye, normal));
-	float vdoth = saturate(dot(halfWayVector, toEye));
+	float ndoth = saturate(dot(halfWayVector, normal));
 
-	float ior = mix(1.0, 3.0, metal);
-	float f0 = IORToF0(ior);
-	vec3 F0 = vec3(f0,f0,f0);
-	F0 = mix(F0, F0 * baseColor, metal);
+	vec3 F0 = mix(vec3(0.02f), baseColor, metal);
 
-	float alpha = roughness * roughness;
-	float alphaSqr = alpha * alpha;
+	float D = DistributionGGX(normal, halfWayVector, roughness);
 
-	float denom = ndoth * ndoth * (alphaSqr - 1.0) + 1.0;
-	float D = alphaSqr / (PI * denom * denom);
+	float k = pow(roughness + 1.0, 2) / 8.0;
+	float N = GeometrySmith(normal, toEye, -lightDir, k);
 
-	vec3 F = F_Schlick(F0, hdotl);
+	vec3 F = F_Schlick(F0, ndotv);
 
-	float k = alpha / 2.0;
-	float vis = G1V(ndotl, k) * G1V(ndotv, k);
-
-	return D * F * vis;
+	return vec3(N * D * F) / ((4 * ndotl * ndotv) + 0.001);
 }
 
 vec3 CalcDirLight(vec3 lightDir, vec3 albedo, vec3 normal, vec3 toEye, float roughness, float metallic) {
-	vec3 ld = -normalize(lightDir);
-	vec3 spec = vec3(0,0,0);
-	vec3 diff = vec3(0,0,0);
-	float ndotl = dot(normal, ld);
-	diff = max(ndotl, 0) * albedo;
-	if(ndotl > 0){
-		spec = CookTorranceSpecular(normal, ld, toEye, roughness, metallic, albedo);
-		spec = saturate(spec);
-	}
-	diff = mix(diff, vec3(0.0,0.0,0.0), metallic);
-	spec = mix(spec, spec * albedo, metallic);
-	return (diff + spec);
+	vec3 ld = normalize(lightDir);
+
+	float ndotl = max(dot(normal, ld),0);
+	float ndotv = max(dot(normal, toEye),0);
+	vec3  h = normalize(ld + toEye);
+	vec3 F0 = mix(vec3(0.04), albedo, metallic);
+
+	float D = DistributionGGX(normal, h, roughness);
+	float G = GeometrySmith(normal, toEye, lightDir, roughness);
+	vec3 F = F_Schlick(F0, ndotv);
+
+	vec3 Ks = F;
+	vec3 Kd = vec3(1.0) - Ks;
+	Kd *= 1.0 - metallic;
+
+	vec3 nom = D * F * G;
+	float denom = 4 * ndotl * ndotv + 0.001;
+	vec3 spec = nom / denom;
+
+	return (Kd * albedo / PI + spec) * ndotl;
 }
 
 vec3 AproximateIBLSpecular(vec3 F0 , float roughness, vec3 normal, vec3 toeye){
  	float NoV = saturate(dot(normal, toeye));
- 	NoV = max(EPS, NoV);
- 	vec3 R = 2 * dot(normal, toeye) * normal - toeye;
- 	ivec2 texDim = textureSize(g_IBLCube[1], 0);
+ 	vec3 R = reflect(toeye, normal);// 2 * dot(normal, toeye) * normal - toeye;
+ 	R.y *= -1;
+ 	ivec2 texDim = textureSize(g_IBLCube[0], 0);
 	float numMips = ceil(log2(float(max(texDim.x,texDim.y)))) - 1.0f;
 	float mipLevel = numMips * roughness;
-
-	vec3 color = pow(textureLod(g_IBLCube[1], R, mipLevel).rgb, vec3(GAMMA));
+	vec3 color = pow(textureLod(g_IBLCube[0], R, mipLevel).rgb, vec3(GAMMA));
 	vec2 envBRDF = texture(g_IBLTex, vec2(roughness, NoV)).rg;
 
 	return color * (envBRDF.x * F0 + envBRDF.y);
@@ -122,13 +150,8 @@ vec3 AproximateIBLSpecular(vec3 F0 , float roughness, vec3 normal, vec3 toeye){
 
 vec3 CalcIBLLight( vec3 inNormal, vec3 toeye, vec3 baseColor, float roughness, float metal)
 {
-	vec4 lightColor = vec4(0,0,0,1);
-	float ior = mix(1.4, 3.0, metal);//ior for plastic and iron, metallic values should actually be fetched from a texture and be in rgb space but this will do for now
-	float f0 = IORToF0(ior);
-	vec3 F0 = vec3(f0,f0,f0);
-	F0 = mix(F0, F0 * baseColor, metal);
-
- 	vec3 irradiance = pow(texture(g_IBLCube[0], inNormal).rgb, vec3(GAMMA));
+	vec3 F0 = mix(vec3(0.02f), baseColor, metal);
+ 	vec3 irradiance = pow(texture(g_IBLCube[1], inNormal).rgb, vec3(GAMMA));
  	vec3 diffuse = baseColor * irradiance;
  	vec3 specular = AproximateIBLSpecular(F0, roughness, inNormal, toeye);
  	specular = saturate(specular);

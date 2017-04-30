@@ -14,7 +14,6 @@ char* TextureLoader::LoadTexture(const std::string& filename, TextureInfo& info)
 	info.Format = texture.format();
 	info.MipCount = texture.levels();
 	info.LinearSize = texture.size();
-	uint32_t size = texture.size(0) * 8;
 	info.BPP = (texture.size(0) * 8) / (texture.extent(0).x * texture.extent(0).y); //bits for whole mip 0 / number of pixels
 	info.Data = malloc(texture.size());
 	memcpy(info.Data, texture.data(), texture.size());

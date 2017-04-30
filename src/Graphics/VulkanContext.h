@@ -13,15 +13,19 @@ struct VulkanContext {
 struct VulkanSwapChain {
 	vk::SurfaceKHR Surface;
 	vk::SwapchainKHR SwapChain;
+
 	vk::Image Images[BUFFER_COUNT];
 	vk::Image ResolveImages[BUFFER_COUNT];
 	vk::ImageView ImageViews[BUFFER_COUNT];
+
 	vk::Framebuffer FrameBuffers[BUFFER_COUNT];
+
 	vk::Image DepthStencilImages[BUFFER_COUNT];
 	vk::Image DepthResolveImages[BUFFER_COUNT];
 	vk::ImageView DepthStencilImageViews[BUFFER_COUNT];
 
 	bool MSAA;
+	bool SRGB;
 	vk::SampleCountFlags SampleCount;
 	vk::Format Format;
 };
@@ -117,6 +121,7 @@ private:
 			return vk::AccessFlags();
 			break;
 		}
+		return vk::AccessFlags();
 	}
 	vk::ImageAspectFlags LayoutToAspectMask(vk::ImageLayout layout) {
 		if (layout == vk::ImageLayout::eColorAttachmentOptimal || layout == vk::ImageLayout::eShaderReadOnlyOptimal ||
@@ -130,6 +135,7 @@ private:
 		else {
 			return vk::ImageAspectFlagBits::eMetadata;
 		}
+		return vk::ImageAspectFlagBits::eMetadata;
 	}
 
 	vk::CommandPool m_CmdPools[BUFFER_COUNT];
@@ -163,11 +169,11 @@ public:
 	void Submit(const std::vector<vk::CommandBuffer>& cmdBuffers, const std::vector<vk::Semaphore> waitSemaphores,
 		const std::vector<vk::Semaphore> signalSemaphores, vk::Fence fence) {
 		vk::SubmitInfo submit;
-		submit.commandBufferCount = cmdBuffers.size();
+		submit.commandBufferCount = (uint32_t)cmdBuffers.size();
 		submit.pCommandBuffers = cmdBuffers.data();
-		submit.signalSemaphoreCount = signalSemaphores.size();
+		submit.signalSemaphoreCount = (uint32_t)signalSemaphores.size();
 		submit.pSignalSemaphores = signalSemaphores.data();
-		submit.waitSemaphoreCount = waitSemaphores.size();
+		submit.waitSemaphoreCount = (uint32_t)waitSemaphores.size();
 		submit.pWaitSemaphores = waitSemaphores.data();
 		vk::PipelineStageFlags flags = vk::PipelineStageFlagBits::eBottomOfPipe;
 		submit.pWaitDstStageMask = &flags;

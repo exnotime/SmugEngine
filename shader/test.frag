@@ -9,13 +9,12 @@ layout(location = 0) out vec4 outColor;
 
 layout (set = 0, binding = 0) uniform WVP{
     mat4 wvp;
-    mat4 world;
     vec4 CamPos;
     vec4 LightDir;
 };
 #include "lighting.glsl"
 
-layout(set = 1, binding = 0) uniform sampler2D g_Material[4];
+layout(set = 3, binding = 0) uniform sampler2D g_Material[4];
 
 vec3 CalcBumpedNormal(vec3 Bump, vec3 Normal, vec3 Tangent, vec3 BiNorm){
     vec3 normal = normalize(Normal);
@@ -35,7 +34,10 @@ void main(){
     vec3 texColor = pow(texture(g_Material[0], TexCoordOut).rgb, vec3(2.2));
     float r = texture(g_Material[2], TexCoordOut).r;
     float m = texture(g_Material[3], TexCoordOut).r;
-    vec3 lightColor = CalcDirLight(lightDir, texColor, normal, toCam, r, m);
-    lightColor += CalcIBLLight( normal, toCam, texColor, r, m);
+    vec3 lightColor = CalcDirLight(-lightDir, texColor, normal, toCam, r, m);
+    lightColor += CalcIBLLight( normal, toCam, texColor, r, m) * 0.5;
+
+    lightColor = ditherRGB(lightColor, gl_FragCoord.xy);
+
     outColor = saturate(vec4(lightColor, 1));
 }

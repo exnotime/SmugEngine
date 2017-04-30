@@ -24,8 +24,8 @@ vec3 opRepeat(vec3 p, vec3 r){
     return p;
 }
 
-float opUnion(float d1, float d2){
-    return min(d1, d2);
+vec2 opUnion(vec2 d1, vec2 d2){
+    return (d1.x < d2.x) ? d1 : d2;
 }
 
 float opSubtract(float d1, float d2){
@@ -43,12 +43,12 @@ vec3 opTwist( vec3 p, float t) {
     return vec3(m*p.xz,p.y);
 }
 
-float smin( float a, float b, float k ) {
-    float h = clamp( 0.5+0.5*(b-a)/k, 0.0, 1.0 );
+vec2 smin( vec2 a, vec2 b, float k ) {
+    float h = clamp( 0.5+0.5*(b.x-a.x)/k, 0.0, 1.0 );
     return mix( b, a, h ) - k*h*(1.0-h);
 }
 
-float opBlend( float d1, float d2 ) {
+vec2 opBlend( vec2 d1, vec2 d2 ) {
     return smin( d1, d2, 0.1);
 }
 

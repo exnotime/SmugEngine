@@ -8,9 +8,12 @@
 
 #include "components/CameraComponent.h"
 #include "components/TransformComponent.h"
+#include "components/ModelComponent.h"
+#include "components/RigidBodyComponent.h"
 #include "datasystem/ComponentManager.h"
 #include "subsystem/SubSystemSet.h"
 #include "subsystem/systems/SSCamera.h"
+#include "subsystem/systems/SSRender.h"
 #include "GlobalSystems.h"
 #include "Timer.h"
 #include "AssetLoader/AssetLoader.h" //temp
@@ -34,8 +37,8 @@ void Engine::Init() {
 	WindowSettings ws;
 	ws.X = 50;
 	ws.Y = 40;
-	ws.Width = 1600;
-	ws.Height = 900;
+	ws.Width = 1920;
+	ws.Height = 1080;
 	ws.HighDPI = false;
 	ws.OpenGL = true;
 	ws.Title = "Tephra";
@@ -52,12 +55,16 @@ void Engine::Init() {
 	globals::g_Gfx = new GraphicsEngine();
 	HWND hWnd = glfwGetWin32Window(m_Window->GetWindow());
 	globals::g_Gfx->Init(glm::vec2(ws.Width, ws.Height), ws.Vsync, hWnd);
+
 	//create component buffers
 	g_ComponentManager.AddComponentType(100, sizeof(TransformComponent), TransformComponent::Flag, "TransformComponent");
+	g_ComponentManager.AddComponentType(100, sizeof(ModelComponent), ModelComponent::Flag, "ModelComponent");
+	g_ComponentManager.AddComponentType(100, sizeof(RigidBodyComponent), RigidBodyComponent::Flag, "RigidBodyComponent");
 	g_ComponentManager.AddComponentType(10, sizeof(CameraComponent), CameraComponent::Flag, "CameraComponent");
 
 	m_MainSubSystemSet = new SubSystemSet();
 	m_MainSubSystemSet->AddSubSystem(new SSCamera());
+	m_MainSubSystemSet->AddSubSystem(new SSRender());
 	m_MainSubSystemSet->StartSubSystems();
 
 	m_GlobalTimer = new Timer();

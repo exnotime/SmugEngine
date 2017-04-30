@@ -10,15 +10,19 @@ layout (location = 2) out vec3 TangentW;
 layout (location = 3) out vec2 TexCoordOut;
 layout (location = 4) out vec3 BiNormOut;
 
-layout (binding = 0) uniform WVP{
-    mat4 wvp;
-    mat4 world;
+layout (set = 0, binding = 0) uniform g_PerFrame {
+    mat4 vp;
     vec4 CamPos;
     vec4 LightDir;
 };
 
+layout (set = 2, binding = 0) uniform g_PerObject{
+	mat4 world;
+	vec4 color;
+};
+
 void main(){
-    gl_Position = wvp * vec4(posL,1);
+    gl_Position = vp * ( world * vec4(posL,1));
     PosW = (world * vec4(posL,1)).xyz;
     NormalW = (world * vec4(NormalL,0)).xyz;
     TangentW = (world * vec4(TangentL,0)).xyz;

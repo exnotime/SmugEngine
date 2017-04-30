@@ -20,7 +20,7 @@ void Input::Update() {
 	memcpy(m_GamePadLastFrame, m_GamePads, sizeof(Gamepad) * 4);
 	//update gamepads
 	for (int i = 0; i < 4; i++) {
-		m_GamePads[i].Connected = glfwJoystickPresent(i);
+		m_GamePads[i].Connected = (bool)glfwJoystickPresent(i);
 		if (m_GamePads[i].Connected) {
 			const char* name = glfwGetJoystickName(i);
 			//update axes

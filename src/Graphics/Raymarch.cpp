@@ -126,9 +126,12 @@ void Raymarcher::UpdateUniforms(VulkanCommandBuffer& cmdBuffer, const glm::mat4&
 	m_BufferMem.ScheduleTransfers(cmdBuffer);
 }
 
-void Raymarcher::Render(VulkanCommandBuffer& cmdBuffer, uint32_t frameIndex, vk::DescriptorSet& ibl) {
+void Raymarcher::Render(VulkanCommandBuffer& cmdBuffer, uint32_t frameIndex, vk::DescriptorSet& ibl, glm::vec2 screenSize) {
 	cmdBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, m_Pipeline.GetPipeline());
 	cmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, m_Pipeline.GetPipelineLayout(), 0, m_DescSets[frameIndex], nullptr);
-	cmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, m_Pipeline.GetPipelineLayout(), 2, ibl, nullptr);
-	cmdBuffer.dispatch(50, 29, 1);
+	cmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, m_Pipeline.GetPipelineLayout(), 1, ibl, nullptr);
+	const int gs = 32;
+	uint32_t x = (screenSize.x + gs - 1) / gs;
+	uint32_t y = (screenSize.y + gs - 1) / gs;
+	cmdBuffer.dispatch(x, y, 1);
 }

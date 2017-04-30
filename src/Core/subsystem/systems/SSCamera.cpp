@@ -8,6 +8,8 @@
 #include "../../Camera.h"
 
 #define CAMERA_SPEED 20.0f
+#define SPRINT_FACTOR 5.0f
+#define CAMERA_ROTATION_SPEED 0.001f
 SSCamera::SSCamera(){
 
 }
@@ -32,17 +34,21 @@ void SSCamera::Update(const double deltaTime) {
 			
 			glm::vec3 velocity = glm::vec3(0.0f);
 			float speed = CAMERA_SPEED * deltaTime;
+			if(g_Input.IsKeyDown(GLFW_KEY_LEFT_SHIFT)) {
+				speed *= SPRINT_FACTOR;
+			}
+
 			if (g_Input.IsKeyDown(GLFW_KEY_W)) {
-				cc->Cam.MoveRelative(glm::vec3(0, 0, -0.1f));
+				cc->Cam.MoveRelative(glm::vec3(0, 0, -speed));
 			}
 			if (g_Input.IsKeyDown(GLFW_KEY_S)) {
-				cc->Cam.MoveRelative(glm::vec3(0, 0, 0.1f));
+				cc->Cam.MoveRelative(glm::vec3(0, 0, speed));
 			}
 			if (g_Input.IsKeyDown(GLFW_KEY_A)) {
-				cc->Cam.MoveRelative(glm::vec3(-0.1f, 0, 0));
+				cc->Cam.MoveRelative(glm::vec3(-speed, 0, 0));
 			}
 			if (g_Input.IsKeyDown(GLFW_KEY_D)) {
-				cc->Cam.MoveRelative(glm::vec3(0.1f, 0, 0));
+				cc->Cam.MoveRelative(glm::vec3(speed, 0, 0));
 			}
 			if (g_Input.IsKeyDown(GLFW_KEY_SPACE)) {
 				cc->Cam.MoveWorld(glm::vec3(0, speed, 0));
@@ -51,8 +57,8 @@ void SSCamera::Update(const double deltaTime) {
 				cc->Cam.MoveWorld(glm::vec3(0, -speed, 0));
 			}
 
-			cc->Cam.YawWorld(g_Input.GetMouseDelta().x * -0.001f);
-			cc->Cam.PitchRelative(g_Input.GetMouseDelta().y * 0.001f);
+			cc->Cam.YawWorld(g_Input.GetMouseDelta().x * -CAMERA_ROTATION_SPEED);
+			cc->Cam.PitchRelative(g_Input.GetMouseDelta().y * CAMERA_ROTATION_SPEED);
 
 			cc->Cam.CalculateViewProjection();
 

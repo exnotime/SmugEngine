@@ -45,11 +45,13 @@ vk::ShaderModule Tephra::LoadShader(const vk::Device& device, const std::string&
 		return module;
 	}
 
+
 	//check if there is an up to date shader cache
 	std::string cacheName = SHADER_CACHE_DIR + filename.substr(filename.find_last_of('/') + 1) + ".spv";
 	struct stat cacheBuf, fileBuf;
 	stat(cacheName.c_str(), &cacheBuf);
 	stat(filename.c_str(), &fileBuf);
+#if USE_SHADER_CACHE
 	//either there is no shader at filename or it was created 1 jan 1970
 	if (fileBuf.st_mtime == 0) {
 		printf("Error opening shader %s\n", filename.c_str());
@@ -68,6 +70,7 @@ vk::ShaderModule Tephra::LoadShader(const vk::Device& device, const std::string&
 		delete[] code;
 		return module;
 	}
+#endif
 	//load shader file
 	FILE* fin = fopen(filename.c_str(), "rb");
 	char* code = new char[fileBuf.st_size];
