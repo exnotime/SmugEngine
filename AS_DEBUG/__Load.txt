@@ -1,0 +1,43 @@
+void Load()
+
+Temps: 10, 12, 14
+
+Variables: 
+ 012: (heap) string {noname}
+ 010: string {noname}
+
+
+- 3,2 -
+    0  14 *    SUSPEND
+    1  14 *    STR      0         (l:34 s:"Loading fr")
+    2  17 *    CALLSYS  19           (const string& $str(const int, const uint8&in))
+    4  14 *    PshRPtr
+    5  16 *    PSF      v10
+    6  18 *    CALLSYS  21           (string::string(const string&in))
+               ObjInfo  v10, 1
+    8  14 *    PSF      v10
+    9  16 *    CALLSYS  70           (void print(const string&in))
+   11  14 *    PSF      v10
+   12  16 *    CALLSYS  22           (string::~string())
+- 4,2 -
+               ObjInfo  v10, 0
+   14  14 *    SUSPEND
+   15  14 *    PSF      v12
+   16  16 *    STR      1         (l:28 s:"assets/Koo")
+   17  19 *    CALLSYS  19           (const string& $str(const int, const uint8&in))
+   19  16 *    PshRPtr
+   20  18 *    PSF      v10
+   21  20 *    CALLSYS  21           (string::string(const string&in))
+               ObjInfo  v10, 1
+   23  16 *    PSF      v10
+   24  18 *    ALLOC    0x1f06c6f46d0, 21             (type:string, string::string(const string&in))
+   28  14 *    PSF      v10
+   29  16 *    CALLSYS  22           (string::~string())
+               ObjInfo  v10, 0
+   31  14 *    VAR      v12
+   32  16 *    GETOBJ   0
+   33  16 *    CALLSYS  786           (uint64 LoadModel(string))
+- 5,2 -
+   35  14 *    SUSPEND
+            0:
+   36  14 *    RET      0

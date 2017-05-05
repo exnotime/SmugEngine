@@ -145,7 +145,9 @@ vec3 AproximateIBLSpecular(vec3 F0 , float roughness, vec3 normal, vec3 toeye){
 	vec3 color = pow(textureLod(g_IBLCube[0], R, mipLevel).rgb, vec3(GAMMA));
 	vec2 envBRDF = texture(g_IBLTex, vec2(roughness, NoV)).rg;
 
-	return color * (envBRDF.x * F0 + envBRDF.y);
+	//return color * (envBRDF.x * F0 + envBRDF.y);
+
+	return vec3(envBRDF.xy, 0.0);
  }
 
 vec3 CalcIBLLight( vec3 inNormal, vec3 toeye, vec3 baseColor, float roughness, float metal)
@@ -154,8 +156,9 @@ vec3 CalcIBLLight( vec3 inNormal, vec3 toeye, vec3 baseColor, float roughness, f
  	vec3 irradiance = pow(texture(g_IBLCube[1], inNormal).rgb, vec3(GAMMA));
  	vec3 diffuse = baseColor * irradiance;
  	vec3 specular = AproximateIBLSpecular(F0, roughness, inNormal, toeye);
- 	specular = saturate(specular);
-	return vec3(specular + diffuse * (vec3(1) - F0) * (1 - metal));
+ 	//specular = saturate(specular);
+	//return vec3(specular + diffuse * (vec3(1) - F0) * (1 - metal));
+	return specular;
 }
 
 vec3 hash32(vec2 p){

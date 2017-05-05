@@ -3,11 +3,16 @@
 #include "Resources.h"
 #include "TextureLoader.h"
 #include "ModelLoader.h"
+
+#include <unordered_map>
+
 enum ResourceTypes : uint64_t {
-	RT_TEXTURE = 1,
-	RT_MODEL,
-	RT_ANIMATION,
-	RT_SKELETON
+	RT_TEXTURE = 0x1,
+	RT_MODEL = 0x2,
+	RT_ANIMATION = 0x4,
+	RT_SKELETON = 0x8,
+	RT_SCRIPT = 0x10,
+	RT_LEVEL = 0x20
 };
 
 /*
@@ -22,15 +27,17 @@ struct ASSET_DLL ResourceAllocator {
 	void* TextureData = nullptr;
 	AllocateModel AllocModel;
 	void* ModelData = nullptr;
-
 };
+
 #define g_AssetLoader AssetLoader::GetInstance()
-#define SAFE_DELETE(x) if(x) delete x
+
 class ASSET_DLL AssetLoader {
 public:
 	~AssetLoader();
 	void SetResourceAllocator(ResourceAllocator allocator);
 	ResourceHandle LoadAsset(const char* filename);
+	void UnloadAsset(ResourceHandle h);
+	void Clear();
 
 	static AssetLoader& GetInstance();
 private:
@@ -39,5 +46,6 @@ private:
 	ResourceAllocator m_Allocator;
 	TextureLoader m_TexLoader;
 	ModelLoader m_ModelLoader;
+	std::unordered_map<std::string, ResourceHandle> m_ResourceCache;
 };
 

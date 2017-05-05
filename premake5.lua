@@ -30,12 +30,17 @@ solution "Tephra"
 	project "Core"
         targetname "Tephra"
 		debugdir ""
+        defines { "AS_USE_NAMESPACE" }
 		location ( location_path )
 		language "C++"
 		kind "ConsoleApp"
 		files { "src/Core/**"}
 		includedirs { "include", "src" }
 		links {  "Graphics", "AssetLoader", "glfw3" }
+        configuration { "Debug" }
+                links { "angelscript64d", "as_integrationD" }
+        configuration { "Release" }
+                links { "angelscript64", "as_integration" }
 
     project "Graphics"
     	targetname "Graphics"

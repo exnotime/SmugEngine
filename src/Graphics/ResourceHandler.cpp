@@ -1,5 +1,6 @@
 #include "ResourceHandler.h"
 #include <AssetLoader/AssetLoader.h>
+#define SAFE_DELETE(x) if(x) delete x
 
 ResourceHandler::ResourceHandler() {
 

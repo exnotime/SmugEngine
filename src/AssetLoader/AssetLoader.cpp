@@ -2,7 +2,11 @@
 #include <string>
 #include <stdio.h>
 
-AssetLoader::AssetLoader(){}
+#define SAFE_DELETE(x) if(x) delete x
+
+AssetLoader::AssetLoader(){
+	m_ResourceCache.reserve(1);
+}
 
 AssetLoader::~AssetLoader(){
 }
@@ -35,6 +39,11 @@ bool IsModel(const std::string& ext) {
 }
 
 ResourceHandle AssetLoader::LoadAsset(const char* filename) {
+
+	if (m_ResourceCache.find(filename) != m_ResourceCache.end()) {
+		return m_ResourceCache.find(filename)->second;
+	}
+
 	std::string file(filename);
 	std::string extention = file.substr(file.find_last_of('.') + 1);
 	char* error = nullptr;
@@ -44,6 +53,7 @@ ResourceHandle AssetLoader::LoadAsset(const char* filename) {
 		if (!error) {
 			ResourceHandle handle = m_Allocator.AllocTexture(texInfo, m_Allocator.TextureData);
 			handle |= (RT_TEXTURE << 32);
+			m_ResourceCache[filename] = handle;
 			return handle;
 		}
 	}
@@ -68,6 +78,7 @@ ResourceHandle AssetLoader::LoadAsset(const char* filename) {
 			SAFE_DELETE(modelInfo.Meshes);
 
 			handle |= (RT_MODEL << 32);
+			m_ResourceCache[filename] = handle;
 			return handle;
 		}
 	}
