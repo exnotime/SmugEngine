@@ -9,7 +9,7 @@ VkTexture::~VkTexture() {
 
 }
 
-void VkTexture::Init(const std::string& filename, Memory& memory, const vk::Device& device) {
+void VkTexture::Init(const std::string& filename, VkMemory& memory, const vk::Device& device) {
 	gli::texture texture(gli::load(filename));
 
 	if (texture.target() == gli::TARGET_CUBE) {
@@ -92,7 +92,7 @@ void VkTexture::Init(const std::string& filename, Memory& memory, const vk::Devi
 	m_Sampler = device.createSampler(sampInfo);
 }
 
-void VkTexture::Init(const TextureInfo& texInfo, Memory& memory, const vk::Device& device) {
+void VkTexture::Init(const TextureInfo& texInfo, VkMemory& memory, const vk::Device& device) {
 	if (texInfo.Layers == 6) {
 		vk::ImageCreateInfo imageInfo;
 		imageInfo.arrayLayers = texInfo.Layers;

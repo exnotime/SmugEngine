@@ -1,14 +1,14 @@
-#include "Memory.h"
+#include "VkMemory.h"
 
-Memory::Memory() {
-
-}
-
-Memory::~Memory() {
+VkMemory::VkMemory() {
 
 }
 
-void Memory::Init(const vk::Device& device, const vk::PhysicalDevice& physDev, uint64_t deviceSize, uint64_t stageSize) {
+VkMemory::~VkMemory() {
+
+}
+
+void VkMemory::Init(const vk::Device& device, const vk::PhysicalDevice& physDev, uint64_t deviceSize, uint64_t stageSize) {
 	m_MemProps = physDev.getMemoryProperties();
 	m_Device = device;
 
@@ -61,9 +61,9 @@ void Memory::Init(const vk::Device& device, const vk::PhysicalDevice& physDev, u
 	m_StagingOffset = 0;
 }
 
-Buffer Memory::AllocateBuffer(uint64_t size, vk::BufferUsageFlags usage, void* data) {
+VkAlloc VkMemory::AllocateBuffer(uint64_t size, vk::BufferUsageFlags usage, void* data) {
 	if (m_DeviceOffset + size > m_DeviceSize) {
-		return Buffer();
+		return VkAlloc();
 	}
 
 	vk::BufferCreateInfo bufferInfo;
@@ -97,21 +97,22 @@ Buffer Memory::AllocateBuffer(uint64_t size, vk::BufferUsageFlags usage, void* d
 		m_StagingOffset += size;
 	}
 
-	Buffer buf;
+	VkAlloc buf;
 	buf.BufferHandle = buffer;
-	buf.BufferOffset = m_DeviceOffset;
+	buf.Offset = m_DeviceOffset;
+	buf.Size = size;
 
 	m_DeviceOffset += size;
 
 	return buf;
 }
 
-void Memory::AllocateImage(vk::Image img, gli::texture2d* texture, void* data) {
+VkAlloc VkMemory::AllocateImage(vk::Image img, gli::texture2d* texture, void* data) {
 	vk::MemoryRequirements memReq = m_Device.getImageMemoryRequirements(img);
 	m_DeviceOffset = (m_DeviceOffset + memReq.alignment) & ~memReq.alignment;
 
 	if (m_DeviceOffset + memReq.size > m_DeviceSize) {
-		return;
+		return VkAlloc();
 	}
 	VkDeviceSize size = (texture) ? texture->size() : memReq.size;
 	m_Device.bindImageMemory(img, m_DevMem, m_DeviceOffset);
@@ -156,12 +157,12 @@ void Memory::AllocateImage(vk::Image img, gli::texture2d* texture, void* data) {
 	m_DeviceOffset += memReq.size;
 }
 
-void Memory::AllocateImage(vk::Image img, const TextureInfo& texInfo) {
+VkAlloc VkMemory::AllocateImage(vk::Image img, const TextureInfo& texInfo) {
 	vk::MemoryRequirements memReq = m_Device.getImageMemoryRequirements(img);
 	m_DeviceOffset = (m_DeviceOffset + memReq.alignment - 1) & ~(memReq.alignment - 1);
 
 	if (m_DeviceOffset + memReq.size > m_DeviceSize) {
-		return;
+		return VkAlloc();
 	}
 	VkDeviceSize size = (texInfo.Data) ? texInfo.LinearSize : memReq.size;
 	m_Device.bindImageMemory(img, m_DevMem, m_DeviceOffset);
@@ -204,15 +205,21 @@ void Memory::AllocateImage(vk::Image img, const TextureInfo& texInfo) {
 			m_StagingOffset += memReq.size;
 		}
 	}
+	VkAlloc alloc;
+	alloc.Offset = m_DeviceOffset;
+	alloc.Size = memReq.size;
+
 	m_DeviceOffset += memReq.size;
+
+	return alloc;
 }
 
-void Memory::AllocateImageCube(vk::Image img, gli::texture_cube* texture, void* data) {
+VkAlloc VkMemory::AllocateImageCube(vk::Image img, gli::texture_cube* texture, void* data) {
 	vk::MemoryRequirements memReq = m_Device.getImageMemoryRequirements(img);
 	m_DeviceOffset = (m_DeviceOffset + memReq.alignment) & ~memReq.alignment;
 
 	if (m_DeviceOffset + memReq.size > m_DeviceSize) {
-		return;
+		return VkAlloc();
 	}
 	VkDeviceSize size = (texture) ? texture->size() : memReq.size;
 	m_Device.bindImageMemory(img, m_DevMem, m_DeviceOffset);
@@ -257,15 +264,21 @@ void Memory::AllocateImageCube(vk::Image img, gli::texture_cube* texture, void* 
 		}
 
 	}
+	VkAlloc alloc;
+	alloc.Offset = m_DeviceOffset;
+	alloc.Size = memReq.size;
+
 	m_DeviceOffset += memReq.size;
+
+	return alloc;
 }
 
-void Memory::AllocateImageCube(vk::Image img, const TextureInfo& texInfo) {
+VkAlloc VkMemory::AllocateImageCube(vk::Image img, const TextureInfo& texInfo) {
 	vk::MemoryRequirements memReq = m_Device.getImageMemoryRequirements(img);
 	m_DeviceOffset = (m_DeviceOffset + memReq.alignment) & ~memReq.alignment;
 
 	if (m_DeviceOffset + memReq.size > m_DeviceSize) {
-		return;
+		return VkAlloc();
 	}
 	VkDeviceSize size = (texInfo.Data) ? texInfo.LinearSize : memReq.size;
 	m_Device.bindImageMemory(img, m_DevMem, m_DeviceOffset);
@@ -311,10 +324,16 @@ void Memory::AllocateImageCube(vk::Image img, const TextureInfo& texInfo) {
 		}
 
 	}
+	VkAlloc alloc;
+	alloc.Offset = m_DeviceOffset;
+	alloc.Size = memReq.size;
+
 	m_DeviceOffset += memReq.size;
+
+	return alloc;
 }
 
-void Memory::ScheduleTransfers(VulkanCommandBuffer& cmdBuffer) {
+void VkMemory::ScheduleTransfers(VulkanCommandBuffer& cmdBuffer) {
 	if (!m_Transfers.empty()) {
 		//transfer data from staging buffer to device buffer
 		cmdBuffer.copyBuffer(m_StagingBuffer, m_DeviceBuffer, m_Transfers);
@@ -343,9 +362,9 @@ void Memory::ScheduleTransfers(VulkanCommandBuffer& cmdBuffer) {
 	m_Transfers.clear();
 }
 
-void Memory::UpdateBuffer(Buffer buffer, uint64_t size, void* data) {
+void VkMemory::UpdateBuffer(VkAlloc buffer, uint64_t size, void* data) {
 	if (data && m_StagingOffset + size < m_StagingSize) {
-		//transfer data to stageing buffer
+		//transfer data to staging buffer
 		void* bufferPtr = m_Device.mapMemory(m_StagingMem, m_StagingOffset, size);
 		memcpy(bufferPtr, data, size);
 		vk::MappedMemoryRange range;
@@ -354,12 +373,27 @@ void Memory::UpdateBuffer(Buffer buffer, uint64_t size, void* data) {
 		range.size = size;
 		m_Device.flushMappedMemoryRanges(1, &range);
 		m_Device.unmapMemory(m_StagingMem);
-
+		//prepare copy
 		vk::BufferCopy copy;
-		copy.dstOffset = buffer.BufferOffset;
+		copy.dstOffset = buffer.Offset;
 		copy.srcOffset = m_StagingOffset;
 		copy.size = size;
 		m_Transfers.push_back(copy);
 		m_StagingOffset += size;
 	}
+}
+
+void VkMemory::Deallocate(VkAlloc& alloc) {
+	//end of heap just needs to rewind head
+	if (alloc.Offset + alloc.Size == m_DeviceOffset) {
+		m_DeviceOffset -= alloc.Size;
+		return;
+	}
+	//otherwise we increase the amount of fragmented space
+	m_DeviceFragSpace += alloc.Size;
+
+	alloc.TextureHandle = nullptr;
+	alloc.Offset = 0;
+	alloc.Size = 0;
+
 }

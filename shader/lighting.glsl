@@ -135,30 +135,34 @@ vec3 CalcDirLight(vec3 lightDir, vec3 albedo, vec3 normal, vec3 toEye, float rou
 	return (Kd * albedo / PI + spec) * ndotl;
 }
 
-vec3 AproximateIBLSpecular(vec3 F0 , float roughness, vec3 normal, vec3 toeye){
- 	float NoV = saturate(dot(normal, toeye));
- 	vec3 R = reflect(toeye, normal);// 2 * dot(normal, toeye) * normal - toeye;
- 	R.y *= -1;
- 	ivec2 texDim = textureSize(g_IBLCube[0], 0);
-	float numMips = ceil(log2(float(max(texDim.x,texDim.y)))) - 1.0f;
-	float mipLevel = numMips * roughness;
-	vec3 color = pow(textureLod(g_IBLCube[0], R, mipLevel).rgb, vec3(GAMMA));
-	vec2 envBRDF = texture(g_IBLTex, vec2(roughness, NoV)).rg;
-
-	//return color * (envBRDF.x * F0 + envBRDF.y);
-
-	return vec3(envBRDF.xy, 0.0);
- }
+vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
+{
+    return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(1.0 - cosTheta, 5.0);
+}
 
 vec3 CalcIBLLight( vec3 inNormal, vec3 toeye, vec3 baseColor, float roughness, float metal)
 {
 	vec3 F0 = mix(vec3(0.02f), baseColor, metal);
  	vec3 irradiance = pow(texture(g_IBLCube[1], inNormal).rgb, vec3(GAMMA));
+
+ 	float NoV = saturate(dot(inNormal, toeye));
+ 	vec3 R = reflect(-toeye, inNormal);
+
+ 	vec3 F = fresnelSchlickRoughness(NoV, F0, roughness);
+ 	vec3 Kd = 1.0 - F;
+ 	Kd *= 1.0 - metal;
+
+ 	ivec2 texDim = textureSize(g_IBLCube[0], 0);
+	float numMips = ceil(log2(float(max(texDim.x,texDim.y)))) - 1.0f;
+	float mipLevel = numMips * roughness;
+
+	vec3 color = pow(textureLod(g_IBLCube[0], R, mipLevel).rgb, vec3(GAMMA));
+	vec2 envBRDF = texture(g_IBLTex, vec2(NoV, roughness)).rg;
+
  	vec3 diffuse = baseColor * irradiance;
- 	vec3 specular = AproximateIBLSpecular(F0, roughness, inNormal, toeye);
- 	//specular = saturate(specular);
-	//return vec3(specular + diffuse * (vec3(1) - F0) * (1 - metal));
-	return specular;
+ 	vec3 specular = saturate(color * (F * envBRDF.x + envBRDF.y));
+
+	return (Kd * diffuse + specular);
 }
 
 vec3 hash32(vec2 p){

@@ -332,7 +332,7 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	//Allocate memory on gpu
 	//TODO: MSAA
 	uint64_t fboSize = (uint64_t)(m_ScreenSize.x * m_ScreenSize.y * 4 * (2 * BUFFER_COUNT)); //size of rgba and depth + stencil
-	fboSize += 16 * MEGA_BYTE; //3 * 256 * 256 * 6 + mipchain // cubemaps
+	fboSize += 64 * MEGA_BYTE; //3 * 256 * 256 * 6 + mipchain // cubemaps
 	m_TextureMemory.Init(VK_DEVICE, VK_PHYS_DEVICE, fboSize);
 	m_BufferMemory.Init(VK_DEVICE, VK_PHYS_DEVICE, BUFFER_COUNT * 8 * MEGA_BYTE, 4 * MEGA_BYTE);
 
@@ -415,7 +415,7 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	descBufferInfo.range = VK_WHOLE_SIZE;
 	descWrites[c++].pBufferInfo = &descBufferInfo;
 	//ibl tex
-	m_IBLTex.Init("assets/IBLTex.dds", m_TextureMemory, VK_DEVICE);
+	m_IBLTex.Init("assets/ibl.dds", m_TextureMemory, VK_DEVICE);
 	m_SkyRad.Init("assets/skybox_rad.dds", m_TextureMemory, VK_DEVICE);
 	m_SkyIrr.Init("assets/skybox_irr.dds", m_TextureMemory, VK_DEVICE);
 	vk::DescriptorImageInfo imageInfo[3];
@@ -533,23 +533,23 @@ void GraphicsEngine::Render() {
 	//skybox
 	m_SkyBox.Render(m_vkCmdBuffer);
 	//render here
-	ResourceHandle modelHandle = (2 << 32);
-	const Model& model = m_Resources.GetModel(modelHandle);
-	
-	vk::Buffer vertexBuffers[] = { model.VertexBuffers[0].BufferHandle, model.VertexBuffers[1].BufferHandle,
-		model.VertexBuffers[2].BufferHandle, model.VertexBuffers[3].BufferHandle };
-	vk::DeviceSize offsets[] = { 0,0,0,0 };
-	m_vkCmdBuffer.bindVertexBuffers(0, 4, vertexBuffers, offsets);
+	for (auto& m : rq.GetModels()) {
+		const Model& model = m_Resources.GetModel(m);
 
-	m_vkCmdBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipeline());
-	m_vkCmdBuffer.setViewport(0, 1, &m_Viewport);
-	m_vkCmdBuffer.bindIndexBuffer(model.IndexBuffer.BufferHandle, 0, vk::IndexType::eUint16);
+		vk::Buffer vertexBuffers[] = { model.VertexBuffers[0].BufferHandle, model.VertexBuffers[1].BufferHandle,
+			model.VertexBuffers[2].BufferHandle, model.VertexBuffers[3].BufferHandle };
 
-	vk::DescriptorSet sets[] = { m_PerFrameSet , m_IBLDescSet };
-	m_vkCmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipelineLayout(), 0, 2, sets, 0, nullptr);
+		vk::DeviceSize offsets[] = { 0,0,0,0 };
+		m_vkCmdBuffer.bindVertexBuffers(0, 4, vertexBuffers, offsets);
 
-	uint32_t uniformOffset = 0;
-	for (auto object : rq.GetModels()) {
+		m_vkCmdBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipeline());
+		m_vkCmdBuffer.setViewport(0, 1, &m_Viewport);
+		m_vkCmdBuffer.bindIndexBuffer(model.IndexBuffer.BufferHandle, 0, vk::IndexType::eUint16);
+
+		vk::DescriptorSet sets[] = { m_PerFrameSet , m_IBLDescSet };
+		m_vkCmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipelineLayout(), 0, 2, sets, 0, nullptr);
+
+		uint32_t uniformOffset = 0;
 		m_vkCmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipelineLayout(), 2, 1, &rq.GetDescriptorSet(), 1, &uniformOffset);
 
 		for (int m = 0; m < model.MeshCount; ++m) {

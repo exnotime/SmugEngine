@@ -2,7 +2,7 @@
 #include "GraphicsExport.h"
 #include "TephraPipeline.h"
 #include "VulkanContext.h"
-#include "Memory.h"
+#include "VkMemory.h"
 #include "Texture.h"
 #include "SkyBox.h"
 #include "Raymarch.h"
@@ -48,7 +48,7 @@ private:
 	vk::Fence m_Fence[BUFFER_COUNT];
 	vk::Viewport m_Viewport;
 
-	Buffer m_PerFrameBuffer;
+	VkAlloc m_PerFrameBuffer;
 	SkyBox m_SkyBox;
 	vk::DescriptorPool m_DescriptorPool;
 	vk::DescriptorSet m_PerFrameSet;
@@ -58,8 +58,8 @@ private:
 	VkTexture m_SkyIrr;
 	vk::DescriptorSet m_IBLDescSet;
 	//uniform and FBO memory
-	Memory m_BufferMemory;
-	Memory m_TextureMemory;
+	VkMemory m_BufferMemory;
+	VkMemory m_TextureMemory;
 
 	bool m_MSAA;
 	bool m_VSync;

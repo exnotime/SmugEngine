@@ -4,7 +4,7 @@
 ///Fetch the renderqueue for the current frame from the graphics engine 
 #include "GraphicsObjects.h"
 #include "VulkanContext.h"
-#include "Memory.h"
+#include "VkMemory.h"
 #include <AssetLoader/Resources.h>
 #include <vector>
 #include <glm/glm.hpp>
@@ -17,16 +17,16 @@ class GFX_DLL RenderQueue {
 public:
 	RenderQueue();
 	~RenderQueue();
-	void Init(Memory& memory);
+	void Init(VkMemory& memory);
 	void Clear();
 	void AddCamera(const CameraData& cd);
 	void AddModel(ResourceHandle handle, const ShaderInput& input);
-	void ScheduleTransfer(Memory& memory);
+	void ScheduleTransfer(VkMemory& memory);
 
 	std::vector<CameraData>& GetCameras() { return m_Cameras; }
 	std::vector<ShaderInput>& GetInputs() { return m_Inputs; }
 	std::vector<ResourceHandle>& GetModels() { return m_Models; }
-	Buffer& GetUniformBuffer() { return m_VkBuffer; }
+	VkAlloc& GetUniformBuffer() { return m_VkBuffer; }
 
 	void SetDescSet(vk::DescriptorSet set) { m_DescSet = set; }
 	vk::DescriptorSet GetDescriptorSet() { return m_DescSet; }
@@ -36,5 +36,5 @@ private:
 	std::vector<ShaderInput> m_Inputs;
 	std::vector<ResourceHandle> m_Models;
 	vk::DescriptorSet m_DescSet;
-	Buffer m_VkBuffer;
+	VkAlloc m_VkBuffer;
 };

@@ -1,7 +1,7 @@
 #pragma once
 #include "VulkanContext.h"
 #include "TephraPipeline.h"
-#include "Memory.h"
+#include "VkMemory.h"
 #include "Texture.h"
 class SkyBox {
 public:
@@ -12,9 +12,9 @@ public:
 	void Render(VulkanCommandBuffer cmdBuffer);
 private:
 	Tephra::Pipeline m_Pipeline;
-	Memory m_Memory;
-	Buffer m_VBO;
-	Buffer m_UBO;
+	VkMemory m_Memory;
+	VkAlloc m_VBO;
+	VkAlloc m_UBO;
 	vk::DescriptorSet m_DescSet;
 	vk::DescriptorPool m_DescPool;
 	VkTexture m_Texture;

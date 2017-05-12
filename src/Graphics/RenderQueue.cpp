@@ -6,7 +6,7 @@ RenderQueue::RenderQueue(){
 RenderQueue::~RenderQueue(){
 }
 
-void RenderQueue::Init(Memory& memory) {
+void RenderQueue::Init(VkMemory& memory) {
 	//allocate gpu memory for shader inputs
 	vk::BufferUsageFlags flags = vk::BufferUsageFlagBits::eUniformBuffer;
 	m_VkBuffer = memory.AllocateBuffer(4 * MEGA_BYTE, flags, nullptr);
@@ -27,6 +27,6 @@ void RenderQueue::AddModel(ResourceHandle handle, const ShaderInput& input){
 	m_Inputs.push_back(input);
 }
 
-void RenderQueue::ScheduleTransfer(Memory& memory) {
+void RenderQueue::ScheduleTransfer(VkMemory& memory) {
 	memory.UpdateBuffer(m_VkBuffer, m_Inputs.size() * sizeof(ShaderInput), m_Inputs.data());
 }

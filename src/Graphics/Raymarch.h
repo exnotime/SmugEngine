@@ -1,7 +1,7 @@
 #pragma once
 #include "VulkanContext.h"
 #include "TephraPipeline.h"
-#include "Memory.h"
+#include "VkMemory.h"
 class Raymarcher {
 public: 
 	Raymarcher();
@@ -17,8 +17,8 @@ private:
 	vk::DescriptorSet m_DescSets[BUFFER_COUNT];
 	vk::ImageView m_DepthViews[BUFFER_COUNT];
 	vk::Sampler m_DepthSampler;
-	Memory m_BufferMem;
-	Buffer m_UniformBuffer;
+	VkMemory m_BufferMem;
+	VkAlloc m_UniformBuffer;
 
 	struct PerFrame {
 		glm::mat4 invViewProj;

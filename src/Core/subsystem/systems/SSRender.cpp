@@ -46,10 +46,6 @@ void SSRender::Update(const double deltaTime) {
 			ShaderInput si;
 			si.Transform = tc->Transform;
 			si.Color = mc->Tint;
-
-			rq->AddModel(mc->ModelHandle, si);
-
-			si.Transform = glm::toMat4(tc->Orientation) * glm::scale(tc->Scale * 0.5f) * glm::translate(tc->Position - glm::vec3(1,0,0));
 			rq->AddModel(mc->ModelHandle, si);
 		}
 	}

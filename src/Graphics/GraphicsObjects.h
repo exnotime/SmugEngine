@@ -22,7 +22,15 @@ struct GFX_DLL PointLight {
 	float Range;
 	glm::vec3 Position;
 	float Intensity;
+};
 
+struct GFX_DLL SpotLight {
+	glm::vec3 Color;
+	float Range;
+	glm::vec3 Position;
+	float Intensity;
+	glm::vec3 Direction;
+	float Angle; //cos(angle)
 };
 
 struct GFX_DLL DirLight {

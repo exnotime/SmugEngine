@@ -3,7 +3,7 @@
 #include <glm/glm.hpp>
 #include <AssetLoader/AssetLoader.h>
 
-#include "Memory.h"
+#include "VkMemory.h"
 #include "VulkanContext.h"
 #include "Texture.h"
 
@@ -31,8 +31,8 @@ struct Mesh {
 
 struct Model {
 	unsigned IndexCount;
-	Buffer IndexBuffer;
-	Buffer VertexBuffers[NUM_VERTEX_CHANNELS];
+	VkAlloc IndexBuffer;
+	VkAlloc VertexBuffers[NUM_VERTEX_CHANNELS];
 	unsigned MeshCount;
 	Mesh* Meshes;
 };
@@ -64,9 +64,9 @@ private:
 	VkTexture m_DefaultRoughness;
 	VkTexture m_DefaultMetal;
 
-	Memory m_VertexMemory[NUM_VERTEX_CHANNELS];
-	Memory m_IndexMemory;
-	Memory m_MaterialMemory;
+	VkMemory m_VertexMemory[NUM_VERTEX_CHANNELS];
+	VkMemory m_IndexMemory;
+	VkMemory m_MaterialMemory;
 
 	vk::DescriptorPool m_DescPool;
 	vk::DescriptorSetLayout m_MaterialLayout;
