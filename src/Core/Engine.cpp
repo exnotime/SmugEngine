@@ -56,6 +56,10 @@ void Engine::Init() {
 	HWND hWnd = glfwGetWin32Window(m_Window->GetWindow());
 	globals::g_Gfx->Init(glm::vec2(ws.Width, ws.Height), ws.Vsync, hWnd);
 
+	//set up physics engine
+	globals::g_Physics = new PhysicsEngine();
+	globals::g_Physics->Init();
+	globals::g_Physics->CreateRigidActor();
 	g_ScriptEngine.Init();
 	if_asset::RegisterInterface();
 
@@ -94,6 +98,8 @@ void Engine::Run() {
 		}
 
 		m_MainSubSystemSet->UpdateSubSystems(m_GlobalTimer->Tick());
+
+		globals::g_Physics->Update(1.0f / 60.0f);
 
 		globals::g_Gfx->Render();
 		globals::g_Gfx->Swap();

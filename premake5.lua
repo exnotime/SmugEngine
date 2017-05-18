@@ -36,7 +36,7 @@ solution "Tephra"
 		kind "ConsoleApp"
 		files { "src/Core/**"}
 		includedirs { "include", "src" }
-		links {  "Graphics", "AssetLoader", "glfw3" }
+		links {  "Graphics", "AssetLoader", "Physics", "glfw3" }
         configuration { "Debug" }
                 links { "angelscript64d", "as_integrationD" }
         configuration { "Release" }
@@ -67,3 +67,18 @@ solution "Tephra"
     	includedirs { "include", "src" }
         links { "assimp" }
     	kind "SharedLib"
+
+    project "Physics"
+        targetname "Physics"
+        defines { "PHYSICS_EXPORT"}
+        debugdir ""
+        location (location_path)
+        language("C++")
+        kind "SharedLib"
+        files { "src/Physics/**"}
+        includedirs { "include", "src" }
+        configuration { "Debug" }
+            links { "PhysX3DEBUG_x64", "PhysX3CommonDEBUG_x64.lib", "PxFoundationDEBUG_x64", "PhysX3ExtensionsDEBUG"}
+        configuration { "Release" }
+            links { "PhysX3CHECKED_x64", "PhysX3CommonCHECKED_x64.lib", "PxFoundationCHECKED_x64", "PhysX3ExtensionsCHECKED"}
+        

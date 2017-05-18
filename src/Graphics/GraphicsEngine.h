@@ -1,6 +1,6 @@
 #pragma once
 #include "GraphicsExport.h"
-#include "TephraPipeline.h"
+#include "VkPipeline.h"
 #include "VulkanContext.h"
 #include "VkMemory.h"
 #include "Texture.h"
@@ -38,7 +38,7 @@ private:
 	VulkanCommandBuffer m_vkCmdBuffer;
 	VulkanCommandBuffer m_vkMarchCmdBuffer;
 	VulkanQueue m_vkQueue;
-	Tephra::Pipeline m_Pipeline;
+	Tephra::VkPipeline m_Pipeline;
 	int m_CurrentPipeline;
 
 	vk::RenderPass m_RenderPass;

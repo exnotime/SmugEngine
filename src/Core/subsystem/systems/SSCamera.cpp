@@ -73,7 +73,7 @@ void SSCamera::Update(const double deltaTime) {
 			vec3 n = normalize(tc->Position - spherePos);
 			n = normalize(quat(cos(movement.x * 0.01f), vec3(0, 1, 0) * sin(movement.x * 0.01f)) * n);
 			n = normalize(quat(cos(movement.z * 0.01f), vec3(1, 0, 0) * sin(movement.z * 0.01f)) * n);
-			tc->Position = spherePos + n * 10.5f;
+			tc->Position = spherePos + n * 10.8f;
 
 			glm::vec3 velocity = glm::vec3(0.0f);
 			float speed = CAMERA_SPEED * deltaTime;

@@ -150,7 +150,6 @@ void GraphicsEngine::CreateSwapChain(VkSurfaceKHR surface) {
 			format = f;
 			m_VKSwapChain.SRGB = true;
 		}
-			
 	}
 
 	vk::PresentModeKHR mode = m_VSync ? vk::PresentModeKHR::eFifo : vk::PresentModeKHR::eMailbox;

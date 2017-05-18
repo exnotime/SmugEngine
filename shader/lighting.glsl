@@ -122,14 +122,14 @@ vec3 CalcDirLight(vec3 lightDir, vec3 albedo, vec3 normal, vec3 toEye, float rou
 
 	float D = DistributionGGX(normal, h, roughness);
 	float G = GeometrySmith(normal, toEye, lightDir, roughness);
-	vec3 F = F_Schlick(F0, ndotv);
+	vec3 F = F_Schlick(F0, max(dot(h,toEye),0.0));
 
 	vec3 Ks = F;
 	vec3 Kd = vec3(1.0) - Ks;
 	Kd *= 1.0 - metallic;
 
 	vec3 nom = D * F * G;
-	float denom = 4 * ndotl * ndotv + 0.001;
+	float denom = 4.0 * ndotl * ndotv + 0.001;
 	vec3 spec = nom / denom;
 
 	return (Kd * albedo / PI + spec) * ndotl;
@@ -143,9 +143,9 @@ vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
 vec3 CalcIBLLight( vec3 inNormal, vec3 toeye, vec3 baseColor, float roughness, float metal)
 {
 	vec3 F0 = mix(vec3(0.02f), baseColor, metal);
- 	vec3 irradiance = pow(texture(g_IBLCube[1], inNormal).rgb, vec3(GAMMA));
+ 	vec3 irradiance = texture(g_IBLCube[1], inNormal).rgb;
 
- 	float NoV = saturate(dot(inNormal, toeye));
+ 	float NoV = max(dot(inNormal, toeye), 0.0001);
  	vec3 R = reflect(-toeye, inNormal);
 
  	vec3 F = fresnelSchlickRoughness(NoV, F0, roughness);
@@ -156,7 +156,7 @@ vec3 CalcIBLLight( vec3 inNormal, vec3 toeye, vec3 baseColor, float roughness, f
 	float numMips = ceil(log2(float(max(texDim.x,texDim.y)))) - 1.0f;
 	float mipLevel = numMips * roughness;
 
-	vec3 color = pow(textureLod(g_IBLCube[0], R, mipLevel).rgb, vec3(GAMMA));
+	vec3 color = textureLod(g_IBLCube[0], R, mipLevel).rgb;
 	vec2 envBRDF = texture(g_IBLTex, vec2(NoV, roughness)).rg;
 
  	vec3 diffuse = baseColor * irradiance;

@@ -36,6 +36,9 @@ void main(){
     float m = texture(g_Material[3], TexCoordOut).r;
     vec3 lightColor = CalcDirLight(-lightDir, texColor, normal, toCam, r * r, m);
     lightColor += CalcIBLLight( normal, toCam, texColor, r, m);
+    
     lightColor = ditherRGB(lightColor, gl_FragCoord.xy);
+    lightColor = lightColor / (lightColor + vec3(1.0));
+
     outColor = saturate(vec4(lightColor, 1));
 }

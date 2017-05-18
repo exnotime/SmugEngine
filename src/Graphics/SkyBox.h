@@ -1,6 +1,6 @@
 #pragma once
 #include "VulkanContext.h"
-#include "TephraPipeline.h"
+#include "VkPipeline.h"
 #include "VkMemory.h"
 #include "Texture.h"
 class SkyBox {
@@ -11,7 +11,7 @@ public:
 	void PrepareUniformBuffer(VulkanCommandBuffer cmdBuffer, glm::mat4 viewProj, glm::mat4 world);
 	void Render(VulkanCommandBuffer cmdBuffer);
 private:
-	Tephra::Pipeline m_Pipeline;
+	Tephra::VkPipeline m_Pipeline;
 	VkMemory m_Memory;
 	VkAlloc m_VBO;
 	VkAlloc m_UBO;
