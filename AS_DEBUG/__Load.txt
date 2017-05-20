@@ -30,7 +30,7 @@ Variables:
    21  20 *    CALLSYS  21           (string::string(const string&in))
                ObjInfo  v10, 1
    23  16 *    PSF      v10
-   24  18 *    ALLOC    0x1e1db5c02a0, 21             (type:string, string::string(const string&in))
+   24  18 *    ALLOC    0x248f3c8c7f0, 21             (type:string, string::string(const string&in))
    28  14 *    PSF      v10
    29  16 *    CALLSYS  22           (string::~string())
                ObjInfo  v10, 0
@@ -39,5 +39,22 @@ Variables:
    33  16 *    CALLSYS  786           (uint64 LoadModel(string))
 - 5,2 -
    35  14 *    SUSPEND
+   36  14 *    PSF      v12
+   37  16 *    STR      2         (l:17 s:"assets/sph")
+   38  19 *    CALLSYS  19           (const string& $str(const int, const uint8&in))
+   40  16 *    PshRPtr
+   41  18 *    PSF      v10
+   42  20 *    CALLSYS  21           (string::string(const string&in))
+               ObjInfo  v10, 1
+   44  16 *    PSF      v10
+   45  18 *    ALLOC    0x248f3c8c7f0, 21             (type:string, string::string(const string&in))
+   49  14 *    PSF      v10
+   50  16 *    CALLSYS  22           (string::~string())
+               ObjInfo  v10, 0
+   52  14 *    VAR      v12
+   53  16 *    GETOBJ   0
+   54  16 *    CALLSYS  786           (uint64 LoadModel(string))
+- 6,2 -
+   56  14 *    SUSPEND
             0:
-   36  14 *    RET      0
+   57  14 *    RET      0

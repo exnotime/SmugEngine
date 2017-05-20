@@ -78,7 +78,7 @@ solution "Tephra"
         files { "src/Physics/**"}
         includedirs { "include", "src" }
         configuration { "Debug" }
-            links { "PhysX3DEBUG_x64", "PhysX3CommonDEBUG_x64.lib", "PxFoundationDEBUG_x64", "PhysX3ExtensionsDEBUG"}
+            links { "PhysX3DEBUG_x64", "PhysX3CommonDEBUG_x64.lib", "PxFoundationDEBUG_x64", "PhysX3ExtensionsDEBUG", "PxPvdSDKDEBUG_x64"}
         configuration { "Release" }
             links { "PhysX3CHECKED_x64", "PhysX3CommonCHECKED_x64.lib", "PxFoundationCHECKED_x64", "PhysX3ExtensionsCHECKED"}
         

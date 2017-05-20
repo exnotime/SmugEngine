@@ -71,8 +71,8 @@ char* ModelLoader::LoadModel(const std::string& filename, ModelInfo& model) {
 					mat->GetTexture(aiTextureType_SPECULAR, 0, &path);
 					texLoader.LoadTexture(dir + path.data, model.Materials[m].Roughness);
 				}
-				if (mat->GetTextureCount(aiTextureType_SHININESS)) {
-					mat->GetTexture(aiTextureType_SHININESS, 0, &path);
+				if (mat->GetTextureCount(aiTextureType_EMISSIVE)) {
+					mat->GetTexture(aiTextureType_EMISSIVE, 0, &path);
 					texLoader.LoadTexture(dir + path.data, model.Materials[m].Metal);
 				}
 			}

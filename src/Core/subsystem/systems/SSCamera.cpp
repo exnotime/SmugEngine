@@ -25,55 +25,27 @@ SSCamera::~SSCamera(){
 
 void SSCamera::Startup() {
 	//create camera entity
+
 	Entity& e = g_EntityManager.CreateEntity();
-	CameraComponent cc;
-	g_ComponentManager.CreateComponent(&cc, e, CameraComponent::Flag);
 
 	TransformComponent tc;
-	tc.Position = glm::vec3(-1, 1, 2);
+	tc.Position = glm::vec3(0, 3, -15);
 	tc.Scale = glm::vec3(1.0f);
 	g_ComponentManager.CreateComponent(&tc, e, TransformComponent::Flag);
 
-	ModelComponent mc;
-	mc.ModelHandle = g_AssetLoader.LoadAsset("assets/suzanne.dae");
-	g_ComponentManager.CreateComponent(&mc, e, ModelComponent::Flag);
-}
+	CameraComponent cc;
+	cc.Cam.SetPosition(tc.Position);
+	g_ComponentManager.CreateComponent(&cc, e, CameraComponent::Flag);
 
-glm::quat RotateAroundNormalizedAxis(float radians, glm::vec3 normalizedRotationAxis, glm::quat orientation) {
-	float rotationAmount = radians * 0.5f;
-	glm::quat rotation(glm::cos(rotationAmount), normalizedRotationAxis * glm::sin(rotationAmount));
-	return glm::normalize(rotation * orientation);
 }
 
 void SSCamera::Update(const double deltaTime) {
 	using namespace glm;
-	int flag = CameraComponent::Flag | TransformComponent::Flag | ModelComponent::Flag;
+	int flag = CameraComponent::Flag | TransformComponent::Flag;
 	for (auto& e : g_EntityManager.GetEntityList()) {
 		if ((e.ComponentBitfield & flag) == flag) {
 			CameraComponent* cc = (CameraComponent*)g_ComponentManager.GetComponent(e, CameraComponent::Flag);
 			TransformComponent* tc = (TransformComponent*)g_ComponentManager.GetComponent(e, TransformComponent::Flag);
-
-			//position on sphere
-			glm::vec3 movement = vec3(0);
-
-			if (g_Input.IsKeyDown(GLFW_KEY_UP)) {
-				movement += vec3(0, 0, 1);
-			}
-			if (g_Input.IsKeyDown(GLFW_KEY_DOWN)) {
-				movement += vec3(0, 0, -1);
-			}
-			if (g_Input.IsKeyDown(GLFW_KEY_LEFT)) {
-				movement += vec3(1, 0, 0);
-			}
-			if (g_Input.IsKeyDown(GLFW_KEY_RIGHT)) {
-				movement += vec3(-1, 0, 0);
-			}
-
-			vec3 spherePos = vec3(0, 20, 0);
-			vec3 n = normalize(tc->Position - spherePos);
-			n = normalize(quat(cos(movement.x * 0.01f), vec3(0, 1, 0) * sin(movement.x * 0.01f)) * n);
-			n = normalize(quat(cos(movement.z * 0.01f), vec3(1, 0, 0) * sin(movement.z * 0.01f)) * n);
-			tc->Position = spherePos + n * 10.8f;
 
 			glm::vec3 velocity = glm::vec3(0.0f);
 			float speed = CAMERA_SPEED * deltaTime;
@@ -108,13 +80,6 @@ void SSCamera::Update(const double deltaTime) {
 			globals::g_Gfx->GetRenderQueue()->AddCamera(cc->Cam.GetData());
 		}
 	}
-	//for (auto& e : g_EntityManager.GetEntityList()) {
-	//	if (e.ComponentBitfield & flag) {
-	//		CameraComponent* cc = (CameraComponent*)g_ComponentManager.GetComponent(e, CameraComponent::Flag);
-	//		
-
-	//	}
-	//}
 
 
 }

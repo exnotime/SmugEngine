@@ -532,6 +532,7 @@ void GraphicsEngine::Render() {
 	//skybox
 	m_SkyBox.Render(m_vkCmdBuffer);
 	//render here
+	uint32_t uniformOffset = 0;
 	for (auto& m : rq.GetModels()) {
 		const Model& model = m_Resources.GetModel(m);
 
@@ -548,7 +549,7 @@ void GraphicsEngine::Render() {
 		vk::DescriptorSet sets[] = { m_PerFrameSet , m_IBLDescSet };
 		m_vkCmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipelineLayout(), 0, 2, sets, 0, nullptr);
 
-		uint32_t uniformOffset = 0;
+		
 		m_vkCmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipelineLayout(), 2, 1, &rq.GetDescriptorSet(), 1, &uniformOffset);
 
 		for (int m = 0; m < model.MeshCount; ++m) {

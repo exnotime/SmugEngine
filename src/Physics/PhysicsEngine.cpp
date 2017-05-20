@@ -1,5 +1,7 @@
 #include "PhysicsEngine.h"
 #include <glm/glm.hpp>
+#include <PhysX/pvd/PxPvd.h>
+
 using namespace physx;
 
 PhysicsEngine::PhysicsEngine() {
@@ -17,9 +19,16 @@ void PhysicsEngine::Init() {
 		return;
 	}
 
-	PxTolerancesScale toleranses;
+	PxPvd* pvd = nullptr;
+#ifdef _DEBUG
+	m_PVD = PxCreatePvd(*m_Foundation);
+	PxPvdTransport* transport = PxDefaultPvdSocketTransportCreate("127.0.0.1", 5425, 10);
+	m_PVD->connect(*transport, PxPvdInstrumentationFlag::eALL);
+	pvd = m_PVD;
+#endif
 
-	m_Physics = PxCreatePhysics(PX_PHYSICS_VERSION, *m_Foundation, toleranses);
+	PxTolerancesScale toleranses;
+	m_Physics = PxCreatePhysics(PX_PHYSICS_VERSION, *m_Foundation, toleranses, false, pvd);
 	if (!m_Physics) {
 		printf("Error creating physx physics\n");
 		return;
@@ -27,7 +36,7 @@ void PhysicsEngine::Init() {
 
 	PxSceneDesc sceneDesc(toleranses);
 	sceneDesc.filterShader = PxDefaultSimulationFilterShader;
-	sceneDesc.cpuDispatcher = PxDefaultCpuDispatcherCreate(4);
+	sceneDesc.cpuDispatcher = PxDefaultCpuDispatcherCreate(2);
 
 	sceneDesc.isValid();
 	m_Scene = m_Physics->createScene(sceneDesc);
@@ -36,17 +45,30 @@ void PhysicsEngine::Init() {
 		return;
 	}
 
-	m_Scene->setGravity(PxVec3(0, 9.2, 0));
-
-	PxRigidStatic* staticPlane = m_Physics->createRigidStatic(PxTransformFromPlaneEquation(PxPlane(0,-1,0,0)));
+	m_Scene->setGravity(PxVec3(0, -9.2, 0));
+	//static object for debugging
+	PxRigidStatic* staticPlane = m_Physics->createRigidStatic(PxTransform(PxVec3(0,-200, 0)));
 	PxMaterial* mat = m_Physics->createMaterial(0.5, 0.5, 0.6);
-	PxShape* planeShape = PxRigidActorExt::createExclusiveShape(*staticPlane, PxPlaneGeometry(), *mat);
+	PxShape* planeShape = PxRigidActorExt::createExclusiveShape(*staticPlane, PxSphereGeometry(200.0f), *mat);
+	m_Scene->addActor(*staticPlane);
+
+	staticPlane = m_Physics->createRigidStatic(PxTransform(PxVec3(-10, 20, 0)));
+	planeShape = PxRigidActorExt::createExclusiveShape(*staticPlane, PxSphereGeometry(20.0f), *mat);
 	m_Scene->addActor(*staticPlane);
 
 	m_Accumulator = 0;
 }
 
 void PhysicsEngine::Update(double deltaTime) {
+	//add force on objects
+	for (auto& body : m_Bodies) {
+		PxRigidDynamic* a = m_Actors[body->Actor]->is<PxRigidDynamic>();
+		if (a) {
+			a->addForce(PxVec3(body->Force.x, body->Force.y, body->Force.z));
+			body->Force = glm::vec3(0);
+		}
+	}
+	//step physics
 	m_Accumulator += deltaTime;
 	if (m_Accumulator <= m_StepTime)
 		return;
@@ -55,29 +77,75 @@ void PhysicsEngine::Update(double deltaTime) {
 	m_Scene->simulate(m_StepTime);
 	m_Scene->fetchResults(true);
 
-	for (auto& actor : m_Actors) {
-		PxTransform t = actor->getGlobalPose();
-		glm::vec3 pos = glm::vec3(t.p.x, t.p.y, t.p.z);
-		int i = 0;
+	//get updated positions
+	for (auto& body : m_Bodies) {
+		PxRigidDynamic* d = m_Actors[body->Actor]->is<PxRigidDynamic>();
+		if (d) {
+			if (!d->isSleeping()) {
+				PxTransform t = d->getGlobalPose();
+				body->Position = glm::vec3(t.p.x, t.p.y, t.p.z);
+				body->Orientation = glm::quat(t.q.w, t.q.x, t.q.y, t.q.z);
+			}
+		}
 	}
-
 }
 
 void PhysicsEngine::Shutdown() {
 	m_Scene->release(); m_Scene = nullptr;
 	m_Physics->release(); m_Physics = nullptr;
+#ifdef _DEBUG
+	m_PVD->release(); m_PVD = nullptr;
+#endif
 	m_Foundation->release(); m_Foundation = nullptr;
+
+
+
+	for (auto& body : m_Bodies) {
+		delete body;
+	}
+	m_Bodies.clear();
+	m_Actors.clear();
 }
 
-void PhysicsEngine::CreateRigidActor() {
-	PxRigidDynamic* dynamic = m_Physics->createRigidDynamic(PxTransform(PxVec3(0, -10, 0)));
-	PxMaterial* mat = m_Physics->createMaterial(0.5, 0.5, 0.6);
-	PxShape* sphereShape = PxRigidActorExt::createExclusiveShape(*dynamic, PxSphereGeometry(1.0), *mat);
-	PxRigidBodyExt::updateMassAndInertia(*dynamic, 2.0f);
-	m_Scene->addActor(*dynamic);
-	m_Actors.push_back(dynamic);
+PhysicsBody* PhysicsEngine::CreateDynamicActor(const glm::vec3& pos, const glm::quat& orientation, const glm::vec3& size, float mass, PHYSICS_SHAPE shape, bool kinematic){
+	PxTransform transform;
+	transform.p.x = pos.x; transform.p.y = pos.y; transform.p.z = pos.z;
+	transform.q.x = orientation.y; transform.q.y = orientation.z; transform.q.z = orientation.w; transform.q.w = orientation.x;
+
+	PxRigidDynamic* actor = m_Physics->createRigidDynamic(transform);
+	PxMaterial* mat = m_Physics->createMaterial(0.5, 0.5, 0.001);
+	PxShape* pxshape;
+	switch (shape)
+	{
+	case SPHERE:
+		pxshape = PxRigidActorExt::createExclusiveShape(*actor, PxSphereGeometry(size.x), *mat);
+		break;
+	case CUBE:
+		pxshape = PxRigidActorExt::createExclusiveShape(*actor, PxBoxGeometry(size.x, size.y,size.z), *mat);
+		break;
+	case CAPSULE:
+		pxshape = PxRigidActorExt::createExclusiveShape(*actor, PxCapsuleGeometry(size.x,size.y), *mat);
+		break;
+	default:
+		return nullptr;
+		break;
+	}
+	 
+	PxRigidBodyExt::updateMassAndInertia(*actor, mass);
+	actor->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, kinematic);
+
+	m_Scene->addActor(*actor);
+	m_Actors.push_back(actor);
+
+	PhysicsBody* body = new PhysicsBody();
+	body->Actor = m_Actors.size() - 1;
+	body->Position = pos;
+	body->Orientation = orientation;
+	m_Bodies.push_back(body);
+
+	return body;
 }
 
-void PhysicsEngine::DeleteRigidActor() {
+void PhysicsEngine::DeleteActor(uint32_t actor) {
 
 }

@@ -30,18 +30,16 @@ void SSRender::Startup() {
 	mc.ModelHandle = g_AssetLoader.LoadAsset("assets/KoopaTroopa/koopa.dae");
 	mc.Tint = glm::vec4(1.0f);
 	g_ComponentManager.CreateComponent(&mc, e, mc.Flag);
-
 }
 
 void SSRender::Update(const double deltaTime) {
 	int flag = ModelComponent::Flag | TransformComponent::Flag;
 	RenderQueue* rq = globals::g_Gfx->GetRenderQueue();
 	for (auto& e : g_EntityManager.GetEntityList()) {
-		if (e.ComponentBitfield & flag) {
+		if ((e.ComponentBitfield & flag) == flag) {
 			ModelComponent* mc = (ModelComponent*)g_ComponentManager.GetComponent(e, ModelComponent::Flag);
 			TransformComponent* tc = (TransformComponent*)g_ComponentManager.GetComponent(e, TransformComponent::Flag);
-			//create transform
-			tc->Transform = glm::toMat4(tc->Orientation) * glm::scale(tc->Scale) * glm::translate(tc->Position);
+			tc->Transform = glm::scale(tc->Scale) * glm::translate(tc->Position) * glm::toMat4(tc->Orientation);
 
 			ShaderInput si;
 			si.Transform = tc->Transform;

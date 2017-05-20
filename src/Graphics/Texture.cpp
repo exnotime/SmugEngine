@@ -78,7 +78,7 @@ void VkTexture::Init(const std::string& filename, VkMemory& memory, const vk::De
 	sampInfo.addressModeV = vk::SamplerAddressMode::eRepeat;
 	sampInfo.addressModeW = vk::SamplerAddressMode::eRepeat;
 	sampInfo.anisotropyEnable = true;
-	sampInfo.maxAnisotropy = 4.0f;
+	sampInfo.maxAnisotropy = 1.0f;
 	sampInfo.borderColor = vk::BorderColor::eFloatOpaqueBlack;
 	sampInfo.compareEnable = false;
 	sampInfo.compareOp = vk::CompareOp::eNever;
@@ -156,7 +156,7 @@ void VkTexture::Init(const TextureInfo& texInfo, VkMemory& memory, const vk::Dev
 	sampInfo.addressModeV = vk::SamplerAddressMode::eRepeat;
 	sampInfo.addressModeW = vk::SamplerAddressMode::eRepeat;
 	sampInfo.anisotropyEnable = true;
-	sampInfo.maxAnisotropy = 4.0f;
+	sampInfo.maxAnisotropy = 1.0f;
 	sampInfo.borderColor = vk::BorderColor::eFloatOpaqueBlack;
 	sampInfo.compareEnable = false;
 	sampInfo.compareOp = vk::CompareOp::eNever;

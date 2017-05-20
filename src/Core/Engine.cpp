@@ -13,6 +13,7 @@
 #include "subsystem/SubSystemSet.h"
 #include "subsystem/systems/SSCamera.h"
 #include "subsystem/systems/SSRender.h"
+#include "subsystem/systems/SSPhysics.h"
 #include "GlobalSystems.h"
 #include "Timer.h"
 #include "if_Assets.h"
@@ -59,7 +60,6 @@ void Engine::Init() {
 	//set up physics engine
 	globals::g_Physics = new PhysicsEngine();
 	globals::g_Physics->Init();
-	globals::g_Physics->CreateRigidActor();
 	g_ScriptEngine.Init();
 	if_asset::RegisterInterface();
 
@@ -74,6 +74,7 @@ void Engine::Init() {
 
 	m_MainSubSystemSet = new SubSystemSet();
 	m_MainSubSystemSet->AddSubSystem(new SSCamera());
+	m_MainSubSystemSet->AddSubSystem(new SSPhysics());
 	m_MainSubSystemSet->AddSubSystem(new SSRender());
 	m_MainSubSystemSet->StartSubSystems();
 
