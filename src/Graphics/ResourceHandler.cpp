@@ -77,10 +77,10 @@ void ResourceHandler::Init(vk::Device* device, const vk::PhysicalDevice& physDev
 	((uint8_t*)texInfo.Data)[2] = 255;
 	((uint8_t*)texInfo.Data)[3] = 255;
 	m_DefaultNormal.Init(texInfo, m_MaterialMemory, *device);
+	memset(texInfo.Data, 0xFF00FFFF, 1);
+	m_DefaultRoughness.Init(texInfo, m_MaterialMemory, *device);
 	texInfo.LinearSize = 1;
 	texInfo.Format = (uint32_t)vk::Format::eR8Unorm;
-	memset(texInfo.Data, 0xFF, 1);
-	m_DefaultRoughness.Init(texInfo, m_MaterialMemory, *device);
 	memset(texInfo.Data, 0x0, 1);
 	m_DefaultMetal.Init(texInfo, m_MaterialMemory, *device);
 	free(texInfo.Data);

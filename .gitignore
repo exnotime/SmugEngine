@@ -2,3 +2,4 @@ bin/
 solution/
 lib/shaderc_combined.lib
 lib/shaderc_combinedD.lib
+AS_DEBUG

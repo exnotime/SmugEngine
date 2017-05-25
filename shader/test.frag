@@ -32,14 +32,12 @@ void main(){
     vec3 lightDir = normalize(LightDir.xyz);
     vec3 toCam = normalize(CamPos.xyz - PosW);
     vec3 texColor = pow(texture(g_Material[0], TexCoordOut).rgb, vec3(GAMMA));
-    float r = texture(g_Material[2], TexCoordOut).r;
-    float m = texture(g_Material[3], TexCoordOut).r;
+    vec3 mat = texture(g_Material[2], TexCoordOut).rgb;
     
-    vec3 lightColor = CalcDirLight(-lightDir, texColor, normal, toCam, r * r, m);
-    lightColor += CalcIBLLight( normal, toCam, texColor, r, m);
-    
+    vec3 lightColor = CalcDirLight(-lightDir, texColor, normal, toCam, mat.r * mat.r, mat.g) * mat.b;
+    lightColor += CalcIBLLight( normal, toCam, texColor, mat.r, mat.g) * mat.b;
     lightColor = ditherRGB(lightColor, gl_FragCoord.xy);
-    //lightColor = lightColor / (lightColor + vec3(1.0));
+    lightColor = lightColor / (lightColor + vec3(1.0));
 
     outColor = saturate(vec4(lightColor, 1));
 }

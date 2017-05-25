@@ -36,6 +36,8 @@ public:
 	PhysicsBody* CreateDynamicActor(const glm::vec3& pos, const glm::quat& orientation, const glm::vec3& size, float mass, PHYSICS_SHAPE shape, bool kinematic = false);
 	PhysicsBody* CreateStaticActor(const glm::vec3& pos, const glm::quat& orientation, const glm::vec3& size, PHYSICS_SHAPE shape);
 	void DeleteActor(uint32_t actor);
+
+	void SetGravityPoint(const glm::vec3& pos, float strength);
 private:
 	physx::PxFoundation* m_Foundation;
 	physx::PxPhysics* m_Physics;
@@ -52,4 +54,6 @@ private:
 
 	std::vector<physx::PxRigidActor*> m_Actors;
 	std::vector<PhysicsBody*> m_Bodies;
+	physx::PxVec3 m_GravityPoint;
+	float m_GravityFactor;
 };

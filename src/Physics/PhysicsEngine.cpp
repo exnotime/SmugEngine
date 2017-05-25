@@ -45,17 +45,6 @@ void PhysicsEngine::Init() {
 		return;
 	}
 
-	m_Scene->setGravity(PxVec3(0, -9.2, 0));
-	//static object for debugging
-	PxRigidStatic* staticPlane = m_Physics->createRigidStatic(PxTransform(PxVec3(0,-200, 0)));
-	PxMaterial* mat = m_Physics->createMaterial(0.5, 0.5, 0.6);
-	PxShape* planeShape = PxRigidActorExt::createExclusiveShape(*staticPlane, PxSphereGeometry(200.0f), *mat);
-	m_Scene->addActor(*staticPlane);
-
-	staticPlane = m_Physics->createRigidStatic(PxTransform(PxVec3(-10, 20, 0)));
-	planeShape = PxRigidActorExt::createExclusiveShape(*staticPlane, PxSphereGeometry(20.0f), *mat);
-	m_Scene->addActor(*staticPlane);
-
 	m_Accumulator = 0;
 }
 
@@ -74,6 +63,17 @@ void PhysicsEngine::Update(double deltaTime) {
 		return;
 
 	m_Accumulator -= m_StepTime;
+
+	//add custom gravity
+	for (auto& actor : m_Actors) {
+		PxRigidDynamic* d = actor->is<PxRigidDynamic>();
+		if (d) {
+			PxVec3 pos = d->getGlobalPose().p;
+			PxVec3 dir = m_GravityPoint - pos;
+			d->addForce(dir.getNormalized() * 9.2f * m_GravityFactor);
+		}
+	}
+
 	m_Scene->simulate(m_StepTime);
 	m_Scene->fetchResults(true);
 
@@ -113,7 +113,7 @@ PhysicsBody* PhysicsEngine::CreateDynamicActor(const glm::vec3& pos, const glm::
 	transform.q.x = orientation.y; transform.q.y = orientation.z; transform.q.z = orientation.w; transform.q.w = orientation.x;
 
 	PxRigidDynamic* actor = m_Physics->createRigidDynamic(transform);
-	PxMaterial* mat = m_Physics->createMaterial(0.5, 0.5, 0.001);
+	PxMaterial* mat = m_Physics->createMaterial(0.5, 0.5, 0.1);
 	PxShape* pxshape;
 	switch (shape)
 	{
@@ -146,6 +146,46 @@ PhysicsBody* PhysicsEngine::CreateDynamicActor(const glm::vec3& pos, const glm::
 	return body;
 }
 
+PhysicsBody* PhysicsEngine::CreateStaticActor(const glm::vec3& pos, const glm::quat& orientation, const glm::vec3& size, PHYSICS_SHAPE shape) {
+	PxTransform transform;
+	transform.p.x = pos.x; transform.p.y = pos.y; transform.p.z = pos.z;
+	transform.q.x = orientation.y; transform.q.y = orientation.z; transform.q.z = orientation.w; transform.q.w = orientation.x;
+
+	PxRigidStatic* actor = m_Physics->createRigidStatic(transform);
+	PxMaterial* mat = m_Physics->createMaterial(0.5, 0.5, 0.1);
+	PxShape* pxshape;
+	switch (shape) {
+	case SPHERE:
+		pxshape = PxRigidActorExt::createExclusiveShape(*actor, PxSphereGeometry(size.x), *mat);
+		break;
+	case CUBE:
+		pxshape = PxRigidActorExt::createExclusiveShape(*actor, PxBoxGeometry(size.x, size.y, size.z), *mat);
+		break;
+	case CAPSULE:
+		pxshape = PxRigidActorExt::createExclusiveShape(*actor, PxCapsuleGeometry(size.x, size.y), *mat);
+		break;
+	default:
+		return nullptr;
+		break;
+	}
+
+	m_Scene->addActor(*actor);
+	m_Actors.push_back(actor);
+
+	PhysicsBody* body = new PhysicsBody();
+	body->Actor = m_Actors.size() - 1;
+	body->Position = pos;
+	body->Orientation = orientation;
+	m_Bodies.push_back(body);
+
+	return body;
+}
+
 void PhysicsEngine::DeleteActor(uint32_t actor) {
 
+}
+
+void PhysicsEngine::SetGravityPoint(const glm::vec3& pos, float strength) {
+	m_GravityPoint = PxVec3(pos.x,pos.y,pos.z);
+	m_GravityFactor = strength;
 }
