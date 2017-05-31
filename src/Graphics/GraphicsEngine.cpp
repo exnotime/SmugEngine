@@ -20,7 +20,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDebugCallback(
 	const char*                 pMessage,
 	void*                       pUserData)
 {
-	if (messageCode == 3 || messageCode == 15) {
+	if (messageCode == 3 || messageCode == 15 || messageCode == 1338) {
 		return VK_FALSE;
 	}
 
@@ -324,13 +324,14 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 
 	m_VKSwapChain.Surface = m_VKContext.Instance.createWin32SurfaceKHR(surfaceInfo);
 
-	m_MSAA = false;
+	m_MSAA = true;
 	m_VSync = vsync;
 	m_ScreenSize = windowSize;
 
 	//Allocate memory on gpu
 	//TODO: MSAA
 	uint64_t fboSize = (uint64_t)(m_ScreenSize.x * m_ScreenSize.y * 4 * (2 * BUFFER_COUNT)); //size of rgba and depth + stencil
+	fboSize = m_MSAA ? fboSize * 4 : fboSize;
 	fboSize += 64 * MEGA_BYTE; //3 * 256 * 256 * 6 + mipchain // cubemaps
 	m_TextureMemory.Init(VK_DEVICE, VK_PHYS_DEVICE, fboSize);
 	m_BufferMemory.Init(VK_DEVICE, VK_PHYS_DEVICE, BUFFER_COUNT * 8 * MEGA_BYTE, 4 * MEGA_BYTE);
@@ -531,7 +532,13 @@ void GraphicsEngine::Render() {
 	m_vkCmdBuffer.beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
 	//skybox
 	m_SkyBox.Render(m_vkCmdBuffer);
+
 	//render here
+	m_vkCmdBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipeline());
+	m_vkCmdBuffer.setViewport(0, 1, &m_Viewport);
+	vk::DescriptorSet sets[] = { m_PerFrameSet , m_IBLDescSet, rq.GetDescriptorSet() };
+	m_vkCmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipelineLayout(), 0, _countof(sets), sets, 0, nullptr);
+
 	uint32_t uniformOffset = 0;
 	for (auto& m : rq.GetModels()) {
 		const Model& model = m_Resources.GetModel(m);
@@ -541,23 +548,20 @@ void GraphicsEngine::Render() {
 
 		vk::DeviceSize offsets[] = { 0,0,0,0 };
 		m_vkCmdBuffer.bindVertexBuffers(0, 4, vertexBuffers, offsets);
-
-		m_vkCmdBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipeline());
-		m_vkCmdBuffer.setViewport(0, 1, &m_Viewport);
-		m_vkCmdBuffer.bindIndexBuffer(model.IndexBuffer.BufferHandle, 0, vk::IndexType::eUint16);
-
-		vk::DescriptorSet sets[] = { m_PerFrameSet , m_IBLDescSet };
-		m_vkCmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipelineLayout(), 0, 2, sets, 0, nullptr);
-
 		
-		m_vkCmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipelineLayout(), 2, 1, &rq.GetDescriptorSet(), 1, &uniformOffset);
+		m_vkCmdBuffer.bindIndexBuffer(model.IndexBuffer.BufferHandle, 0, vk::IndexType::eUint16);
+		m_vkCmdBuffer.pushConstants(m_Pipeline.GetPipelineLayout(),vk::ShaderStageFlagBits::eAll, 0, sizeof(unsigned), &uniformOffset);
 
+		vk::DescriptorSet mat;
 		for (int m = 0; m < model.MeshCount; ++m) {
 			Mesh& mesh = model.Meshes[m];
-			m_vkCmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipelineLayout(), 3, 1, &mesh.Material, 0, nullptr);
+			if (mat != mesh.Material) {
+				mat = mesh.Material;
+				m_vkCmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipelineLayout(), 3, 1, &mesh.Material, 0, nullptr);
+			}
 			m_vkCmdBuffer.drawIndexed(mesh.IndexCount, 1, mesh.IndexOffset, 0, 0);
 		}
-		uniformOffset += sizeof(ShaderInput);
+		uniformOffset++;
 	}
 
 	m_vkCmdBuffer.endRenderPass();
@@ -587,6 +591,7 @@ void GraphicsEngine::Render() {
 		resolve.srcSubresource.aspectMask = vk::ImageAspectFlagBits::eDepth;
 		m_vkCmdBuffer.resolveImage(m_VKSwapChain.DepthStencilImages[VK_FRAME_INDEX], vk::ImageLayout::eDepthStencilAttachmentOptimal,
 			m_VKSwapChain.DepthResolveImages[VK_FRAME_INDEX], vk::ImageLayout::eDepthStencilReadOnlyOptimal, resolve);
+
 	} else {
 		m_vkCmdBuffer.ImageBarrier(m_VKSwapChain.Images[VK_FRAME_INDEX], vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::ePresentSrcKHR);
 		m_vkCmdBuffer.PushPipelineBarrier();

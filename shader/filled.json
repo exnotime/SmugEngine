@@ -1,8 +1,8 @@
 {
     "Shaders":
     {
-        "Vertex":"shader/test.vert",
-        "Fragment":"shader/test.frag"
+        "Vertex":"shader/Color.vert",
+        "Fragment":"shader/Color.frag"
     },
     "DescriptorSetLayouts":
     [
@@ -14,11 +14,15 @@
             {"Binding":1, "Count":2, "Type":"CombinedImageSampler"}
         ],
         [
-            {"Binding":0, "Count":1, "Type":"UniformBufferDynamic"}
+            {"Binding":0, "Count":1, "Type":"StorageBuffer"} 
         ],
         [
             {"Binding":0, "Count":4, "Type":"CombinedImageSampler"}
         ]
+    ],
+    "PushConstantRanges":
+    [
+        {"Size":4, "Offset":0}
     ],
     "ColorBlendState":
     {

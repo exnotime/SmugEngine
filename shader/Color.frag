@@ -28,15 +28,15 @@ vec3 CalcBumpedNormal(vec3 Bump, vec3 Normal, vec3 Tangent, vec3 BiNorm){
 
 void main(){
     vec3 bump = texture(g_Material[1], TexCoordOut).xyz * 2.0 - 1.0;
-    vec3 normal = CalcBumpedNormal(bump, NormalW, TangentW,BiNormOut);
+    vec3 normal = CalcBumpedNormal(bump, NormalW, TangentW, BiNormOut);
     vec3 lightDir = normalize(LightDir.xyz);
     vec3 toCam = normalize(CamPos.xyz - PosW);
     vec3 texColor = pow(texture(g_Material[0], TexCoordOut).rgb, vec3(GAMMA));
     vec3 mat = texture(g_Material[2], TexCoordOut).rgb;
     
-    vec3 lightColor = CalcDirLight(-lightDir, texColor, normal, toCam, mat.r * mat.r, mat.g) * mat.b;
+    vec3 lightColor = CalcDirLight(-lightDir, texColor, normal, toCam, mat.r, mat.g) * mat.b;
     lightColor += CalcIBLLight( normal, toCam, texColor, mat.r, mat.g) * mat.b;
-    lightColor = ditherRGB(lightColor, gl_FragCoord.xy);
+    //lightColor = ditherRGB(lightColor, gl_FragCoord.xy);
     lightColor = lightColor / (lightColor + vec3(1.0));
 
     outColor = saturate(vec4(lightColor, 1));

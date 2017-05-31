@@ -8,7 +8,7 @@
 #include <AssetLoader/Resources.h>
 #include <vector>
 #include <glm/glm.hpp>
-struct alignas(256) ShaderInput{
+struct ShaderInput{
 	glm::mat4 Transform;
 	glm::vec4 Color;
 };

@@ -115,23 +115,22 @@ vec3 CookTorranceSpecular(vec3 normal, vec3 lightDir, vec3 toEye, float roughnes
 vec3 CalcDirLight(vec3 lightDir, vec3 albedo, vec3 normal, vec3 toEye, float roughness, float metallic) {
 	vec3 ld = normalize(lightDir);
 
-	float ndotl = max(dot(normal, ld),0);
-	float ndotv = max(dot(normal, toEye),0);
+	float ndotl = max(dot(normal, ld), 0);
+	float ndotv = max(dot(normal, toEye), 0.0);
 	vec3  h = normalize(ld + toEye);
 	vec3 F0 = mix(vec3(0.04), albedo, metallic);
 
 	float D = DistributionGGX(normal, h, roughness);
 	float G = GeometrySmith(normal, toEye, lightDir, roughness);
-	vec3 F = F_Schlick(F0, max(dot(h,toEye),0.0));
+	vec3 F = F_Schlick(F0, max(dot(h, toEye), 0.0));
 
 	vec3 Ks = F;
 	vec3 Kd = vec3(1.0) - Ks;
 	Kd *= 1.0 - metallic;
 
 	vec3 nom = D * F * G;
-	float denom = 4.0 * ndotl * ndotv + 0.001;
+	float denom = 4.0 * ndotl * ndotv + 0.01;
 	vec3 spec = nom / denom;
-
 	return (Kd * albedo / PI + spec) * ndotl;
 }
 

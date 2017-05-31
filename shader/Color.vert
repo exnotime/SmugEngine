@@ -9,23 +9,35 @@ layout (location = 1) out vec3 NormalW;
 layout (location = 2) out vec3 TangentW;
 layout (location = 3) out vec2 TexCoordOut;
 layout (location = 4) out vec3 BiNormOut;
+layout (location = 5) out vec3 ColorOut;
 
 layout (set = 0, binding = 0) uniform g_PerFrame {
-    mat4 vp;
+    mat4 ViewProj;
     vec4 CamPos;
     vec4 LightDir;
 };
 
-layout (set = 2, binding = 0) uniform g_PerObject{
-	mat4 world;
-	vec4 color;
+struct PerObject{
+    mat4 World;
+	vec4 Color;
 };
 
+#define MAX_OBJECTS 1024
+layout (set = 2, binding = 0) buffer ObjectBuffer{
+	PerObject g_PerObjects[MAX_OBJECTS];
+};
+
+layout (push_constant) uniform pc{
+    uint index;
+} optionalInstanceName;
+
 void main(){
-    gl_Position = vp * ( world * vec4(posL,1));
+    mat4 world = g_PerObjects[optionalInstanceName.index].World;
+    gl_Position = ViewProj * ( world * vec4(posL,1));
     PosW = (world * vec4(posL,1)).xyz;
     NormalW = (world * vec4(NormalL,0)).xyz;
     TangentW = (world * vec4(TangentL,0)).xyz;
     BiNormOut = cross(NormalW, TangentW);
     TexCoordOut = TexCoord;
+    ColorOut = g_PerObjects[optionalInstanceName.index].Color.rgb;
 }

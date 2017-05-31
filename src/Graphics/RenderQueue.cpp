@@ -8,7 +8,7 @@ RenderQueue::~RenderQueue(){
 
 void RenderQueue::Init(VkMemory& memory) {
 	//allocate gpu memory for shader inputs
-	vk::BufferUsageFlags flags = vk::BufferUsageFlagBits::eUniformBuffer;
+	vk::BufferUsageFlags flags = vk::BufferUsageFlagBits::eStorageBuffer;
 	m_VkBuffer = memory.AllocateBuffer(4 * MEGA_BYTE, flags, nullptr);
 }
 

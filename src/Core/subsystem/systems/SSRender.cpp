@@ -27,7 +27,7 @@ void SSRender::Startup() {
 	g_ComponentManager.CreateComponent(&tc, e, tc.Flag);
 
 	ModelComponent mc;
-	mc.ModelHandle = g_AssetLoader.LoadAsset("assets/KoopaTroopa/koopa.dae");
+	mc.ModelHandle = g_AssetLoader.LoadAsset("assets/KoopaTroopa/koopa.obj");
 	mc.Tint = glm::vec4(1.0f);
 	g_ComponentManager.CreateComponent(&mc, e, mc.Flag);
 }

@@ -1,8 +1,0 @@
-Game: Mario & Sonic at the Rio 2016 Olympic Games
-      Mario & Sonic at the Sochi 2014 Olympic Winter Games
-Subject: Koopa Troopa
-Copyright: Nintendo, Sega
-Model Ripper: Random Talking Bush
-Hosting Permissions: The Models Resource
-Notes: Special thanks to chrrox, Link, Kentilan (Kentalin?) and ItsEasyActually for the model importing script. They deserve most of the credit here.
-       Also, the models were scaled up to 1000% size to match the scale in Mario & Sonic at the Sochi 2014 Olympic Winter Games.

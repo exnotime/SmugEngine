@@ -63,6 +63,7 @@ void VkMemory::Init(const vk::Device& device, const vk::PhysicalDevice& physDev,
 
 VkAlloc VkMemory::AllocateBuffer(uint64_t size, vk::BufferUsageFlags usage, void* data) {
 	if (m_DeviceOffset + size > m_DeviceSize) {
+		printf("Failed allocation of size %d\n Total memory in buffer %d, Used %d\n", size, m_DeviceSize, m_DeviceOffset);
 		return VkAlloc();
 	}
 
@@ -112,6 +113,7 @@ VkAlloc VkMemory::AllocateImage(vk::Image img, gli::texture2d* texture, void* da
 	m_DeviceOffset = (m_DeviceOffset + memReq.alignment) & ~memReq.alignment;
 
 	if (m_DeviceOffset + memReq.size > m_DeviceSize) {
+		printf("Failed allocation of size %d\n Total memory in buffer %d, Used %d\n", memReq.size, m_DeviceSize, m_DeviceOffset);
 		return VkAlloc();
 	}
 	VkDeviceSize size = (texture) ? texture->size() : memReq.size;
@@ -162,6 +164,7 @@ VkAlloc VkMemory::AllocateImage(vk::Image img, const TextureInfo& texInfo) {
 	m_DeviceOffset = (m_DeviceOffset + memReq.alignment - 1) & ~(memReq.alignment - 1);
 
 	if (m_DeviceOffset + memReq.size > m_DeviceSize) {
+		printf("Failed allocation of size %d\n Total memory in buffer %d, Used %d\n", memReq.size, m_DeviceSize, m_DeviceOffset);
 		return VkAlloc();
 	}
 	VkDeviceSize size = (texInfo.Data) ? texInfo.LinearSize : memReq.size;
@@ -219,6 +222,7 @@ VkAlloc VkMemory::AllocateImageCube(vk::Image img, gli::texture_cube* texture, v
 	m_DeviceOffset = (m_DeviceOffset + memReq.alignment) & ~memReq.alignment;
 
 	if (m_DeviceOffset + memReq.size > m_DeviceSize) {
+		printf("Failed allocation of size %d\n Total memory in buffer %d, Used %d\n", memReq.size, m_DeviceSize, m_DeviceOffset);
 		return VkAlloc();
 	}
 	VkDeviceSize size = (texture) ? texture->size() : memReq.size;
@@ -278,6 +282,7 @@ VkAlloc VkMemory::AllocateImageCube(vk::Image img, const TextureInfo& texInfo) {
 	m_DeviceOffset = (m_DeviceOffset + memReq.alignment) & ~memReq.alignment;
 
 	if (m_DeviceOffset + memReq.size > m_DeviceSize) {
+		printf("Failed allocation of size %d\n Total memory in buffer %d, Used %d\n", memReq.size, m_DeviceSize, m_DeviceOffset);
 		return VkAlloc();
 	}
 	VkDeviceSize size = (texInfo.Data) ? texInfo.LinearSize : memReq.size;
