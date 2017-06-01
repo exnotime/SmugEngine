@@ -1,8 +1,8 @@
 {
     "Shaders":
     {
-        "Vertex":"shader/Skybox.vert",
-        "Fragment":"shader/Skybox.frag"
+        "Vertex":{"Source":"shader/Skybox.vert"},
+        "Fragment":{"Source":"shader/Skybox.frag"}
     },
     "DescriptorSetLayouts":
     [

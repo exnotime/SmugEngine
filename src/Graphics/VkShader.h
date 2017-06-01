@@ -20,6 +20,23 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #define SHADER_CACHE_DIR "./shader/cache/"
 #endif
 
+
+
 namespace Tephra {
-		vk::ShaderModule LoadShader(const vk::Device& device, const std::string& filename);
+	enum SHADER_LANGUAGE {
+		GLSL,
+		HLSL
+	};
+
+	enum SHADER_STAGE {
+		VERTEX,
+		FRAGMENT,
+		GEOMETRY,
+		CONTROL,
+		EVALUATION,
+		COMPUTE,
+		PRECOMPILED
+	};
+
+	vk::ShaderModule LoadShader(const vk::Device& device, const std::string& filename, SHADER_STAGE stage, const std::string& entryPoint = "main", SHADER_LANGUAGE language = GLSL);
 };

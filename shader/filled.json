@@ -1,8 +1,8 @@
 {
     "Shaders":
     {
-        "Vertex":"shader/Color.vert",
-        "Fragment":"shader/Color.frag"
+        "Vertex":{"Source":"shader/Color.vert"},
+        "Fragment":{"Source":"shader/Color.frag"}
     },
     "DescriptorSetLayouts":
     [

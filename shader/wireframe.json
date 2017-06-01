@@ -1,8 +1,8 @@
 {
     "Shaders":
     {
-        "Vertex":"shader/test.vert",
-        "Fragment":"shader/test.frag"
+        "Vertex":{"Source":"shader/test.vert"},
+        "Fragment":{"Source":"shader/test.frag"}
     },
     "DescriptorSetLayout":
     [

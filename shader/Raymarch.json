@@ -1,7 +1,7 @@
 {
     "Shaders":
     {
-        "Compute":"shader/Raymarch.comp"
+        "Compute":{"Source":"shader/Raymarch.comp", "EntryPoint":"main", "Language":"GLSL"}
     },
     "DescriptorSetLayouts":
     [

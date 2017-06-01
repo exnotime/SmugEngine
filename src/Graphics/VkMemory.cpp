@@ -110,7 +110,7 @@ VkAlloc VkMemory::AllocateBuffer(uint64_t size, vk::BufferUsageFlags usage, void
 
 VkAlloc VkMemory::AllocateImage(vk::Image img, gli::texture2d* texture, void* data) {
 	vk::MemoryRequirements memReq = m_Device.getImageMemoryRequirements(img);
-	m_DeviceOffset = (m_DeviceOffset + memReq.alignment) & ~memReq.alignment;
+	m_DeviceOffset = (m_DeviceOffset + (memReq.alignment - 1)) & ~(memReq.alignment - 1);
 
 	if (m_DeviceOffset + memReq.size > m_DeviceSize) {
 		printf("Failed allocation of size %d\n Total memory in buffer %d, Used %d\n", memReq.size, m_DeviceSize, m_DeviceOffset);
@@ -219,7 +219,7 @@ VkAlloc VkMemory::AllocateImage(vk::Image img, const TextureInfo& texInfo) {
 
 VkAlloc VkMemory::AllocateImageCube(vk::Image img, gli::texture_cube* texture, void* data) {
 	vk::MemoryRequirements memReq = m_Device.getImageMemoryRequirements(img);
-	m_DeviceOffset = (m_DeviceOffset + memReq.alignment) & ~memReq.alignment;
+	m_DeviceOffset = (m_DeviceOffset + (memReq.alignment - 1)) & ~(memReq.alignment - 1);
 
 	if (m_DeviceOffset + memReq.size > m_DeviceSize) {
 		printf("Failed allocation of size %d\n Total memory in buffer %d, Used %d\n", memReq.size, m_DeviceSize, m_DeviceOffset);
@@ -279,7 +279,7 @@ VkAlloc VkMemory::AllocateImageCube(vk::Image img, gli::texture_cube* texture, v
 
 VkAlloc VkMemory::AllocateImageCube(vk::Image img, const TextureInfo& texInfo) {
 	vk::MemoryRequirements memReq = m_Device.getImageMemoryRequirements(img);
-	m_DeviceOffset = (m_DeviceOffset + memReq.alignment) & ~memReq.alignment;
+	m_DeviceOffset = (m_DeviceOffset + memReq.alignment - 1) & ~memReq.alignment - 1;
 
 	if (m_DeviceOffset + memReq.size > m_DeviceSize) {
 		printf("Failed allocation of size %d\n Total memory in buffer %d, Used %d\n", memReq.size, m_DeviceSize, m_DeviceOffset);

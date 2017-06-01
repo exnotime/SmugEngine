@@ -5,30 +5,30 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-vk::ShaderModule Tephra::LoadShader(const vk::Device& device, const std::string& filename) {
+vk::ShaderModule Tephra::LoadShader(const vk::Device& device, const std::string& filename, SHADER_STAGE stage, const std::string& entryPoint , SHADER_LANGUAGE language) {
 	//read file ending and figure out shader type
 	size_t lastDot = filename.find_last_of('.');
 	std::string fileEnding = filename.substr(lastDot + 1);
 	shaderc_shader_kind shaderType;
-	if (fileEnding == "vert") {
+	if (stage == VERTEX) {
 		shaderType = shaderc_glsl_vertex_shader;
 	}
-	else if (fileEnding == "frag") {
+	else if (stage == FRAGMENT) {
 		shaderType = shaderc_glsl_fragment_shader;
 	}
-	else if (fileEnding == "geom") {
+	else if (stage == GEOMETRY) {
 		shaderType = shaderc_glsl_geometry_shader;
 	}
-	else if (fileEnding == "tesc") {
+	else if (stage == CONTROL) {
 		shaderType = shaderc_glsl_tess_control_shader;
 	}
-	else if (fileEnding == "tese") {
+	else if (stage == EVALUATION) {
 		shaderType = shaderc_glsl_tess_evaluation_shader;
 	}
-	else if (fileEnding == "comp") {
+	else if (stage == COMPUTE) {
 		shaderType = shaderc_glsl_compute_shader;
 	}
-	else if (fileEnding == "spv") {
+	else if (stage == PRECOMPILED) {
 		//Load  precompiled shader
 		vk::ShaderModuleCreateInfo shaderInfo;
 		FILE* fin = fopen(filename.c_str(), "rb");
@@ -44,7 +44,6 @@ vk::ShaderModule Tephra::LoadShader(const vk::Device& device, const std::string&
 		delete[] code;
 		return module;
 	}
-
 
 	//check if there is an up to date shader cache
 	std::string cacheName = SHADER_CACHE_DIR + filename.substr(filename.find_last_of('/') + 1) + ".spv";
@@ -79,6 +78,12 @@ vk::ShaderModule Tephra::LoadShader(const vk::Device& device, const std::string&
 	//compile into spir-v
 	shaderc_compiler_t compiler = shaderc_compiler_initialize();
 	shaderc_compile_options_t options = shaderc_compile_options_initialize();
+
+	if(language == GLSL)
+		shaderc_compile_options_set_source_language(options, shaderc_source_language_glsl);
+	else if (language == HLSL)
+		shaderc_compile_options_set_source_language(options, shaderc_source_language_hlsl);
+
 #ifdef DEBUG
 	shaderc_compile_options_set_generate_debug_info(options);
 #endif

@@ -577,29 +577,31 @@ void VkPipeline::LoadPipelineFromFile(const vk::Device& device, const std::strin
 	m_ShaderBits = 0;
 	if (root.find("Shaders") != root.end()) {
 		json shaders = root["Shaders"];
-		if (shaders.find("Vertex") != shaders.end()) {
-			m_Shaders.push_back(LoadShader(device, shaders["Vertex"]));
-			m_ShaderBits |= 1 << VERTEX_SHADER;
-		}
-		if (shaders.find("Fragment") != shaders.end()) {
-			m_Shaders.push_back(LoadShader(device, shaders["Fragment"]));
-			m_ShaderBits |= 1 << FRAGMENT_SHADER;
-		}
-		if (shaders.find("Geometry") != shaders.end()) {
-			m_Shaders.push_back(LoadShader(device, shaders["Geometry"]));
-			m_ShaderBits |= 1 << GEOMETRY_SHADER;
-		}
-		if (shaders.find("Evaluation") != shaders.end()) {
-			m_Shaders.push_back(LoadShader(device, shaders["Evaluation"]));
-			m_ShaderBits |= 1 << EVALUATION_SHADER;
-		}
-		if (shaders.find("Control") != shaders.end()) {
-			m_Shaders.push_back(LoadShader(device, shaders["Control"]));
-			m_ShaderBits |= 1 << CONTROL_SHADER;
-		}
-		if (shaders.find("Compute") != shaders.end()) {
-			m_Shaders.push_back(LoadShader(device, shaders["Compute"]));
-			m_ShaderBits |= 1 << COMPUTE_SHADER;
+
+		std::string shader_types[] = { "Vertex", "Fragment", "Geometry", "EVALUATION", "Control", "Compute" };
+		for (int i = 0; i < COMPUTE_SHADER + 1; ++i) {
+			if (shaders.find(shader_types[i]) != shaders.end()) {
+				json shader = shaders[shader_types[i]];
+				std::string entry;
+				SHADER_LANGUAGE lang = GLSL;
+
+				if (shader.find("EntryPoint") != shader.end())
+					entry = shader["EntryPoint"];
+
+				if (shader.find("Language") != shader.end()) {
+					if (shader["Language"] == "GLSL") {
+						lang = GLSL;
+					}
+					else if (shader["Language"] == "HLSL") {
+						lang = HLSL;
+					}
+				}
+				if (entry.empty())
+					entry = "main";
+
+				m_Shaders.push_back(LoadShader(device, shader["Source"], SHADER_STAGE(i), entry, lang));
+				m_ShaderBits |= 1 << i;
+			}
 		}
 	}
 	else {
