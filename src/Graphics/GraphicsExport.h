@@ -3,5 +3,5 @@
 #ifdef GRAPHICS_EXPORT
 #define GFX_DLL __declspec(dllexport)
 #else
-#define GFX_DLL __declspec(dllimport)
+#define GFX_DLL
 #endif

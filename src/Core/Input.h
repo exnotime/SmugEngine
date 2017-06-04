@@ -1,6 +1,9 @@
 #pragma once
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
+#include <vulkan/vulkan.h>
+#include <Imgui/imgui.h>
+#include <Imgui/imgui_impl_glfw_vulkan.h>
 #define g_Input Input::GetInstance()
 
 struct Gamepad {
@@ -45,6 +48,7 @@ public:
 	glm::dvec2 GetMouseDelta();
 	glm::dvec2 GetMousePos();
 	void Update();
+	void SetMouseDeltaUpdate(bool val);
 private:
 	Input();
 	int m_Keys[GLFW_KEY_LAST];
@@ -55,13 +59,20 @@ private:
 	Gamepad m_GamePadLastFrame[4];
 	glm::dvec2 m_MousePos;
 	glm::dvec2 m_MouseDelta;
+	float m_MouseScroll;
+	bool m_UpdateMouseDelta;
 };
 static void MousePosCallback(GLFWwindow* window, double xpos, double ypos){
 	g_Input.SetMousePos(xpos, ypos);
 }
 static void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods){
 	g_Input.SetMousebuttonState(button, action);
+	ImGui_ImplGlfwVulkan_MouseButtonCallback(window, button, action, mods);
 }
 static void KeyboardCallBack(GLFWwindow* window, int key, int scancode, int action, int mods) {
 	g_Input.SetKeyState(key, action);
+	ImGui_ImplGlfwVulkan_KeyCallback(window, key, scancode, action, mods);
 }
+static void CharCallback(GLFWwindow* window, unsigned int c) {
+	ImGui_ImplGlfwVulkan_CharCallback(window, c);
+};

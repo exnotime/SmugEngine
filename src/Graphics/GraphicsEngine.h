@@ -13,6 +13,18 @@
 #include <Windows.h>
 #endif
 
+#ifdef USE_IMGUI
+#include <Imgui/imgui.h>
+#include <Imgui/imgui_impl_glfw_vulkan.h>
+
+struct ImguiInitData {
+	void(*check_vk_result)(VkResult err);
+	vk::PhysicalDevice Gpu;
+	vk::Device Device;
+	vk::RenderPass RenderPass;
+	vk::DescriptorPool DescPool;
+};
+#endif
 
 struct PerFrameBuffer {
 	glm::mat4 ViewProj;
@@ -29,6 +41,7 @@ public:
 	void Render();
 	void Swap();
 	RenderQueue* GetRenderQueue();
+
 private:
 	void CreateContext();
 	void CreateSwapChain(VkSurfaceKHR surface);
@@ -37,6 +50,7 @@ private:
 	VulkanSwapChain m_VKSwapChain;
 	VulkanCommandBuffer m_vkCmdBuffer;
 	VulkanCommandBuffer m_vkMarchCmdBuffer;
+	VulkanCommandBuffer m_vkImguiCmdBuffer;
 	VulkanQueue m_vkQueue;
 	Tephra::VkPipeline m_Pipeline;
 	int m_CurrentPipeline;
@@ -71,6 +85,15 @@ private:
 
 	RenderQueue m_RenderQueues[BUFFER_COUNT];
 	ResourceHandler m_Resources;
+
+#ifdef USE_IMGUI
+public:
+	ImGui_ImplGlfwVulkan_Init_Data GetImguiInit();
+	void CreateImguiFont(ImGuiContext* imguiCtx);
+	vk::Semaphore m_ImguiComplete;
+	vk::RenderPass m_ImguiRenderPass;
+	ImGuiContext* m_ImguiCtx;
+#endif
 
 #define VK_DEVICE m_VKContext.Device
 #define VK_PHYS_DEVICE m_VKContext.PhysicalDevice

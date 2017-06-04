@@ -132,6 +132,7 @@ void GraphicsEngine::CreateContext() {
 	//set up command buffer
 	m_vkCmdBuffer.Init(VK_DEVICE, m_vkQueue.GetQueueIndex());
 	m_vkMarchCmdBuffer.Init(VK_DEVICE, m_vkQueue.GetQueueIndex());
+	m_vkImguiCmdBuffer.Init(VK_DEVICE, m_vkQueue.GetQueueIndex());
 }
 
 void GraphicsEngine::CreateSwapChain(VkSurfaceKHR surface) {
@@ -293,6 +294,47 @@ void GraphicsEngine::CreateSwapChain(VkSurfaceKHR surface) {
 	renderPassInfo.pSubpasses = &subPassDesc;
 	m_RenderPass = VK_DEVICE.createRenderPass(renderPassInfo);
 
+#ifdef USE_IMGUI
+	attachments.clear();
+	attachmentDesc.format = format.format;
+	attachmentDesc.finalLayout = vk::ImageLayout::eColorAttachmentOptimal;
+	attachmentDesc.initialLayout = vk::ImageLayout::eColorAttachmentOptimal;
+	attachmentDesc.loadOp = vk::AttachmentLoadOp::eDontCare;
+	attachmentDesc.storeOp = vk::AttachmentStoreOp::eStore;
+	attachmentDesc.stencilLoadOp = vk::AttachmentLoadOp::eDontCare;
+	attachmentDesc.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+	attachmentDesc.samples = vk::SampleCountFlagBits::e1;
+	attachments.push_back(attachmentDesc);
+
+	attachmentDesc = {};
+	attachmentDesc.format = vk::Format::eD24UnormS8Uint;
+	attachmentDesc.initialLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+	attachmentDesc.finalLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+	attachmentDesc.loadOp = vk::AttachmentLoadOp::eDontCare;
+	attachmentDesc.storeOp = vk::AttachmentStoreOp::eStore;
+	attachmentDesc.stencilLoadOp = vk::AttachmentLoadOp::eDontCare;
+	attachmentDesc.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+	attachmentDesc.samples = vk::SampleCountFlagBits::e1;
+
+	attachments.push_back(attachmentDesc);
+
+	renderPassInfo.attachmentCount = attachments.size();
+	renderPassInfo.pAttachments = attachments.data();
+
+	subPassDesc.colorAttachmentCount = 1;
+	subPassDesc.inputAttachmentCount = 0;
+	subPassDesc.pColorAttachments = &colorRef;
+	subPassDesc.pipelineBindPoint = vk::PipelineBindPoint::eGraphics;
+	subPassDesc.pDepthStencilAttachment = &depthRef;
+	subPassDesc.pInputAttachments = nullptr;
+	subPassDesc.pPreserveAttachments = nullptr;
+	subPassDesc.pResolveAttachments = nullptr;
+	subPassDesc.preserveAttachmentCount = 0;
+	renderPassInfo.subpassCount = 1;
+	renderPassInfo.pSubpasses = &subPassDesc;
+	m_ImguiRenderPass = VK_DEVICE.createRenderPass(renderPassInfo);
+#endif
+
 	//framebuffers
 	vk::FramebufferCreateInfo framebufferInfo;
 	framebufferInfo.attachmentCount = 2;
@@ -324,7 +366,7 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 
 	m_VKSwapChain.Surface = m_VKContext.Instance.createWin32SurfaceKHR(surfaceInfo);
 
-	m_MSAA = true;
+	m_MSAA = false;
 	m_VSync = vsync;
 	m_ScreenSize = windowSize;
 
@@ -342,6 +384,8 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	m_ImageAquiredSemaphore = VK_DEVICE.createSemaphore(semaphoreInfo);
 	m_RenderCompleteSemaphore = VK_DEVICE.createSemaphore(semaphoreInfo);
 	m_RayMarchComplete = VK_DEVICE.createSemaphore(semaphoreInfo);
+	m_ImguiComplete = VK_DEVICE.createSemaphore(semaphoreInfo);
+	
 	vk::FenceCreateInfo fenceInfo;
 	m_Fence[0] = VK_DEVICE.createFence(fenceInfo);
 	m_Fence[1] = VK_DEVICE.createFence(fenceInfo);
@@ -370,10 +414,18 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	}
 
 	vk::DescriptorPoolCreateInfo descPoolInfo;
-	descPoolInfo.maxSets = 2 + BUFFER_COUNT;
+	descPoolInfo.maxSets = 16 * 1000;
 	std::vector<vk::DescriptorPoolSize> poolSizes;
+	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eSampler, 1000));
+	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eCombinedImageSampler, 1000));
+	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eSampledImage, 1000));
+	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eStorageImage, 1000));
+	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eStorageTexelBuffer, 1000));
 	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eUniformBuffer, 1000));
-	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eCombinedImageSampler, 3));
+	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eStorageBuffer, 1000));
+	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eUniformBufferDynamic, 1000));
+	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eStorageBufferDynamic, 1000));
+	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eInputAttachment, 1000));
 	descPoolInfo.pPoolSizes = poolSizes.data();
 	descPoolInfo.poolSizeCount = poolSizes.size();
 	m_DescriptorPool = VK_DEVICE.createDescriptorPool(descPoolInfo);
@@ -489,7 +541,11 @@ void GraphicsEngine::Render() {
 	PerFrameBuffer uniformBuffer;
 	uniformBuffer.ViewProj = cd.ProjView;
 	uniformBuffer.CameraPos = glm::vec4(cd.Position, 1);
-	uniformBuffer.LightDir = glm::normalize(glm::vec4(0.2f, -1.0f, -0.4f, 1.0f));
+	ImGui::SetCurrentContext(m_ImguiCtx);
+	static glm::vec3 LightDir;
+	ImGui::DragFloat3("LightDir", &LightDir[0], 0.01f, -1.0f, 1.0f);
+	uniformBuffer.LightDir = glm::normalize(glm::vec4(LightDir, 1.0f));
+
 	m_BufferMemory.UpdateBuffer(m_PerFrameBuffer, sizeof(PerFrameBuffer), (void*)(&uniformBuffer));
 	rq.ScheduleTransfer(m_BufferMemory);
 
@@ -600,6 +656,7 @@ void GraphicsEngine::Render() {
 	m_vkCmdBuffer.end();
 
 	m_vkQueue.Submit(m_vkCmdBuffer, m_ImageAquiredSemaphore, m_RenderCompleteSemaphore, nullptr);
+
 	//raymarch
 	m_vkMarchCmdBuffer.reset(vk::CommandBufferResetFlagBits::eReleaseResources);
 	m_vkMarchCmdBuffer.Begin(nullptr, nullptr);
@@ -615,6 +672,7 @@ void GraphicsEngine::Render() {
 
 	m_Raymarcher.Render(m_vkMarchCmdBuffer, VK_FRAME_INDEX, m_IBLDescSet, m_ScreenSize);
 
+#ifndef USE_IMGUI
 	if (m_VKSwapChain.MSAA) {
 		m_vkMarchCmdBuffer.ImageBarrier(m_VKSwapChain.DepthResolveImages[VK_FRAME_INDEX], vk::ImageLayout::eDepthStencilReadOnlyOptimal, vk::ImageLayout::eDepthStencilAttachmentOptimal);
 		m_vkMarchCmdBuffer.ImageBarrier(m_VKSwapChain.ResolveImages[VK_FRAME_INDEX], vk::ImageLayout::eGeneral, vk::ImageLayout::ePresentSrcKHR);
@@ -622,10 +680,56 @@ void GraphicsEngine::Render() {
 		m_vkMarchCmdBuffer.ImageBarrier(m_VKSwapChain.DepthStencilImages[VK_FRAME_INDEX], vk::ImageLayout::eDepthStencilReadOnlyOptimal, vk::ImageLayout::eDepthStencilAttachmentOptimal);
 		m_vkMarchCmdBuffer.ImageBarrier(m_VKSwapChain.Images[VK_FRAME_INDEX], vk::ImageLayout::eGeneral, vk::ImageLayout::ePresentSrcKHR);
 	}
-	m_vkMarchCmdBuffer.PushPipelineBarrier();
+#endif
+	
 
 	m_vkMarchCmdBuffer.end();
-	m_vkQueue.Submit(m_vkMarchCmdBuffer, m_RenderCompleteSemaphore, m_RayMarchComplete, m_Fence[VK_FRAME_INDEX]);
+#ifdef USE_IMGUI
+	vk::Fence f = nullptr;
+#else
+	vk::Fence f = m_Fence[VK_FRAME_INDEX];
+#endif
+	m_vkQueue.Submit(m_vkMarchCmdBuffer, m_RenderCompleteSemaphore, m_RayMarchComplete, f);
+
+
+#ifdef USE_IMGUI
+	//Render Imgui
+	m_vkImguiCmdBuffer.Reset(VK_DEVICE, VK_FRAME_INDEX);
+	m_vkImguiCmdBuffer.Begin(m_VKSwapChain.FrameBuffers[VK_FRAME_INDEX], m_ImguiRenderPass);
+
+	if (m_VKSwapChain.MSAA) {
+		m_vkImguiCmdBuffer.ImageBarrier(m_VKSwapChain.DepthResolveImages[VK_FRAME_INDEX], vk::ImageLayout::eDepthStencilReadOnlyOptimal, vk::ImageLayout::eDepthStencilAttachmentOptimal);
+		m_vkImguiCmdBuffer.ImageBarrier(m_VKSwapChain.ResolveImages[VK_FRAME_INDEX], vk::ImageLayout::eGeneral, vk::ImageLayout::eColorAttachmentOptimal);
+	}
+	else {
+		m_vkImguiCmdBuffer.ImageBarrier(m_VKSwapChain.DepthStencilImages[VK_FRAME_INDEX], vk::ImageLayout::eDepthStencilReadOnlyOptimal, vk::ImageLayout::eDepthStencilAttachmentOptimal);
+		m_vkImguiCmdBuffer.ImageBarrier(m_VKSwapChain.Images[VK_FRAME_INDEX], vk::ImageLayout::eGeneral, vk::ImageLayout::eColorAttachmentOptimal);
+	}
+	m_vkImguiCmdBuffer.PushPipelineBarrier();
+
+	vk::RenderPassBeginInfo rpBeginInfo;
+	rpBeginInfo.clearValueCount = 0;
+	rpBeginInfo.renderPass = m_ImguiRenderPass;
+	rpBeginInfo.framebuffer = m_VKSwapChain.FrameBuffers[VK_FRAME_INDEX];
+	rpBeginInfo.renderArea.extent.width = m_ScreenSize.x;
+	rpBeginInfo.renderArea.extent.height = m_ScreenSize.y;
+	m_vkImguiCmdBuffer.beginRenderPass(rpBeginInfo, vk::SubpassContents::eInline);
+	ImGui::SetCurrentContext(m_ImguiCtx);
+	ImGui_ImplGlfwVulkan_Render(m_vkImguiCmdBuffer);
+	m_vkImguiCmdBuffer.endRenderPass();
+
+	if (m_VKSwapChain.MSAA) {
+		m_vkImguiCmdBuffer.ImageBarrier(m_VKSwapChain.ResolveImages[VK_FRAME_INDEX], vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::ePresentSrcKHR);
+	}
+	else {
+		m_vkImguiCmdBuffer.ImageBarrier(m_VKSwapChain.Images[VK_FRAME_INDEX], vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::ePresentSrcKHR);
+	}
+	m_vkImguiCmdBuffer.PushPipelineBarrier();
+
+	m_vkImguiCmdBuffer.end();
+
+	m_vkQueue.Submit(m_vkImguiCmdBuffer, m_RayMarchComplete, m_ImguiComplete, m_Fence[VK_FRAME_INDEX]);
+#endif
 }
 
 void GraphicsEngine::Swap() {
@@ -638,7 +742,11 @@ void GraphicsEngine::Swap() {
 	presentInfo.swapchainCount = 1;
 	presentInfo.pSwapchains = &m_VKSwapChain.SwapChain;
 	presentInfo.waitSemaphoreCount = 1;
+#ifdef USE_IMGUI
+	presentInfo.pWaitSemaphores = &m_ImguiComplete;
+#else
 	presentInfo.pWaitSemaphores = &m_RayMarchComplete;
+#endif
 	m_vkQueue.presentKHR(presentInfo);
 
 	m_RenderQueues[VK_FRAME_INDEX].Clear();
@@ -659,3 +767,44 @@ void GraphicsEngine::TransferToGPU() {
 	m_vkQueue.Submit(m_vkCmdBuffer);
 	VK_DEVICE.waitIdle();
 }
+
+#ifdef USE_IMGUI
+void check_vk_result(VkResult err)
+{
+	if (err == 0) return;
+	printf("VkResult %d\n", err);
+	if (err < 0)
+		abort();
+}
+
+ImGui_ImplGlfwVulkan_Init_Data GraphicsEngine::GetImguiInit() {
+	ImGui_ImplGlfwVulkan_Init_Data id;
+	id.check_vk_result = check_vk_result;
+	id.descriptor_pool = m_DescriptorPool;
+	id.device = VK_DEVICE;
+	id.gpu = VK_PHYS_DEVICE;
+	id.render_pass = m_ImguiRenderPass;
+	id.allocator = nullptr;
+	id.pipeline_cache = nullptr;
+	return id;
+}
+void GraphicsEngine::CreateImguiFont(ImGuiContext* imguiCtx) {
+	m_ImguiCtx = imguiCtx;
+	ImGui::SetCurrentContext(imguiCtx);
+	//upload font texture
+	{
+		m_vkImguiCmdBuffer.Reset(VK_DEVICE, VK_FRAME_INDEX);
+		vk::CommandBufferBeginInfo begin_info = {};
+		begin_info.flags |= vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
+		m_vkImguiCmdBuffer.begin(&begin_info);
+
+		ImGui_ImplGlfwVulkan_CreateFontsTexture(m_vkImguiCmdBuffer);
+
+		m_vkImguiCmdBuffer.end();
+		m_vkQueue.Submit(m_vkImguiCmdBuffer);
+
+		vkDeviceWaitIdle(VK_DEVICE);
+		ImGui_ImplGlfwVulkan_InvalidateFontUploadObjects();
+	}
+}
+#endif

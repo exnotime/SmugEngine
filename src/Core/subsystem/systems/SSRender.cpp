@@ -7,6 +7,7 @@
 #include <AssetLoader/AssetLoader.h>
 #include <glm/gtx/transform.hpp>
 #include "../../GlobalSystems.h"
+#include <Imgui/imgui.h>
 
 SSRender::SSRender(){
 
@@ -33,12 +34,18 @@ void SSRender::Startup() {
 }
 
 void SSRender::Update(const double deltaTime) {
+
 	int flag = ModelComponent::Flag | TransformComponent::Flag;
 	RenderQueue* rq = globals::g_Gfx->GetRenderQueue();
 	for (auto& e : g_EntityManager.GetEntityList()) {
 		if ((e.ComponentBitfield & flag) == flag) {
 			ModelComponent* mc = (ModelComponent*)g_ComponentManager.GetComponent(e, ModelComponent::Flag);
 			TransformComponent* tc = (TransformComponent*)g_ComponentManager.GetComponent(e, TransformComponent::Flag);
+			if (e.UID == 2) {
+				ImGui::InputFloat3("KoopaPos", &tc->Position[0]);
+				ImGui::InputFloat4("KoopaRot", &tc->Orientation[0]);
+			}
+
 			tc->Transform = glm::scale(tc->Scale) * glm::translate(tc->Position) * glm::toMat4(tc->Orientation);
 
 			ShaderInput si;

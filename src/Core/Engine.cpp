@@ -18,6 +18,7 @@
 #include "Timer.h"
 #include "if_Assets.h"
 #include "script/ScriptEngine.h"
+#include <Imgui/imgui_impl_glfw_vulkan.h>
 
 Engine::Engine() {
 
@@ -50,6 +51,7 @@ void Engine::Init() {
 	glfwSetKeyCallback(m_Window->GetWindow(), KeyboardCallBack);
 	glfwSetMouseButtonCallback(m_Window->GetWindow(), MouseButtonCallback);
 	glfwSetCursorPosCallback(m_Window->GetWindow(), MousePosCallback);
+	glfwSetCharCallback(m_Window->GetWindow(), CharCallback);
 	g_Input.SetCursorMode(m_Window->GetWindow(), GLFW_CURSOR_DISABLED);
 
 	//set up graphics engine
@@ -81,6 +83,11 @@ void Engine::Init() {
 	m_GlobalTimer = new Timer();
 	m_GlobalTimer->Reset();
 
+	ImGui_ImplGlfwVulkan_Init_Data imguiData = globals::g_Gfx->GetImguiInit();
+	ImGui_ImplGlfwVulkan_Init(m_Window->GetWindow(), false, &imguiData);
+	ImGuiContext* ctx = ImGui::GetCurrentContext();
+	globals::g_Gfx->CreateImguiFont(ImGui::GetCurrentContext());
+
 	//assets need to be loaded before this
 	globals::g_Gfx->TransferToGPU();
 }
@@ -89,9 +96,12 @@ void Engine::Run() {
 	int mode = GLFW_CURSOR_DISABLED;
 	while (!glfwWindowShouldClose(m_Window->GetWindow())) {
 
+		ImGui_ImplGlfwVulkan_NewFrame(m_Window->GetWindow());
+
 		if (g_Input.IsKeyPushed(GLFW_KEY_L)) {
 			mode = (mode == GLFW_CURSOR_NORMAL) ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL;
 			g_Input.SetCursorMode(m_Window->GetWindow(), mode);
+			g_Input.SetMouseDeltaUpdate(mode != GLFW_CURSOR_NORMAL);
 		}
 
 		if (g_Input.IsKeyDown(GLFW_KEY_ESCAPE)) {

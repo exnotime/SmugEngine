@@ -30,28 +30,28 @@ solution "Tephra"
 	project "Core"
         targetname "Tephra"
 		debugdir ""
-        defines { "AS_USE_NAMESPACE" }
+        defines { "AS_USE_NAMESPACE", "USE_IMGUI" }
 		location ( location_path )
 		language "C++"
 		kind "ConsoleApp"
-		files { "src/Core/**"}
+		files { "src/Core/**", "src/Imgui/**"}
 		includedirs { "include", "src" }
-		links {  "Graphics", "AssetLoader", "Physics", "glfw3" }
+		links {  "Graphics", "AssetLoader", "Physics", "glfw3", "vulkan-1" }
         configuration { "Debug" }
-                links { "angelscript64d", "as_integrationD" }
+                links { "angelscript64d", "as_integrationD", "shaderc_combinedD" }
         configuration { "Release" }
-                links { "angelscript64", "as_integration" }
+                links { "angelscript64", "as_integration", "shaderc_combined" }
 
     project "Graphics"
     	targetname "Graphics"
-    	defines { "GRAPHICS_EXPORT", "VK_USE_PLATFORM_WIN32_KHR"}
+    	defines { "VK_USE_PLATFORM_WIN32_KHR", "USE_IMGUI"}
     	debugdir ""
     	location (location_path)
     	language("C++")
-    	files { "src/Graphics/**"}
+    	files { "src/Graphics/**", "src/Imgui/**"}
     	includedirs { "include", "src" }
-    	kind "SharedLib"
-    	links { "vulkan-1", "AssetLoader"}
+    	kind "StaticLib"
+    	links { "vulkan-1", "AssetLoader", "glfw3"}
     	configuration { "Debug" }
                 links { "shaderc_combinedD" }
         configuration { "Release" }

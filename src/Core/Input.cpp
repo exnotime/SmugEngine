@@ -3,6 +3,7 @@
 
 Input::Input() {
 	m_MousePos = glm::vec2(0);
+	m_UpdateMouseDelta = true;
 }
 Input::~Input() {
 
@@ -88,7 +89,8 @@ void Input::SetCursorMode(GLFWwindow* window, int mode) {
 	m_MouseDelta = glm::dvec2(0);
 }
 void Input::SetMousePos(double x, double y) {
-	m_MouseDelta = glm::dvec2(x, y) - m_MousePos;
+	if(m_UpdateMouseDelta)
+		m_MouseDelta = glm::dvec2(x, y) - m_MousePos;
 	m_MousePos = glm::dvec2(x, y);
 }
 
@@ -104,4 +106,8 @@ glm::dvec2 Input::GetMouseDelta() {
 }
 glm::dvec2 Input::GetMousePos() {
 	return m_MousePos;
+}
+
+void Input::SetMouseDeltaUpdate(bool val){
+	m_UpdateMouseDelta = val;
 }
