@@ -1,7 +1,7 @@
 #ifndef SCRIPTGRID_H
 #define SCRIPTGRID_H
 
-#ifndef ANGELSCRIPT_H 
+#ifndef ANGELSCRIPT_H
 // Avoid having to inform include path if header is already include before
 #include <angelscript.h>
 #endif
@@ -10,9 +10,8 @@ BEGIN_AS_NAMESPACE
 
 struct SGridBuffer;
 
-class CScriptGrid
-{
-public:
+class CScriptGrid {
+  public:
 	// Set the memory functions that should be used by all CScriptGrids
 	static void SetMemoryFunctions(asALLOCFUNC_t allocFunc, asFREEFUNC_t freeFunc);
 
@@ -41,7 +40,7 @@ public:
 	const void *At(asUINT x, asUINT y) const;
 
 	// Set value of an element
-	// Remember, if the grid holds handles the value parameter should be the 
+	// Remember, if the grid holds handles the value parameter should be the
 	// address of the handle. The refCount of the object will also be incremented
 	void  SetValue(asUINT x, asUINT y, void *value);
 
@@ -52,7 +51,7 @@ public:
 	void EnumReferences(asIScriptEngine *engine);
 	void ReleaseAllHandles(asIScriptEngine *engine);
 
-protected:
+  protected:
 	mutable int     refCount;
 	mutable bool    gcFlag;
 	asITypeInfo    *objType;

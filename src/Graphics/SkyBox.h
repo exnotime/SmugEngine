@@ -4,13 +4,13 @@
 #include "VkMemory.h"
 #include "Texture.h"
 class SkyBox {
-public:
+  public:
 	SkyBox();
 	~SkyBox();
 	void Init(const vk::Device& device, const vk::PhysicalDevice& physDev, const std::string& filename,const vk::Viewport& vp, const vk::RenderPass& rp,const vk::PipelineMultisampleStateCreateInfo& mss);
 	void PrepareUniformBuffer(VulkanCommandBuffer cmdBuffer, glm::mat4 viewProj, glm::mat4 world);
 	void Render(VulkanCommandBuffer cmdBuffer);
-private:
+  private:
 	Tephra::VkPipeline m_Pipeline;
 	VkMemory m_Memory;
 	VkAlloc m_VBO;

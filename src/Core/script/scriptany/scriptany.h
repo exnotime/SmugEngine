@@ -1,7 +1,7 @@
 #ifndef SCRIPTANY_H
 #define SCRIPTANY_H
 
-#ifndef ANGELSCRIPT_H 
+#ifndef ANGELSCRIPT_H
 // Avoid having to inform include path if header is already include before
 #include <angelscript.h>
 #endif
@@ -9,9 +9,8 @@
 
 BEGIN_AS_NAMESPACE
 
-class CScriptAny 
-{
-public:
+class CScriptAny {
+  public:
 	// Constructors
 	CScriptAny(asIScriptEngine *engine);
 	CScriptAny(void *ref, int refTypeId, asIScriptEngine *engine);
@@ -44,7 +43,7 @@ public:
 	void EnumReferences(asIScriptEngine *engine);
 	void ReleaseAllHandles(asIScriptEngine *engine);
 
-protected:
+  protected:
 	virtual ~CScriptAny();
 	void FreeObject();
 
@@ -53,16 +52,14 @@ protected:
 	asIScriptEngine *engine;
 
 	// The structure for holding the values
-    struct valueStruct
-    {
-        union
-        {
-            asINT64 valueInt;
-            double  valueFlt;
-            void   *valueObj;
-        };
-        int   typeId;
-    };
+	struct valueStruct {
+		union {
+			asINT64 valueInt;
+			double  valueFlt;
+			void   *valueObj;
+		};
+		int   typeId;
+	};
 
 	valueStruct value;
 };

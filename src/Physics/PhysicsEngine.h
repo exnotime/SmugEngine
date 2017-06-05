@@ -25,7 +25,7 @@ struct PHYSICS_DLL PhysicsBody {
 };
 
 class PHYSICS_DLL PhysicsEngine {
-public:
+  public:
 	PhysicsEngine();
 	~PhysicsEngine();
 
@@ -38,7 +38,7 @@ public:
 	void DeleteActor(uint32_t actor);
 
 	void SetGravityPoint(const glm::vec3& pos, float strength);
-private:
+  private:
 	physx::PxFoundation* m_Foundation;
 	physx::PxPhysics* m_Physics;
 	physx::PxScene* m_Scene;

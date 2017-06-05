@@ -27,7 +27,7 @@
 // Declaration
 //
 
-#ifndef ANGELSCRIPT_H 
+#ifndef ANGELSCRIPT_H
 // Avoid having to inform include path if header is already include before
 #include <angelscript.h>
 #endif
@@ -37,9 +37,8 @@
 
 BEGIN_AS_NAMESPACE
 
-class CScriptFile
-{
-public:
+class CScriptFile {
+  public:
 	CScriptFile();
 
 	void AddRef() const;
@@ -77,7 +76,7 @@ public:
 	// Big-endian = most significant byte first
 	bool mostSignificantByteFirst;
 
-protected:
+  protected:
 	~CScriptFile();
 
 	mutable int refCount;

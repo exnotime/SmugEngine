@@ -35,9 +35,10 @@ void main(){
     vec3 mat = texture(g_Material[2], TexCoordOut).rgb;
     
     vec3 lightColor = CalcDirLight(-lightDir, texColor, normal, toCam, mat.r, mat.g) * mat.b;
-    lightColor += CalcIBLLight( normal, toCam, texColor, mat.r, mat.g) * mat.b;
+    vec3 ibl = CalcIBLLight( normal, toCam, texColor, mat.r, mat.g) * mat.b * 0.2;
     //lightColor = ditherRGB(lightColor, gl_FragCoord.xy);
-    lightColor = lightColor / (lightColor + vec3(1.0));
+    //lightColor = lightColor / (lightColor + vec3(1.0));
 
-    outColor = saturate(vec4(lightColor, 1));
+
+    outColor = saturate(vec4(lightColor + ibl, 1));
 }

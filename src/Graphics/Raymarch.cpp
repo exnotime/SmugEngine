@@ -118,10 +118,11 @@ void Raymarcher::Init(const vk::Device& device, const VulkanSwapChain& swapChain
 	}
 }
 
-void Raymarcher::UpdateUniforms(VulkanCommandBuffer& cmdBuffer, const glm::mat4& viewProj, const glm::vec3& position) {
+void Raymarcher::UpdateUniforms(VulkanCommandBuffer& cmdBuffer, const glm::mat4& viewProj, const glm::vec3& position, const glm::vec3& LightDir) {
 	PerFrame frameInfo;
 	frameInfo.CamPos = glm::vec4(position,1);
 	frameInfo.invViewProj = glm::inverse(viewProj);
+	frameInfo.LightDir = glm::vec4(LightDir, 0);
 	m_BufferMem.UpdateBuffer(m_UniformBuffer, sizeof(PerFrame), &frameInfo);
 	m_BufferMem.ScheduleTransfers(cmdBuffer);
 }

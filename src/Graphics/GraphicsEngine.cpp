@@ -11,15 +11,14 @@ GraphicsEngine::~GraphicsEngine() {
 }
 
 VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDebugCallback(
-	VkDebugReportFlagsEXT       flags,
-	VkDebugReportObjectTypeEXT  objectType,
-	uint64_t                    object,
-	size_t                      location,
-	int32_t                     messageCode,
-	const char*                 pLayerPrefix,
-	const char*                 pMessage,
-	void*                       pUserData)
-{
+    VkDebugReportFlagsEXT       flags,
+    VkDebugReportObjectTypeEXT  objectType,
+    uint64_t                    object,
+    size_t                      location,
+    int32_t                     messageCode,
+    const char*                 pLayerPrefix,
+    const char*                 pMessage,
+    void*                       pUserData) {
 	if (messageCode == 3 || messageCode == 15 || messageCode == 1338) {
 		return VK_FALSE;
 	}
@@ -69,14 +68,14 @@ void GraphicsEngine::CreateContext() {
 #ifdef _DEBUG
 	/* Load VK_EXT_debug_report entry points in debug builds */
 	PFN_vkCreateDebugReportCallbackEXT vkCreateDebugReportCallbackEXT =
-		reinterpret_cast<PFN_vkCreateDebugReportCallbackEXT>
-		(m_VKContext.Instance.getProcAddr("vkCreateDebugReportCallbackEXT"));
+	    reinterpret_cast<PFN_vkCreateDebugReportCallbackEXT>
+	    (m_VKContext.Instance.getProcAddr("vkCreateDebugReportCallbackEXT"));
 	PFN_vkDebugReportMessageEXT vkDebugReportMessageEXT =
-		reinterpret_cast<PFN_vkDebugReportMessageEXT>
-		(m_VKContext.Instance.getProcAddr("vkDebugReportMessageEXT"));
+	    reinterpret_cast<PFN_vkDebugReportMessageEXT>
+	    (m_VKContext.Instance.getProcAddr("vkDebugReportMessageEXT"));
 	PFN_vkDestroyDebugReportCallbackEXT vkDestroyDebugReportCallbackEXT =
-		reinterpret_cast<PFN_vkDestroyDebugReportCallbackEXT>
-		(m_VKContext.Instance.getProcAddr("vkDestroyDebugReportCallbackEXT"));
+	    reinterpret_cast<PFN_vkDestroyDebugReportCallbackEXT>
+	    (m_VKContext.Instance.getProcAddr("vkDestroyDebugReportCallbackEXT"));
 
 	VkDebugReportCallbackCreateInfoEXT debugCallbacks;
 	debugCallbacks.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT;
@@ -91,7 +90,7 @@ void GraphicsEngine::CreateContext() {
 	//grab first available GPU
 	for (auto& gpu : gpus) {
 		if (gpu.getProperties().deviceType == vk::PhysicalDeviceType::eDiscreteGpu ||
-			gpu.getProperties().deviceType == vk::PhysicalDeviceType::eIntegratedGpu) {
+		        gpu.getProperties().deviceType == vk::PhysicalDeviceType::eIntegratedGpu) {
 			VK_PHYS_DEVICE = gpu;
 			break;
 		}
@@ -371,7 +370,6 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	m_ScreenSize = windowSize;
 
 	//Allocate memory on gpu
-	//TODO: MSAA
 	uint64_t fboSize = (uint64_t)(m_ScreenSize.x * m_ScreenSize.y * 4 * (2 * BUFFER_COUNT)); //size of rgba and depth + stencil
 	fboSize = m_MSAA ? fboSize * 4 : fboSize;
 	fboSize += 64 * MEGA_BYTE; //3 * 256 * 256 * 6 + mipchain // cubemaps
@@ -385,7 +383,7 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	m_RenderCompleteSemaphore = VK_DEVICE.createSemaphore(semaphoreInfo);
 	m_RayMarchComplete = VK_DEVICE.createSemaphore(semaphoreInfo);
 	m_ImguiComplete = VK_DEVICE.createSemaphore(semaphoreInfo);
-	
+
 	vk::FenceCreateInfo fenceInfo;
 	m_Fence[0] = VK_DEVICE.createFence(fenceInfo);
 	m_Fence[1] = VK_DEVICE.createFence(fenceInfo);
@@ -406,7 +404,7 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	}
 
 	m_Pipeline.LoadPipelineFromFile(VK_DEVICE, "shader/filled.json", m_Viewport, m_RenderPass);
-	
+
 	m_PerFrameBuffer = m_BufferMemory.AllocateBuffer(sizeof(PerFrameBuffer), vk::BufferUsageFlagBits::eUniformBuffer, nullptr);
 
 	for (int q = 0; q < BUFFER_COUNT; ++q) {
@@ -494,14 +492,14 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 		descWrites[c + q].dstArrayElement = 0;
 		descWrites[c + q].dstBinding = 0;
 		descWrites[c + q].dstSet = m_RenderQueues[q].GetDescriptorSet();
-		
+
 		bufferInfos[q].buffer = m_RenderQueues[q].GetUniformBuffer().BufferHandle;
 		bufferInfos[q].offset = 0;
 		bufferInfos[q].range = VK_WHOLE_SIZE;
 		descWrites[c + q].pBufferInfo = &bufferInfos[q];
 	}
 	VK_DEVICE.updateDescriptorSets(3 + BUFFER_COUNT, descWrites, 0, nullptr);
-	
+
 	m_SkyBox.Init(VK_DEVICE, VK_PHYS_DEVICE, "assets/skybox_rad.dds", m_Viewport, m_RenderPass, m_MSState);
 	m_Raymarcher.Init(VK_DEVICE, m_VKSwapChain, VK_PHYS_DEVICE);
 
@@ -511,7 +509,7 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	m_Resources.Init(&VK_DEVICE, VK_PHYS_DEVICE, memBudget);
 	//prepare initial transfer
 	m_vkCmdBuffer.Begin(nullptr, nullptr);
-	
+
 	for (int i = 0; i < BUFFER_COUNT; i++) {
 		if (m_MSAA) {
 			m_vkCmdBuffer.ImageBarrier(m_VKSwapChain.Images[i], vk::ImageLayout::eUndefined, vk::ImageLayout::eColorAttachmentOptimal);
@@ -542,7 +540,7 @@ void GraphicsEngine::Render() {
 	uniformBuffer.ViewProj = cd.ProjView;
 	uniformBuffer.CameraPos = glm::vec4(cd.Position, 1);
 	ImGui::SetCurrentContext(m_ImguiCtx);
-	static glm::vec3 LightDir;
+	static glm::vec3 LightDir = glm::vec3(0.1f,-2.0f, -1.0f);
 	ImGui::DragFloat3("LightDir", &LightDir[0], 0.01f, -1.0f, 1.0f);
 	uniformBuffer.LightDir = glm::normalize(glm::vec4(LightDir, 1.0f));
 
@@ -554,7 +552,7 @@ void GraphicsEngine::Render() {
 	m_vkCmdBuffer.Begin(nullptr, nullptr);
 	m_BufferMemory.ScheduleTransfers(m_vkCmdBuffer);
 	m_SkyBox.PrepareUniformBuffer(m_vkCmdBuffer, cd.ProjView, glm::translate(cd.Position));
-	m_Raymarcher.UpdateUniforms(m_vkCmdBuffer, cd.ProjView, cd.Position);
+	m_Raymarcher.UpdateUniforms(m_vkCmdBuffer, cd.ProjView, cd.Position, LightDir);
 	m_vkCmdBuffer.end();
 
 	m_vkQueue.Submit(m_vkCmdBuffer);
@@ -567,7 +565,7 @@ void GraphicsEngine::Render() {
 		m_vkCmdBuffer.ImageBarrier(m_VKSwapChain.Images[VK_FRAME_INDEX], vk::ImageLayout::ePresentSrcKHR, vk::ImageLayout::eColorAttachmentOptimal);
 		m_vkCmdBuffer.PushPipelineBarrier();
 	}
-	
+
 	vk::RenderPassBeginInfo renderPassInfo;
 	renderPassInfo.framebuffer = m_VKSwapChain.FrameBuffers[VK_FRAME_INDEX];
 	renderPassInfo.renderPass = m_RenderPass;
@@ -592,7 +590,7 @@ void GraphicsEngine::Render() {
 	//render here
 	m_vkCmdBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipeline());
 	m_vkCmdBuffer.setViewport(0, 1, &m_Viewport);
-	vk::DescriptorSet sets[] = { m_PerFrameSet , m_IBLDescSet, rq.GetDescriptorSet() };
+	vk::DescriptorSet sets[] = { m_PerFrameSet, m_IBLDescSet, rq.GetDescriptorSet() };
 	m_vkCmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipelineLayout(), 0, _countof(sets), sets, 0, nullptr);
 
 	uint32_t uniformOffset = 0;
@@ -600,11 +598,12 @@ void GraphicsEngine::Render() {
 		const Model& model = m_Resources.GetModel(m);
 
 		vk::Buffer vertexBuffers[] = { model.VertexBuffers[0].BufferHandle, model.VertexBuffers[1].BufferHandle,
-			model.VertexBuffers[2].BufferHandle, model.VertexBuffers[3].BufferHandle };
+		                               model.VertexBuffers[2].BufferHandle, model.VertexBuffers[3].BufferHandle
+		                             };
 
 		vk::DeviceSize offsets[] = { 0,0,0,0 };
 		m_vkCmdBuffer.bindVertexBuffers(0, 4, vertexBuffers, offsets);
-		
+
 		m_vkCmdBuffer.bindIndexBuffer(model.IndexBuffer.BufferHandle, 0, vk::IndexType::eUint16);
 		m_vkCmdBuffer.pushConstants(m_Pipeline.GetPipelineLayout(),vk::ShaderStageFlagBits::eAll, 0, sizeof(unsigned), &uniformOffset);
 
@@ -641,12 +640,12 @@ void GraphicsEngine::Render() {
 		resolve.srcSubresource.mipLevel = 0;
 
 		m_vkCmdBuffer.resolveImage(m_VKSwapChain.Images[VK_FRAME_INDEX], vk::ImageLayout::eColorAttachmentOptimal,
-			m_VKSwapChain.ResolveImages[VK_FRAME_INDEX], vk::ImageLayout::ePresentSrcKHR, resolve);
+		                           m_VKSwapChain.ResolveImages[VK_FRAME_INDEX], vk::ImageLayout::ePresentSrcKHR, resolve);
 
 		resolve.dstSubresource.aspectMask = vk::ImageAspectFlagBits::eDepth;
 		resolve.srcSubresource.aspectMask = vk::ImageAspectFlagBits::eDepth;
 		m_vkCmdBuffer.resolveImage(m_VKSwapChain.DepthStencilImages[VK_FRAME_INDEX], vk::ImageLayout::eDepthStencilAttachmentOptimal,
-			m_VKSwapChain.DepthResolveImages[VK_FRAME_INDEX], vk::ImageLayout::eDepthStencilReadOnlyOptimal, resolve);
+		                           m_VKSwapChain.DepthResolveImages[VK_FRAME_INDEX], vk::ImageLayout::eDepthStencilReadOnlyOptimal, resolve);
 
 	} else {
 		m_vkCmdBuffer.ImageBarrier(m_VKSwapChain.Images[VK_FRAME_INDEX], vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::ePresentSrcKHR);
@@ -681,7 +680,7 @@ void GraphicsEngine::Render() {
 		m_vkMarchCmdBuffer.ImageBarrier(m_VKSwapChain.Images[VK_FRAME_INDEX], vk::ImageLayout::eGeneral, vk::ImageLayout::ePresentSrcKHR);
 	}
 #endif
-	
+
 
 	m_vkMarchCmdBuffer.end();
 #ifdef USE_IMGUI
@@ -700,8 +699,7 @@ void GraphicsEngine::Render() {
 	if (m_VKSwapChain.MSAA) {
 		m_vkImguiCmdBuffer.ImageBarrier(m_VKSwapChain.DepthResolveImages[VK_FRAME_INDEX], vk::ImageLayout::eDepthStencilReadOnlyOptimal, vk::ImageLayout::eDepthStencilAttachmentOptimal);
 		m_vkImguiCmdBuffer.ImageBarrier(m_VKSwapChain.ResolveImages[VK_FRAME_INDEX], vk::ImageLayout::eGeneral, vk::ImageLayout::eColorAttachmentOptimal);
-	}
-	else {
+	} else {
 		m_vkImguiCmdBuffer.ImageBarrier(m_VKSwapChain.DepthStencilImages[VK_FRAME_INDEX], vk::ImageLayout::eDepthStencilReadOnlyOptimal, vk::ImageLayout::eDepthStencilAttachmentOptimal);
 		m_vkImguiCmdBuffer.ImageBarrier(m_VKSwapChain.Images[VK_FRAME_INDEX], vk::ImageLayout::eGeneral, vk::ImageLayout::eColorAttachmentOptimal);
 	}
@@ -720,8 +718,7 @@ void GraphicsEngine::Render() {
 
 	if (m_VKSwapChain.MSAA) {
 		m_vkImguiCmdBuffer.ImageBarrier(m_VKSwapChain.ResolveImages[VK_FRAME_INDEX], vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::ePresentSrcKHR);
-	}
-	else {
+	} else {
 		m_vkImguiCmdBuffer.ImageBarrier(m_VKSwapChain.Images[VK_FRAME_INDEX], vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::ePresentSrcKHR);
 	}
 	m_vkImguiCmdBuffer.PushPipelineBarrier();
@@ -769,8 +766,7 @@ void GraphicsEngine::TransferToGPU() {
 }
 
 #ifdef USE_IMGUI
-void check_vk_result(VkResult err)
-{
+void check_vk_result(VkResult err) {
 	if (err == 0) return;
 	printf("VkResult %d\n", err);
 	if (err < 0)

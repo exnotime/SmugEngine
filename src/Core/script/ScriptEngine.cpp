@@ -5,8 +5,7 @@
 #include <angelscript-integration/angelscript-integration.h>
 #include <assert.h>
 
-void MessageCallback(const AngelScript::asSMessageInfo *msg, void *param)
-{
+void MessageCallback(const AngelScript::asSMessageInfo *msg, void *param) {
 	const char *type = "ERR ";
 	if (msg->type == AngelScript::asMSGTYPE_WARNING)
 		type = "WARN";
@@ -44,9 +43,12 @@ void ScriptEngine::Init() {
 void ScriptEngine::CompileScript(const std::string& scriptname) {
 	AngelScript::CScriptBuilder scriptBuilder;
 	int r = 0;
-	r = scriptBuilder.StartNewModule(m_Engine, scriptname.c_str()); assert(r >= 0);
-	r = scriptBuilder.AddSectionFromFile(scriptname.c_str()); assert(r >= 0);
-	r = scriptBuilder.BuildModule(); assert(r >= 0);
+	r = scriptBuilder.StartNewModule(m_Engine, scriptname.c_str());
+	assert(r >= 0);
+	r = scriptBuilder.AddSectionFromFile(scriptname.c_str());
+	assert(r >= 0);
+	r = scriptBuilder.BuildModule();
+	assert(r >= 0);
 	m_Scripts.push_back(scriptname);
 	printf("Compiled script :%s\n", scriptname.c_str());
 }
@@ -54,9 +56,12 @@ void ScriptEngine::CompileScript(const std::string& scriptname) {
 AngelScript::asIScriptModule* ScriptEngine::CompileScriptToModule(const std::string& scriptname) {
 	AngelScript::CScriptBuilder scriptBuilder;
 	int r = 0;
-	r = scriptBuilder.StartNewModule(m_Engine, scriptname.c_str()); assert(r >= 0);
-	r = scriptBuilder.AddSectionFromFile( scriptname.c_str()); assert(r >= 0);
-	r = scriptBuilder.BuildModule(); assert(r >= 0);
+	r = scriptBuilder.StartNewModule(m_Engine, scriptname.c_str());
+	assert(r >= 0);
+	r = scriptBuilder.AddSectionFromFile( scriptname.c_str());
+	assert(r >= 0);
+	r = scriptBuilder.BuildModule();
+	assert(r >= 0);
 	m_Scripts.push_back(scriptname);
 	printf("Compiled script :%s\n", scriptname.c_str());
 	return m_Engine->GetModule(scriptname.c_str());
@@ -65,9 +70,12 @@ AngelScript::asIScriptModule* ScriptEngine::CompileScriptToModule(const std::str
 AngelScript::asIScriptModule* ScriptEngine::CompileStringToModule(const std::string& name, const std::string& script) {
 	AngelScript::CScriptBuilder scriptBuilder;
 	int r = 0;
-	r = scriptBuilder.StartNewModule(m_Engine, name.c_str()); assert(r >= 0);
-	r = scriptBuilder.AddSectionFromMemory(name.c_str(), script.c_str()); assert(r >= 0);
-	r = scriptBuilder.BuildModule(); assert(r >= 0);
+	r = scriptBuilder.StartNewModule(m_Engine, name.c_str());
+	assert(r >= 0);
+	r = scriptBuilder.AddSectionFromMemory(name.c_str(), script.c_str());
+	assert(r >= 0);
+	r = scriptBuilder.BuildModule();
+	assert(r >= 0);
 	m_Scripts.push_back(name);
 	printf("Compiled script :%s\n", name.c_str());
 	return m_Engine->GetModule(name.c_str());
@@ -84,9 +92,12 @@ void ScriptEngine::RecompileScript(const std::string& scriptname) {
 	m_Engine->DiscardModule(scriptname.c_str());
 	AngelScript::CScriptBuilder scriptBuilder;
 	int r = 0;
-	r = scriptBuilder.StartNewModule(m_Engine, scriptname.c_str()); assert(r >= 0);
-	r = scriptBuilder.AddSectionFromFile(scriptname.c_str()); assert(r >= 0);
-	r = scriptBuilder.BuildModule(); assert(r >= 0);
+	r = scriptBuilder.StartNewModule(m_Engine, scriptname.c_str());
+	assert(r >= 0);
+	r = scriptBuilder.AddSectionFromFile(scriptname.c_str());
+	assert(r >= 0);
+	r = scriptBuilder.BuildModule();
+	assert(r >= 0);
 }
 
 void ScriptEngine::RecompileAllScripts() {

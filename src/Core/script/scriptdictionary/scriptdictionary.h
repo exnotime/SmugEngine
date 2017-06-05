@@ -5,7 +5,7 @@
 // string type must be registered with the engine before registering the
 // dictionary type
 
-#ifndef ANGELSCRIPT_H 
+#ifndef ANGELSCRIPT_H
 // Avoid having to inform include path if header is already include before
 #include <angelscript.h>
 #endif
@@ -25,7 +25,7 @@ class CScriptDictValue;
 END_AS_NAMESPACE
 
 // C++11 introduced the std::unordered_map which is a hash map which is
-// is generally more performatic for lookups than the std::map which is a 
+// is generally more performatic for lookups than the std::map which is a
 // binary tree.
 // TODO: memory: The map allocator should use the asAllocMem and asFreeMem
 #if AS_CAN_USE_CPP11
@@ -62,10 +62,9 @@ BEGIN_AS_NAMESPACE
 class CScriptArray;
 class CScriptDictionary;
 
-class CScriptDictValue
-{
-public:
-	// This class must not be declared as local variable in C++, because it needs 
+class CScriptDictValue {
+  public:
+	// This class must not be declared as local variable in C++, because it needs
 	// to receive the script engine pointer in all operations. The engine pointer
 	// is not kept as member in order to keep the size down
 	CScriptDictValue();
@@ -94,11 +93,10 @@ public:
 	// Free the stored value
 	void FreeValue(asIScriptEngine *engine);
 
-protected:
+  protected:
 	friend class CScriptDictionary;
 
-	union
-	{
+	union {
 		asINT64 m_valueInt;
 		double  m_valueFlt;
 		void   *m_valueObj;
@@ -106,9 +104,8 @@ protected:
 	int m_typeId;
 };
 
-class CScriptDictionary
-{
-public:
+class CScriptDictionary {
+  public:
 	// Factory functions
 	static CScriptDictionary *Create(asIScriptEngine *engine);
 
@@ -159,9 +156,8 @@ public:
 	CScriptArray *GetKeys() const;
 
 	// STL style iterator
-	class CIterator
-	{
-	public:
+	class CIterator {
+	  public:
 		void operator++();    // Pre-increment
 		void operator++(int); // Post-increment
 
@@ -179,14 +175,16 @@ public:
 		bool             GetValue(void *value, int typeId) const;
 		const void *     GetAddressOfValue() const;
 
-	protected:
+	  protected:
 		friend class CScriptDictionary;
 
 		CIterator();
 		CIterator(const CScriptDictionary &dict,
 		          dictMap_t::const_iterator it);
 
-		CIterator &operator=(const CIterator &) {return *this;} // Not used
+		CIterator &operator=(const CIterator &) {
+			return *this;   // Not used
+		}
 
 		dictMap_t::const_iterator m_it;
 		const CScriptDictionary &m_dict;
@@ -203,9 +201,9 @@ public:
 	void EnumReferences(asIScriptEngine *engine);
 	void ReleaseAllReferences(asIScriptEngine *engine);
 
-protected:
+  protected:
 	// Since the dictionary uses the asAllocMem and asFreeMem functions to allocate memory
-	// the constructors are made protected so that the application cannot allocate it 
+	// the constructors are made protected so that the application cannot allocate it
 	// manually in a different way
 	CScriptDictionary(asIScriptEngine *engine);
 	CScriptDictionary(asBYTE *buffer);

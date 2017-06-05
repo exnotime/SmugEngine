@@ -567,8 +567,7 @@ void VkPipeline::LoadPipelineFromFile(const vk::Device& device, const std::strin
 	json root;
 	try {
 		fin >> root;
-	}
-	catch(std::exception e){
+	} catch(std::exception e) {
 		printf("json: %s\n", e.what());
 		return;
 	}
@@ -591,8 +590,7 @@ void VkPipeline::LoadPipelineFromFile(const vk::Device& device, const std::strin
 				if (shader.find("Language") != shader.end()) {
 					if (shader["Language"] == "GLSL") {
 						lang = GLSL;
-					}
-					else if (shader["Language"] == "HLSL") {
+					} else if (shader["Language"] == "HLSL") {
 						lang = HLSL;
 					}
 				}
@@ -603,8 +601,7 @@ void VkPipeline::LoadPipelineFromFile(const vk::Device& device, const std::strin
 				m_ShaderBits |= 1 << i;
 			}
 		}
-	}
-	else {
+	} else {
 		return;
 	}
 	//descriptor set
@@ -673,12 +670,10 @@ void VkPipeline::LoadPipelineFromFile(const vk::Device& device, const std::strin
 			for (auto& state : blendAttachmentStatesJson) {
 				ColorblendAttachmentStates.push_back(ReadColorBlendAttachmentState(state));
 			}
-		}
-		else {
+		} else {
 			ColorblendAttachmentStates.push_back(GetDefaultColorBlendAttachmentState());
 		}
-	}
-	else {
+	} else {
 		blendStateInfo = GetDefaultColorBlendState();
 	}
 	blendStateInfo.attachmentCount = ColorblendAttachmentStates.size();
@@ -688,28 +683,24 @@ void VkPipeline::LoadPipelineFromFile(const vk::Device& device, const std::strin
 	if (root.find("DepthStencilState") != root.end()) {
 		json depthStencilJson = root["DepthStencilState"];
 		depthStencilState = ReadDepthStencilstate(depthStencilJson);
-	}
-	else {
+	} else {
 		depthStencilState = GetDefaultDepthStencilstate();
 	}
 	//input assembly
 	vk::PipelineInputAssemblyStateCreateInfo inputAssemblyInfo;
 	if (root.find("InputAssemblyState") != root.end()) {
 		json inputAssemJson = root["InputAssemblyState"];
-		if(inputAssemJson.find("PrimitiveRestartEnable") != inputAssemJson.end()){
+		if(inputAssemJson.find("PrimitiveRestartEnable") != inputAssemJson.end()) {
 			inputAssemblyInfo.primitiveRestartEnable = TO_VK_BOOL(inputAssemJson["PrimitiveRestartEnable"]);
-		}
-		else {
+		} else {
 			inputAssemblyInfo.primitiveRestartEnable = false;
 		}
 		if (inputAssemJson.find("Topology") != inputAssemJson.end()) {
 			inputAssemblyInfo.topology = ToPrimitiveTopology[ inputAssemJson["Topology"]];
-		}
-		else {
+		} else {
 			inputAssemblyInfo.topology = vk::PrimitiveTopology::eTriangleList;
 		}
-	}
-	else {
+	} else {
 		inputAssemblyInfo.topology = vk::PrimitiveTopology::eTriangleList;
 		inputAssemblyInfo.primitiveRestartEnable = false;
 	}
@@ -719,11 +710,9 @@ void VkPipeline::LoadPipelineFromFile(const vk::Device& device, const std::strin
 		json msStateJson = root["MultiSampleState"];
 		multisampleStateInfo = new vk::PipelineMultisampleStateCreateInfo();
 		*multisampleStateInfo = ReadMultiSampleState(msStateJson);
-	}
-	else if (m_DefaultMultiSampleStateSet) {
+	} else if (m_DefaultMultiSampleStateSet) {
 		// do nothing
-	}
-	else {
+	} else {
 		multisampleStateInfo = new vk::PipelineMultisampleStateCreateInfo();
 		*multisampleStateInfo = GetDefaultMultiSampleState();
 	}
@@ -732,8 +721,7 @@ void VkPipeline::LoadPipelineFromFile(const vk::Device& device, const std::strin
 	if (root.find("RasterizationState") != root.end()) {
 		json rsStateJson = root["RasterizationState"];
 		rasterInfo = ReadRasterState(rsStateJson);
-	}
-	else {
+	} else {
 		rasterInfo = GetDefaultRasterState();
 	}
 	//tesselation state
@@ -743,7 +731,7 @@ void VkPipeline::LoadPipelineFromFile(const vk::Device& device, const std::strin
 		tesselationstate = new vk::PipelineTessellationStateCreateInfo();
 		if (tStateJson.find("PatchControlPoints") != tStateJson.end()) {
 			tesselationstate->patchControlPoints = tStateJson["PatchControlPoints"];
-		}else {
+		} else {
 			tesselationstate->patchControlPoints = 1;
 		}
 	}

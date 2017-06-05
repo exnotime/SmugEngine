@@ -31,7 +31,7 @@ struct VulkanSwapChain {
 };
 
 class VulkanCommandBuffer : public vk::CommandBuffer {
-public:
+  public:
 	VulkanCommandBuffer() {
 
 	}
@@ -80,14 +80,14 @@ public:
 
 	void PushPipelineBarrier() {
 		this->pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe, vk::PipelineStageFlagBits::eTopOfPipe, vk::DependencyFlagBits::eByRegion,
-			0, nullptr, 0, nullptr, m_ImgBarriers.size(), m_ImgBarriers.data());
+		                      0, nullptr, 0, nullptr, m_ImgBarriers.size(), m_ImgBarriers.data());
 		m_ImgBarriers.clear();
 		//TODO add memory and buffer barriers
 	}
-	void Reset(vk::Device device, int frameIndex){
+	void Reset(vk::Device device, int frameIndex) {
 		device.resetCommandPool(m_CmdPools[frameIndex], vk::CommandPoolResetFlagBits::eReleaseResources);
 	}
-private:
+  private:
 	vk::AccessFlags LayoutToAccessMask(vk::ImageLayout layout) {
 		switch (layout) {
 		case vk::ImageLayout::eColorAttachmentOptimal:
@@ -125,14 +125,12 @@ private:
 	}
 	vk::ImageAspectFlags LayoutToAspectMask(vk::ImageLayout layout) {
 		if (layout == vk::ImageLayout::eColorAttachmentOptimal || layout == vk::ImageLayout::eShaderReadOnlyOptimal ||
-			layout == vk::ImageLayout::eGeneral || layout == vk::ImageLayout::ePresentSrcKHR || layout == vk::ImageLayout::eTransferDstOptimal ||
-			layout == vk::ImageLayout::eTransferSrcOptimal) {
+		        layout == vk::ImageLayout::eGeneral || layout == vk::ImageLayout::ePresentSrcKHR || layout == vk::ImageLayout::eTransferDstOptimal ||
+		        layout == vk::ImageLayout::eTransferSrcOptimal) {
 			return vk::ImageAspectFlagBits::eColor;
-		}
-		else if (layout == vk::ImageLayout::eDepthStencilAttachmentOptimal || layout == vk::ImageLayout::eDepthStencilReadOnlyOptimal) {
+		} else if (layout == vk::ImageLayout::eDepthStencilAttachmentOptimal || layout == vk::ImageLayout::eDepthStencilReadOnlyOptimal) {
 			return vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil;
-		}
-		else {
+		} else {
 			return vk::ImageAspectFlagBits::eMetadata;
 		}
 		return vk::ImageAspectFlagBits::eMetadata;
@@ -143,7 +141,7 @@ private:
 };
 
 class VulkanQueue : public vk::Queue {
-public:
+  public:
 	VulkanQueue() {
 
 	}
@@ -167,7 +165,7 @@ public:
 	}
 
 	void Submit(const std::vector<vk::CommandBuffer>& cmdBuffers, const std::vector<vk::Semaphore> waitSemaphores,
-		const std::vector<vk::Semaphore> signalSemaphores, vk::Fence fence) {
+	            const std::vector<vk::Semaphore> signalSemaphores, vk::Fence fence) {
 		vk::SubmitInfo submit;
 		submit.commandBufferCount = (uint32_t)cmdBuffers.size();
 		submit.pCommandBuffers = cmdBuffers.data();
@@ -182,7 +180,7 @@ public:
 	}
 
 	void Submit(const vk::CommandBuffer& cmdBuffer, const vk::Semaphore& waitSemaphore,
-		const vk::Semaphore& signalSemaphore, const vk::Fence fence) {
+	            const vk::Semaphore& signalSemaphore, const vk::Fence fence) {
 		vk::SubmitInfo submit;
 		submit.commandBufferCount = 1;
 		submit.pCommandBuffers = &cmdBuffer;
@@ -206,10 +204,14 @@ public:
 		this->submit(1, &submit, nullptr);
 	}
 
-	vk::DeviceQueueCreateInfo& GetInfo() { return m_QueueInfo; }
-	int GetQueueIndex() { return m_QueueIndex; }
+	vk::DeviceQueueCreateInfo& GetInfo() {
+		return m_QueueInfo;
+	}
+	int GetQueueIndex() {
+		return m_QueueIndex;
+	}
 
-private:
+  private:
 	int m_QueueIndex;
 	float m_QueuePrio;
 	vk::DeviceQueueCreateInfo m_QueueInfo;

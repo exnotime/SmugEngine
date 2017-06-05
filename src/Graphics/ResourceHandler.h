@@ -43,7 +43,7 @@ struct MemoryBudget {
 };
 
 class ResourceHandler {
-public:
+  public:
 	ResourceHandler();
 	~ResourceHandler();
 	void Init(vk::Device* device, const vk::PhysicalDevice& physDev, MemoryBudget budget);
@@ -54,7 +54,7 @@ public:
 
 	ResourceHandle AllocateModel(const ModelInfo& model);
 	ResourceHandle AllocateTexture(const TextureInfo& tex);
-private:
+  private:
 	vk::Device* m_Device;
 	std::vector<Model> m_Models;
 	std::vector<VkTexture> m_Textures;

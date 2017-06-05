@@ -1,7 +1,7 @@
 #ifndef SCRIPTDATETIME_H
 #define SCRIPTDATETIME_H
 
-#ifndef ANGELSCRIPT_H 
+#ifndef ANGELSCRIPT_H
 // Avoid having to inform include path if header is already include before
 #include <angelscript.h>
 #endif
@@ -14,9 +14,8 @@
 
 BEGIN_AS_NAMESPACE
 
-class CDateTime
-{
-public:
+class CDateTime {
+  public:
 	// Constructors
 	CDateTime();
 	CDateTime(const CDateTime &other);
@@ -32,7 +31,7 @@ public:
 	asUINT getMinute() const;
 	asUINT getSecond() const;
 
-protected:
+  protected:
 	std::chrono::system_clock::time_point tp;
 };
 

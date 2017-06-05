@@ -6,11 +6,11 @@
 #include "Core/datasystem/ComponentManager.h"
 #include "Core/entity/EntityManager.h"
 #include <Core/Input.h>
-SSPhysics::SSPhysics(){
+SSPhysics::SSPhysics() {
 
 }
 
-SSPhysics::~SSPhysics(){
+SSPhysics::~SSPhysics() {
 
 }
 

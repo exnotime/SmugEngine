@@ -4,11 +4,11 @@
 
 #define SAFE_DELETE(x) if(x) delete x
 
-AssetLoader::AssetLoader(){
+AssetLoader::AssetLoader() {
 	m_ResourceCache.reserve(1);
 }
 
-AssetLoader::~AssetLoader(){
+AssetLoader::~AssetLoader() {
 }
 
 AssetLoader& AssetLoader::GetInstance() {
@@ -56,8 +56,7 @@ ResourceHandle AssetLoader::LoadAsset(const char* filename) {
 			m_ResourceCache[filename] = handle;
 			return handle;
 		}
-	}
-	else if (IsModel(extention)) {
+	} else if (IsModel(extention)) {
 		ModelInfo modelInfo;
 		error = m_ModelLoader.LoadModel(file, modelInfo);
 		if (!error) {

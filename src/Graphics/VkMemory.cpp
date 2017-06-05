@@ -17,8 +17,8 @@ void VkMemory::Init(const vk::Device& device, const vk::PhysicalDevice& physDev,
 	devBufferInfo.sharingMode = vk::SharingMode::eExclusive;
 	devBufferInfo.size = deviceSize;
 	devBufferInfo.usage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eStorageBuffer |
-		vk::BufferUsageFlagBits::eStorageTexelBuffer | vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eVertexBuffer | 
-		vk::BufferUsageFlagBits::eUniformTexelBuffer;
+	                      vk::BufferUsageFlagBits::eStorageTexelBuffer | vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eVertexBuffer |
+	                      vk::BufferUsageFlagBits::eUniformTexelBuffer;
 	m_DeviceBuffer = device.createBuffer(devBufferInfo);
 	vk::MemoryRequirements memReq = device.getBufferMemoryRequirements(m_DeviceBuffer);
 
@@ -26,7 +26,7 @@ void VkMemory::Init(const vk::Device& device, const vk::PhysicalDevice& physDev,
 
 	for (uint32_t i = 0; i < m_MemProps.memoryTypeCount; i++) {
 		if ((m_MemProps.memoryTypes[i].propertyFlags & deviceMemFlags) == deviceMemFlags &&
-			memReq.memoryTypeBits & (1 << i)) {
+		        memReq.memoryTypeBits & (1 << i)) {
 			vk::MemoryAllocateInfo allocInfo;
 			allocInfo.allocationSize = deviceSize;
 			allocInfo.memoryTypeIndex = i;
@@ -46,7 +46,7 @@ void VkMemory::Init(const vk::Device& device, const vk::PhysicalDevice& physDev,
 
 	for (uint32_t i = 0; i < m_MemProps.memoryTypeCount; i++) {
 		if ((m_MemProps.memoryTypes[i].propertyFlags & stagingMemFlags) == stagingMemFlags &&
-			stageMemReq.memoryTypeBits & (1 << i)) {
+		        stageMemReq.memoryTypeBits & (1 << i)) {
 			vk::MemoryAllocateInfo allocInfo;
 			allocInfo.allocationSize = stageSize;
 			allocInfo.memoryTypeIndex = i;
@@ -72,12 +72,12 @@ VkAlloc VkMemory::AllocateBuffer(uint64_t size, vk::BufferUsageFlags usage, void
 	bufferInfo.size = size;
 	bufferInfo.usage = usage;
 	vk::Buffer buffer = m_Device.createBuffer(bufferInfo);
-	
+
 	auto memReq = m_Device.getBufferMemoryRequirements(buffer);
 	m_DeviceOffset = (m_DeviceOffset + memReq.alignment - 1) & ~(memReq.alignment - 1);
 	//bind buffer to memory
 	m_Device.bindBufferMemory(buffer, m_DevMem, m_DeviceOffset);
-	
+
 	//if there is data allocate space in staging buffer
 	if (data && m_StagingOffset + size < m_StagingSize) {
 		//transfer data to staging buffer
@@ -129,7 +129,7 @@ VkAlloc VkMemory::AllocateImage(vk::Image img, gli::texture2d* texture, void* da
 		range.size = size;
 		m_Device.flushMappedMemoryRanges(1, &range);
 		m_Device.unmapMemory(m_StagingMem);
-		
+
 		if (texture) {
 			TextureTransfer transfer;
 			transfer.Image = img;
@@ -154,7 +154,7 @@ VkAlloc VkMemory::AllocateImage(vk::Image img, gli::texture2d* texture, void* da
 			m_Transfers.push_back(copy);
 			m_StagingOffset += memReq.size;
 		}
-		
+
 	}
 	m_DeviceOffset += memReq.size;
 }
@@ -195,11 +195,11 @@ VkAlloc VkMemory::AllocateImage(vk::Image img, const TextureInfo& texInfo) {
 				copy.imageSubresource.mipLevel = i;
 				transfer.copies.push_back(copy);
 				m_StagingOffset += w * h * (texInfo.BPP  / 8);
-				w >>= 1; h >>= 1;
+				w >>= 1;
+				h >>= 1;
 			}
 			m_ImageTransfers.push_back(transfer);
-		}
-		else {
+		} else {
 			vk::BufferCopy copy;
 			copy.dstOffset = m_DeviceOffset;
 			copy.srcOffset = m_StagingOffset;
@@ -257,8 +257,7 @@ VkAlloc VkMemory::AllocateImageCube(vk::Image img, gli::texture_cube* texture, v
 				}
 			}
 			m_ImageTransfers.push_back(transfer);
-		}
-		else {
+		} else {
 			vk::BufferCopy copy;
 			copy.dstOffset = m_DeviceOffset;
 			copy.srcOffset = m_StagingOffset;
@@ -314,12 +313,12 @@ VkAlloc VkMemory::AllocateImageCube(vk::Image img, const TextureInfo& texInfo) {
 					copy.imageSubresource.mipLevel = i;
 					transfer.copies.push_back(copy);
 					m_StagingOffset += w * h * texInfo.BPP;
-					w >>= 1; h >>= 1;
+					w >>= 1;
+					h >>= 1;
 				}
 			}
 			m_ImageTransfers.push_back(transfer);
-		}
-		else {
+		} else {
 			vk::BufferCopy copy;
 			copy.dstOffset = m_DeviceOffset;
 			copy.srcOffset = m_StagingOffset;

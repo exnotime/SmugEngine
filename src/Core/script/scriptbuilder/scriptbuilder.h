@@ -49,9 +49,8 @@ typedef int (*INCLUDECALLBACK_t)(const char *include, const char *from, CScriptB
 
 // Helper class for loading and pre-processing script files to
 // support include directives and metadata declarations
-class CScriptBuilder
-{
-public:
+class CScriptBuilder {
+  public:
 	CScriptBuilder();
 
 	// Start a new module
@@ -68,9 +67,9 @@ public:
 	//          0 if a section with the same name had already been included before
 	//         <0 on error
 	int AddSectionFromMemory(const char *sectionName,
-							 const char *scriptCode,
-							 unsigned int scriptLength = 0,
-							 int lineOffset = 0);
+	                         const char *scriptCode,
+	                         unsigned int scriptLength = 0,
+	                         int lineOffset = 0);
 
 	// Build the added script sections
 	int BuildModule();
@@ -105,7 +104,7 @@ public:
 	const char *GetMetadataStringForTypeMethod(int typeId, asIScriptFunction *method);
 #endif
 
-protected:
+  protected:
 	void ClearAll();
 	int  Build();
 	int  ProcessScriptSection(const char *script, unsigned int length, const char *sectionname, int lineOffset);
@@ -129,8 +128,7 @@ protected:
 	int  ExtractDeclaration(int pos, std::string &outDeclaration, int &outType);
 
 	// Temporary structure for storing metadata and declaration
-	struct SMetadataDecl
-	{
+	struct SMetadataDecl {
 		SMetadataDecl(std::string m, std::string d, int t, std::string c, std::string ns) : metadata(m), declaration(d), type(t), parentClass(c), nameSpace(ns) {}
 		std::string metadata;
 		std::string declaration;
@@ -148,8 +146,7 @@ protected:
 	std::map<int, std::string> varMetadataMap;
 
 	// Storage of metadata for class member declarations
-	struct SClassMetadata
-	{
+	struct SClassMetadata {
 		SClassMetadata(const std::string& aName) : className(aName) {}
 		std::string className;
 		std::map<int, std::string> funcMetadataMap;
@@ -172,10 +169,8 @@ protected:
 	// TODO: Strings by default are treated as UTF8 encoded. If the application choses to
 	//       use a different encoding, the comparison algorithm should be adjusted as well
 
-	struct ci_less
-	{
-		bool operator()(const std::string &a, const std::string &b) const
-		{
+	struct ci_less {
+		bool operator()(const std::string &a, const std::string &b) const {
 			return _strcmpi(a.c_str(), b.c_str()) < 0;
 		}
 	};

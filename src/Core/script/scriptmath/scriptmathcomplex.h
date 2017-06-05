@@ -1,7 +1,7 @@
 #ifndef SCRIPTMATHCOMPLEX_H
 #define SCRIPTMATHCOMPLEX_H
 
-#ifndef ANGELSCRIPT_H 
+#ifndef ANGELSCRIPT_H
 // Avoid having to inform include path if header is already include before
 #include <angelscript.h>
 #endif
@@ -9,20 +9,19 @@
 
 BEGIN_AS_NAMESPACE
 
-// This class implements complex numbers and the common 
+// This class implements complex numbers and the common
 // operations that can be done with it.
 //
 // Ref: http://mathworld.wolfram.com/ComplexNumber.html
 
-struct Complex
-{
+struct Complex {
 	Complex();
 	Complex(const Complex &other);
 	Complex(float r, float i = 0);
 
 	// Assignment operator
 	Complex &operator=(const Complex &other);
-	
+
 	// Compound assigment operators
 	Complex &operator+=(const Complex &other);
 	Complex &operator-=(const Complex &other);
@@ -41,7 +40,7 @@ struct Complex
 	// Comparison
 	bool operator==(const Complex &other) const;
 	bool operator!=(const Complex &other) const;
-	
+
 	// Math operators
 	Complex operator+(const Complex &other) const;
 	Complex operator-(const Complex &other) const;

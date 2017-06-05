@@ -33,7 +33,7 @@ struct PerFrameBuffer {
 };
 
 class GFX_DLL GraphicsEngine {
-public:
+  public:
 	GraphicsEngine();
 	~GraphicsEngine();
 	void Init(glm::vec2 windowSize, bool vsync, HWND hWnd);
@@ -42,7 +42,7 @@ public:
 	void Swap();
 	RenderQueue* GetRenderQueue();
 
-private:
+  private:
 	void CreateContext();
 	void CreateSwapChain(VkSurfaceKHR surface);
 
@@ -87,9 +87,10 @@ private:
 	ResourceHandler m_Resources;
 
 #ifdef USE_IMGUI
-public:
+  public:
 	ImGui_ImplGlfwVulkan_Init_Data GetImguiInit();
 	void CreateImguiFont(ImGuiContext* imguiCtx);
+  private:
 	vk::Semaphore m_ImguiComplete;
 	vk::RenderPass m_ImguiRenderPass;
 	ImGuiContext* m_ImguiCtx;

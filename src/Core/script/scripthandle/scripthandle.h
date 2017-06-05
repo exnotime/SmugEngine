@@ -1,7 +1,7 @@
 #ifndef SCRIPTHANDLE_H
 #define SCRIPTHANDLE_H
 
-#ifndef ANGELSCRIPT_H 
+#ifndef ANGELSCRIPT_H
 // Avoid having to inform include path if header is already include before
 #include <angelscript.h>
 #endif
@@ -9,9 +9,8 @@
 
 BEGIN_AS_NAMESPACE
 
-class CScriptHandle 
-{
-public:
+class CScriptHandle {
+  public:
 	// Constructors
 	CScriptHandle();
 	CScriptHandle(const CScriptHandle &other);
@@ -39,7 +38,7 @@ public:
 	// Get the reference
 	void *GetRef();
 
-protected:
+  protected:
 	// These functions need to have access to protected
 	// members in order to call them from the script engine
 	friend void Construct(CScriptHandle *self, void *ref, int typeId);
@@ -49,7 +48,7 @@ protected:
 	void ReleaseHandle();
 	void AddRefHandle();
 
-	// These shouldn't be called directly by the 
+	// These shouldn't be called directly by the
 	// application as they requires an active context
 	CScriptHandle(void *ref, int typeId);
 	CScriptHandle &Assign(void *ref, int typeId);

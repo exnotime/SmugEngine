@@ -4,7 +4,7 @@
 #include <map>
 #define g_ComponentManager ComponentManager::GetInstance()
 class ComponentManager {
-public:
+  public:
 	~ComponentManager();
 	static ComponentManager& GetInstance();
 	void AddComponentType(uint maxCount, size_t size, uint componentID, const char* name = "");
@@ -13,7 +13,7 @@ public:
 	void RemoveComponents(Entity& ent);
 	int GetBuffer(void** outBuffer, uint type);
 	void* GetComponent(const Entity& ent, uint type);
-private:
+  private:
 	ComponentManager();
 	void CreateComponentBuffer(uint count, uint componentSize, uint id, std::string name);
 

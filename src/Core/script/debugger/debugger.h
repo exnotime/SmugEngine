@@ -1,7 +1,7 @@
 #ifndef DEBUGGER_H
 #define DEBUGGER_H
 
-#ifndef ANGELSCRIPT_H 
+#ifndef ANGELSCRIPT_H
 // Avoid having to inform include path if header is already include before
 #include <angelscript.h>
 #endif
@@ -12,9 +12,8 @@
 
 BEGIN_AS_NAMESPACE
 
-class CDebugger
-{
-public:
+class CDebugger {
+  public:
 	CDebugger();
 	virtual ~CDebugger();
 
@@ -53,10 +52,9 @@ public:
 	// by callbacks that need it. This will hold a reference to the engine.
 	virtual void SetEngine(asIScriptEngine *engine);
 	virtual asIScriptEngine *GetEngine();
-	
-protected:
-	enum DebugAction
-	{
+
+  protected:
+	enum DebugAction {
 		CONTINUE,  // continue until next break point
 		STEP_INTO, // stop at next instruction
 		STEP_OVER, // stop at next instruction, skipping called functions
@@ -66,8 +64,7 @@ protected:
 	asUINT             m_lastCommandAtStackLevel;
 	asIScriptFunction *m_lastFunction;
 
-	struct BreakPoint
-	{
+	struct BreakPoint {
 		BreakPoint(std::string f, int n, bool _func) : name(f), lineNbr(n), func(_func), needsAdjusting(true) {}
 		std::string name;
 		int         lineNbr;

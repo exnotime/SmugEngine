@@ -16,20 +16,16 @@ BEGIN_AS_NAMESPACE
 
 ///////////////////////////////////////////////////////////////////////////////////
 
-CSerializer::CSerializer()
-{
+CSerializer::CSerializer() {
 	m_engine = 0;
 }
 
-CSerializer::~CSerializer()
-{
-	// Extra objects need to be released, since they are not stored in 
+CSerializer::~CSerializer() {
+	// Extra objects need to be released, since they are not stored in
 	// the module and we cannot rely on the application releasing them
-	for( size_t i = 0; i < m_extraObjects.size(); i++ )
-	{
+	for( size_t i = 0; i < m_extraObjects.size(); i++ ) {
 		SExtraObject &o = m_extraObjects[i];
-		for( size_t i2 = 0; i2 < m_root.m_children.size(); i2++ )
-		{
+		for( size_t i2 = 0; i2 < m_root.m_children.size(); i2++ ) {
 			if( m_root.m_children[i2]->m_originalPtr == o.originalObject && m_root.m_children[i2]->m_restorePtr )
 				reinterpret_cast<asIScriptObject*>(m_root.m_children[i2]->m_restorePtr)->Release();
 		}
@@ -47,13 +43,11 @@ CSerializer::~CSerializer()
 		m_engine->Release();
 }
 
-void CSerializer::AddUserType(CUserType *ref, const std::string &name)
-{
+void CSerializer::AddUserType(CUserType *ref, const std::string &name) {
 	m_userTypes[name] = ref;
 }
 
-int CSerializer::Store(asIScriptModule *mod)
-{
+int CSerializer::Store(asIScriptModule *mod) {
 	m_mod = mod;
 
 	// The engine must not be destroyed before we're completed, so we'll hold on to a reference
@@ -65,8 +59,7 @@ int CSerializer::Store(asIScriptModule *mod)
 
 	// First store global variables
 	asUINT i;
-	for( i = 0; i < mod->GetGlobalVarCount(); i++ )
-	{
+	for( i = 0; i < mod->GetGlobalVarCount(); i++ ) {
 		const char *name, *nameSpace;
 		int typeId;
 		mod->GetGlobalVar(i, &name, &nameSpace, &typeId);
@@ -86,8 +79,7 @@ int CSerializer::Store(asIScriptModule *mod)
 }
 
 // Retrieve all global variables after reload script.
-int CSerializer::Restore(asIScriptModule *mod)
-{
+int CSerializer::Restore(asIScriptModule *mod) {
 	m_mod = mod;
 
 	// The engine must not be destroyed before we're completed, so we'll hold on to a reference
@@ -97,21 +89,17 @@ int CSerializer::Restore(asIScriptModule *mod)
 
 	// First restore extra objects, i.e. the ones that are not directly seen from the module's global variables
 	asUINT i;
-	for( i = 0; i < m_extraObjects.size(); i++ )
-	{
+	for( i = 0; i < m_extraObjects.size(); i++ ) {
 		SExtraObject &o = m_extraObjects[i];
 		asITypeInfo *type = m_mod->GetTypeInfoByName( o.originalClassName.c_str() );
-		if( type )
-		{
-			for( size_t i2 = 0; i2 < m_root.m_children.size(); i2++ )
-			{
-				if( m_root.m_children[i2]->m_originalPtr == o.originalObject )
-				{
+		if( type ) {
+			for( size_t i2 = 0; i2 < m_root.m_children.size(); i2++ ) {
+				if( m_root.m_children[i2]->m_originalPtr == o.originalObject ) {
 					// Create a new script object, but don't call its constructor as we will initialize the members.
 					// Calling the constructor may have unwanted side effects if for example the constructor changes
 					// any outside entities, such as setting global variables to point to new objects, etc.
 					void *newPtr = m_engine->CreateUninitializedScriptObject( type );
-					m_root.m_children[i2]->Restore( newPtr, type->GetTypeId() ); 
+					m_root.m_children[i2]->Restore( newPtr, type->GetTypeId() );
 				}
 			}
 		}
@@ -119,8 +107,7 @@ int CSerializer::Restore(asIScriptModule *mod)
 
 	// Second restore the global variables
 	asUINT varCount = mod->GetGlobalVarCount();
-	for( i = 0; i < varCount; i++ )
-	{
+	for( i = 0; i < varCount; i++ ) {
 		const char *name, *nameSpace;
 		int typeId;
 		mod->GetGlobalVar(i, &name, &nameSpace, &typeId);
@@ -130,20 +117,18 @@ int CSerializer::Restore(asIScriptModule *mod)
 			v->Restore(mod->GetAddressOfGlobalVar(i), typeId);
 	}
 
-	// The handles that were restored needs to be 
+	// The handles that were restored needs to be
 	// updated to point to their final objects.
 	m_root.RestoreHandles();
 
 	return 0;
 }
 
-void *CSerializer::GetPointerToRestoredObject(void *ptr)
-{
+void *CSerializer::GetPointerToRestoredObject(void *ptr) {
 	return m_root.GetPointerToRestoredObject( ptr );
 }
 
-void CSerializer::AddExtraObjectToStore( asIScriptObject *object )
-{
+void CSerializer::AddExtraObjectToStore( asIScriptObject *object ) {
 	if( !object )
 		return;
 
@@ -163,13 +148,11 @@ void CSerializer::AddExtraObjectToStore( asIScriptObject *object )
 
 ///////////////////////////////////////////////////////////////////////////////////
 
-CSerializedValue::CSerializedValue()
-{
+CSerializedValue::CSerializedValue() {
 	Init();
 }
 
-CSerializedValue::CSerializedValue(CSerializedValue *parent, const std::string &name, const std::string &nameSpace, void *ref, int typeId) 
-{
+CSerializedValue::CSerializedValue(CSerializedValue *parent, const std::string &name, const std::string &nameSpace, void *ref, int typeId) {
 	Init();
 
 	m_name       = name;
@@ -178,8 +161,7 @@ CSerializedValue::CSerializedValue(CSerializedValue *parent, const std::string &
 	Store(ref, typeId);
 }
 
-void CSerializedValue::Init()
-{
+void CSerializedValue::Init() {
 	m_handlePtr   = 0;
 	m_restorePtr  = 0;
 	m_typeId      = 0;
@@ -189,14 +171,12 @@ void CSerializedValue::Init()
 	m_originalPtr = 0;
 }
 
-void CSerializedValue::Uninit()
-{
+void CSerializedValue::Uninit() {
 	m_isInit = false;
 
 	ClearChildren();
 
-	if( m_userData )
-	{
+	if( m_userData ) {
 		CUserType *type = m_serializer->m_userTypes[m_typeName];
 		if( type )
 			type->CleanupUserData(this);
@@ -204,12 +184,10 @@ void CSerializedValue::Uninit()
 	}
 }
 
-void CSerializedValue::ClearChildren()
-{
+void CSerializedValue::ClearChildren() {
 	// If this value is for an object handle that created an object during the restore
 	// then it is necessary to release the handle here, so we won't get a memory leak
-	if( (m_typeId & asTYPEID_OBJHANDLE) && m_children.size() == 1 && m_children[0]->m_restorePtr )
-	{
+	if( (m_typeId & asTYPEID_OBJHANDLE) && m_children.size() == 1 && m_children[0]->m_restorePtr ) {
 		m_serializer->m_engine->ReleaseScriptObject(m_children[0]->m_restorePtr, m_serializer->m_engine->GetTypeInfoById(m_children[0]->m_typeId));
 	}
 
@@ -218,36 +196,31 @@ void CSerializedValue::ClearChildren()
 	m_children.clear();
 }
 
-CSerializedValue::~CSerializedValue()
-{
+CSerializedValue::~CSerializedValue() {
 	Uninit();
 }
 
-CSerializedValue *CSerializedValue::FindByName(const std::string &name, const std::string &nameSpace)
-{
+CSerializedValue *CSerializedValue::FindByName(const std::string &name, const std::string &nameSpace) {
 	for( size_t i = 0; i < m_children.size(); i++ )
 		if( m_children[i]->m_name      == name &&
-			m_children[i]->m_nameSpace == nameSpace )
+		        m_children[i]->m_nameSpace == nameSpace )
 			return m_children[i];
 
 	return 0;
 }
 
-void  CSerializedValue::GetAllPointersOfChildren(std::vector<void*> *ptrs)
-{
+void  CSerializedValue::GetAllPointersOfChildren(std::vector<void*> *ptrs) {
 	ptrs->push_back(m_originalPtr);
 
 	for( size_t i = 0; i < m_children.size(); ++i )
 		m_children[i]->GetAllPointersOfChildren(ptrs);
 }
 
-CSerializedValue *CSerializedValue::FindByPtr(void *ptr)
-{
+CSerializedValue *CSerializedValue::FindByPtr(void *ptr) {
 	if( m_originalPtr == ptr )
 		return this;
 
-	for( size_t i = 0; i < m_children.size(); i++ )
-	{
+	for( size_t i = 0; i < m_children.size(); i++ ) {
 		CSerializedValue *find = m_children[i]->FindByPtr(ptr);
 		if( find )
 			return find;
@@ -256,13 +229,11 @@ CSerializedValue *CSerializedValue::FindByPtr(void *ptr)
 	return 0;
 }
 
-void *CSerializedValue::GetPointerToRestoredObject(void *ptr)
-{
+void *CSerializedValue::GetPointerToRestoredObject(void *ptr) {
 	if( m_originalPtr == ptr )
 		return m_restorePtr;
 
-	for( size_t i = 0; i < m_children.size(); ++i )
-	{
+	for( size_t i = 0; i < m_children.size(); ++i ) {
 		void *ret = m_children[i]->GetPointerToRestoredObject(ptr);
 		if( ret )
 			return ret;
@@ -272,19 +243,15 @@ void *CSerializedValue::GetPointerToRestoredObject(void *ptr)
 }
 
 // find variable by ptr but looking only at those in the references, which will create a new object
-CSerializedValue *CSerializedValue::FindByPtrInHandles(void *ptr)
-{
+CSerializedValue *CSerializedValue::FindByPtrInHandles(void *ptr) {
 	// if this handle created object
-	if( (m_typeId & asTYPEID_OBJHANDLE) && m_children.size() == 1 )
-	{
+	if( (m_typeId & asTYPEID_OBJHANDLE) && m_children.size() == 1 ) {
 		if( m_children[0]->m_originalPtr == ptr )
 			return this;
 	}
 
-	if( !(m_typeId & asTYPEID_OBJHANDLE) )
-	{
-		for( size_t i = 0; i < m_children.size(); i++ )
-		{
+	if( !(m_typeId & asTYPEID_OBJHANDLE) ) {
+		for( size_t i = 0; i < m_children.size(); i++ ) {
 			CSerializedValue *find = m_children[i]->FindByPtrInHandles(ptr);
 			if( find )
 				return find;
@@ -294,43 +261,34 @@ CSerializedValue *CSerializedValue::FindByPtrInHandles(void *ptr)
 	return 0;
 }
 
-void CSerializedValue::Store(void *ref, int typeId)
-{
+void CSerializedValue::Store(void *ref, int typeId) {
 	m_isInit = true;
 	SetType(typeId);
 	m_originalPtr = ref;
 
-	if( m_typeId & asTYPEID_OBJHANDLE )
-	{
+	if( m_typeId & asTYPEID_OBJHANDLE ) {
 		m_handlePtr = *(void**)ref;
-	}
-	else if( m_typeId & asTYPEID_SCRIPTOBJECT )
-	{
+	} else if( m_typeId & asTYPEID_SCRIPTOBJECT ) {
 		asIScriptObject *obj = (asIScriptObject *)ref;
 		asITypeInfo *type = obj->GetObjectType();
 		SetType(type->GetTypeId());
 
-		// Store children 
-		for( asUINT i = 0; i < type->GetPropertyCount(); i++ )
-		{	
+		// Store children
+		for( asUINT i = 0; i < type->GetPropertyCount(); i++ ) {
 			int childId;
 			const char *childName;
 			type->GetProperty(i, &childName, &childId);
 
 			m_children.push_back(new CSerializedValue(this, childName, "", obj->GetAddressOfProperty(i), childId));
-		}	
-	}
-	else
-	{
+		}
+	} else {
 		int size = m_serializer->m_engine->GetSizeOfPrimitiveType(m_typeId);
-		
-		if( size == 0 )
-		{
+
+		if( size == 0 ) {
 			// if it is user type( string, array, etc ... )
 			if( m_serializer->m_userTypes[m_typeName] )
 				m_serializer->m_userTypes[m_typeName]->Store(this, m_originalPtr);
-			else
-			{
+			else {
 				// POD-types can be stored without need for user type
 				asITypeInfo *type = GetType();
 				if( type && (type->GetFlags() & asOBJ_POD) )
@@ -340,16 +298,14 @@ void CSerializedValue::Store(void *ref, int typeId)
 			}
 		}
 
-		if( size )
-		{
+		if( size ) {
 			m_mem.resize(size);
 			memcpy(&m_mem[0], ref, size);
 		}
 	}
 }
 
-void CSerializedValue::Restore(void *ref, int typeId)
-{
+void CSerializedValue::Restore(void *ref, int typeId) {
 	if( !this || !m_isInit || !ref )
 		return;
 
@@ -364,61 +320,46 @@ void CSerializedValue::Restore(void *ref, int typeId)
 	SetType(typeId);
 
 	// Restore the value
-	if( m_typeId & asTYPEID_OBJHANDLE )
-	{
+	if( m_typeId & asTYPEID_OBJHANDLE ) {
 		// if need create objects
-		if( m_children.size() == 1 )
-		{
+		if( m_children.size() == 1 ) {
 			asITypeInfo *ctype = m_children[0]->GetType();
 
-			if( ctype->GetFactoryCount() == 0 )
-			{
+			if( ctype->GetFactoryCount() == 0 ) {
 				// There are no factories, so assume the same pointer is going to be used
 				m_children[0]->m_restorePtr = m_handlePtr;
 
 				// Increase the refCount for the object as it will be released upon clean-up
 				m_serializer->m_engine->AddRefScriptObject(m_handlePtr, ctype);
-			}
-			else
-			{
-				// Create a new script object, but don't call its constructor as we will initialize the members. 
+			} else {
+				// Create a new script object, but don't call its constructor as we will initialize the members.
 				// Calling the constructor may have unwanted side effects if for example the constructor changes
 				// any outside entities, such as setting global variables to point to new objects, etc.
 				void *newObject = m_serializer->m_engine->CreateUninitializedScriptObject(ctype);
 				m_children[0]->Restore(newObject, ctype->GetTypeId());
 			}
 		}
-	}
-	else if( m_typeId & asTYPEID_SCRIPTOBJECT )
-	{
+	} else if( m_typeId & asTYPEID_SCRIPTOBJECT ) {
 		asIScriptObject *obj = (asIScriptObject *)ref;
 
 		// Retrieve children
-		for( asUINT i = 0; i < type->GetPropertyCount() ; i++ )
-		{	
+		for( asUINT i = 0; i < type->GetPropertyCount() ; i++ ) {
 			const char *nameProperty;
 			int ptypeId;
 			type->GetProperty(i, &nameProperty, &ptypeId);
-			
+
 			CSerializedValue *var = FindByName(nameProperty, "");
 			if( var )
 				var->Restore(obj->GetAddressOfProperty(i), ptypeId);
 		}
-	}
-	else
-	{
-		if( m_mem.size() )
-		{
+	} else {
+		if( m_mem.size() ) {
 			// POD values can be restored with direct copy
 			memcpy(ref, &m_mem[0], m_mem.size());
-		}
-		else if( m_serializer->m_userTypes[m_typeName] )
-		{
+		} else if( m_serializer->m_userTypes[m_typeName] ) {
 			// user type restore
 			m_serializer->m_userTypes[m_typeName]->Restore(this, m_restorePtr);
-		}
-		else
-		{
+		} else {
 			std::string str = "Cannot restore type '";
 			str += type->GetName();
 			str += "'";
@@ -427,17 +368,14 @@ void CSerializedValue::Restore(void *ref, int typeId)
 	}
 }
 
-void CSerializedValue::CancelDuplicates(CSerializedValue *from)
-{
+void CSerializedValue::CancelDuplicates(CSerializedValue *from) {
 	std::vector<void*> ptrs;
 	from->GetAllPointersOfChildren(&ptrs);
 
-	for( size_t i = 0; i < ptrs.size(); ++i )
-	{
+	for( size_t i = 0; i < ptrs.size(); ++i ) {
 		CSerializedValue *find = m_serializer->m_root.FindByPtrInHandles(ptrs[i]);
 
-		while( find )
-		{
+		while( find ) {
 			// cancel create object
 			find->ClearChildren();
 
@@ -447,22 +385,19 @@ void CSerializedValue::CancelDuplicates(CSerializedValue *from)
 	}
 }
 
-void CSerializedValue::ReplaceHandles()
-{
-	if( m_handlePtr )
-	{
+void CSerializedValue::ReplaceHandles() {
+	if( m_handlePtr ) {
 		// Find the object that the handle is referring to
 		CSerializedValue *handle_to = m_serializer->m_root.FindByPtr(m_handlePtr);
-		
+
 		// If the object hasn't been stored yet...
-		if( handle_to == 0 )
-		{
+		if( handle_to == 0 ) {
 			// Store the object now
 			asITypeInfo *type = GetType();
-			CSerializedValue *need_create = new CSerializedValue(this, m_name, m_nameSpace, m_handlePtr, type->GetTypeId()); 
+			CSerializedValue *need_create = new CSerializedValue(this, m_name, m_nameSpace, m_handlePtr, type->GetTypeId());
 
-			// Make sure all other handles that point to the same object 
-			// are updated, so we don't end up creating duplicates 
+			// Make sure all other handles that point to the same object
+			// are updated, so we don't end up creating duplicates
 			CancelDuplicates(need_create);
 
 			m_children.push_back(need_create);
@@ -474,17 +409,13 @@ void CSerializedValue::ReplaceHandles()
 		m_children[i]->ReplaceHandles();
 }
 
-void CSerializedValue::RestoreHandles()
-{
-	if( m_typeId & asTYPEID_OBJHANDLE )
-	{
-		if( m_handlePtr )
-		{
+void CSerializedValue::RestoreHandles() {
+	if( m_typeId & asTYPEID_OBJHANDLE ) {
+		if( m_handlePtr ) {
 			// Find the object the handle is supposed to point to
 			CSerializedValue *handleTo = m_serializer->m_root.FindByPtr(m_handlePtr);
 
-			if( m_restorePtr && handleTo && handleTo->m_restorePtr )
-			{
+			if( m_restorePtr && handleTo && handleTo->m_restorePtr ) {
 				asITypeInfo *type = m_serializer->m_engine->GetTypeInfoById(m_typeId);
 
 				// If the handle is already pointing to something it must be released first
@@ -497,12 +428,9 @@ void CSerializedValue::RestoreHandles()
 				// Increase the reference
 				m_serializer->m_engine->AddRefScriptObject(handleTo->m_restorePtr, type);
 			}
-		}
-		else
-		{
+		} else {
 			// If the handle is pointing to something, we must release it to restore the null pointer
-			if( m_restorePtr && *(void**)m_restorePtr )
-			{
+			if( m_restorePtr && *(void**)m_restorePtr ) {
 				m_serializer->m_engine->ReleaseScriptObject(*(void**)m_restorePtr, m_serializer->m_engine->GetTypeInfoById(m_typeId));
 				*(void**)m_restorePtr = 0;
 			}
@@ -514,8 +442,7 @@ void CSerializedValue::RestoreHandles()
 		m_children[i]->RestoreHandles();
 }
 
-void CSerializedValue::SetType(int typeId)
-{
+void CSerializedValue::SetType(int typeId) {
 	m_typeId = typeId;
 
 	asITypeInfo *type = m_serializer->m_engine->GetTypeInfoById(typeId);
@@ -524,24 +451,20 @@ void CSerializedValue::SetType(int typeId)
 		m_typeName = type->GetName();
 }
 
-asITypeInfo *CSerializedValue::GetType()
-{
-	if( !m_typeName.empty() )
-	{
+asITypeInfo *CSerializedValue::GetType() {
+	if( !m_typeName.empty() ) {
 		int newTypeId = m_serializer->m_mod->GetTypeIdByDecl(m_typeName.c_str());
 		return m_serializer->m_engine->GetTypeInfoById(newTypeId);
-	}	
+	}
 
 	return 0;
 }
 
-void CSerializedValue::SetUserData(void *data)
-{
+void CSerializedValue::SetUserData(void *data) {
 	m_userData = data;
 }
 
-void *CSerializedValue::GetUserData()
-{
+void *CSerializedValue::GetUserData() {
 	return m_userData;
 }
 

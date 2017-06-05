@@ -14,37 +14,42 @@ using namespace std;
 
 BEGIN_AS_NAMESPACE
 
-CScriptFileSystem *ScriptFileSystem_Factory()
-{
+CScriptFileSystem *ScriptFileSystem_Factory() {
 	return new CScriptFileSystem();
 }
 
-void RegisterScriptFileSystem_Native(asIScriptEngine *engine)
-{
+void RegisterScriptFileSystem_Native(asIScriptEngine *engine) {
 	int r;
 
-	r = engine->RegisterObjectType("filesystem", 0, asOBJ_REF); assert( r >= 0 );
-	r = engine->RegisterObjectBehaviour("filesystem", asBEHAVE_FACTORY, "filesystem @f()", asFUNCTION(ScriptFileSystem_Factory), asCALL_CDECL); assert( r >= 0 );
-	r = engine->RegisterObjectBehaviour("filesystem", asBEHAVE_ADDREF, "void f()", asMETHOD(CScriptFileSystem,AddRef), asCALL_THISCALL); assert( r >= 0 );
-	r = engine->RegisterObjectBehaviour("filesystem", asBEHAVE_RELEASE, "void f()", asMETHOD(CScriptFileSystem,Release), asCALL_THISCALL); assert( r >= 0 );
-	
-	r = engine->RegisterObjectMethod("filesystem", "bool changeCurrentPath(const string &in)", asMETHOD(CScriptFileSystem, ChangeCurrentPath), asCALL_THISCALL); assert( r >= 0 );
-	r = engine->RegisterObjectMethod("filesystem", "string getCurrentPath() const", asMETHOD(CScriptFileSystem, GetCurrentPath), asCALL_THISCALL); assert( r >= 0 );
-	r = engine->RegisterObjectMethod("filesystem", "array<string> @getDirs()", asMETHOD(CScriptFileSystem, GetDirs), asCALL_THISCALL); assert( r >= 0 );
-	r = engine->RegisterObjectMethod("filesystem", "array<string> @getFiles()", asMETHOD(CScriptFileSystem, GetFiles), asCALL_THISCALL); assert( r >= 0 );
-	r = engine->RegisterObjectMethod("filesystem", "bool isDir(const string &in)", asMETHOD(CScriptFileSystem, IsDir), asCALL_THISCALL); assert( r >= 0 );
+	r = engine->RegisterObjectType("filesystem", 0, asOBJ_REF);
+	assert( r >= 0 );
+	r = engine->RegisterObjectBehaviour("filesystem", asBEHAVE_FACTORY, "filesystem @f()", asFUNCTION(ScriptFileSystem_Factory), asCALL_CDECL);
+	assert( r >= 0 );
+	r = engine->RegisterObjectBehaviour("filesystem", asBEHAVE_ADDREF, "void f()", asMETHOD(CScriptFileSystem,AddRef), asCALL_THISCALL);
+	assert( r >= 0 );
+	r = engine->RegisterObjectBehaviour("filesystem", asBEHAVE_RELEASE, "void f()", asMETHOD(CScriptFileSystem,Release), asCALL_THISCALL);
+	assert( r >= 0 );
+
+	r = engine->RegisterObjectMethod("filesystem", "bool changeCurrentPath(const string &in)", asMETHOD(CScriptFileSystem, ChangeCurrentPath), asCALL_THISCALL);
+	assert( r >= 0 );
+	r = engine->RegisterObjectMethod("filesystem", "string getCurrentPath() const", asMETHOD(CScriptFileSystem, GetCurrentPath), asCALL_THISCALL);
+	assert( r >= 0 );
+	r = engine->RegisterObjectMethod("filesystem", "array<string> @getDirs()", asMETHOD(CScriptFileSystem, GetDirs), asCALL_THISCALL);
+	assert( r >= 0 );
+	r = engine->RegisterObjectMethod("filesystem", "array<string> @getFiles()", asMETHOD(CScriptFileSystem, GetFiles), asCALL_THISCALL);
+	assert( r >= 0 );
+	r = engine->RegisterObjectMethod("filesystem", "bool isDir(const string &in)", asMETHOD(CScriptFileSystem, IsDir), asCALL_THISCALL);
+	assert( r >= 0 );
 }
 
-void RegisterScriptFileSystem(asIScriptEngine *engine)
-{
+void RegisterScriptFileSystem(asIScriptEngine *engine) {
 //	if( strstr(asGetLibraryOptions(), "AS_MAX_PORTABILITY") )
 //		RegisterScriptFileSystem_Generic(engine);
 //	else
-		RegisterScriptFileSystem_Native(engine);
+	RegisterScriptFileSystem_Native(engine);
 }
 
-CScriptFileSystem::CScriptFileSystem()
-{
+CScriptFileSystem::CScriptFileSystem() {
 	refCount = 1;
 
 	// Gets the application's current working directory as the starting point
@@ -56,23 +61,19 @@ CScriptFileSystem::CScriptFileSystem()
 #endif
 }
 
-CScriptFileSystem::~CScriptFileSystem()
-{
+CScriptFileSystem::~CScriptFileSystem() {
 }
 
-void CScriptFileSystem::AddRef() const
-{
+void CScriptFileSystem::AddRef() const {
 	asAtomicInc(refCount);
 }
 
-void CScriptFileSystem::Release() const
-{
+void CScriptFileSystem::Release() const {
 	if( asAtomicDec(refCount) == 0 )
 		delete this;
 }
 
-CScriptArray *CScriptFileSystem::GetFiles() const
-{
+CScriptArray *CScriptFileSystem::GetFiles() const {
 	// Obtain a pointer to the engine
 	asIScriptContext *ctx = asGetActiveContext();
 	asIScriptEngine *engine = ctx->GetEngine();
@@ -92,11 +93,10 @@ CScriptArray *CScriptFileSystem::GetFiles() const
 
 	WIN32_FIND_DATAW ffd;
 	HANDLE hFind = FindFirstFileW(bufUTF16, &ffd);
-	if( INVALID_HANDLE_VALUE == hFind ) 
+	if( INVALID_HANDLE_VALUE == hFind )
 		return array;
-	
-	do
-	{
+
+	do {
 		// Skip directories
 		if( (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) )
 			continue;
@@ -104,19 +104,17 @@ CScriptArray *CScriptFileSystem::GetFiles() const
 		// Convert the file name back to UTF8
 		char bufUTF8[10000];
 		WideCharToMultiByte(CP_UTF8, 0, ffd.cFileName, -1, bufUTF8, 10000, 0, 0);
-		
+
 		// Add the file to the array
 		array->Resize(array->GetSize()+1);
 		((string*)(array->At(array->GetSize()-1)))->assign(bufUTF8);
-	}
-	while( FindNextFileW(hFind, &ffd) != 0 );
+	} while( FindNextFileW(hFind, &ffd) != 0 );
 
 	FindClose(hFind);
 #else
 	dirent *ent = 0;
 	DIR *dir = opendir(currentPath.c_str());
-	while( (ent = readdir(dir)) != NULL ) 
-	{
+	while( (ent = readdir(dir)) != NULL ) {
 		const string filename = ent->d_name;
 
 		// Skip . and ..
@@ -141,8 +139,7 @@ CScriptArray *CScriptFileSystem::GetFiles() const
 	return array;
 }
 
-CScriptArray *CScriptFileSystem::GetDirs() const
-{
+CScriptArray *CScriptFileSystem::GetDirs() const {
 	// Obtain a pointer to the engine
 	asIScriptContext *ctx = asGetActiveContext();
 	asIScriptEngine *engine = ctx->GetEngine();
@@ -159,14 +156,13 @@ CScriptArray *CScriptFileSystem::GetDirs() const
 	wchar_t bufUTF16[10000];
 	string searchPattern = currentPath + "/*";
 	MultiByteToWideChar(CP_UTF8, 0, searchPattern.c_str(), -1, bufUTF16, 10000);
-	
+
 	WIN32_FIND_DATAW ffd;
 	HANDLE hFind = FindFirstFileW(bufUTF16, &ffd);
-	if( INVALID_HANDLE_VALUE == hFind ) 
+	if( INVALID_HANDLE_VALUE == hFind )
 		return array;
-	
-	do
-	{
+
+	do {
 		// Skip files
 		if( !(ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) )
 			continue;
@@ -177,19 +173,17 @@ CScriptArray *CScriptFileSystem::GetDirs() const
 
 		if( strcmp(bufUTF8, ".") == 0 || strcmp(bufUTF8, "..") == 0 )
 			continue;
-		
+
 		// Add the dir to the array
 		array->Resize(array->GetSize()+1);
 		((string*)(array->At(array->GetSize()-1)))->assign(bufUTF8);
-	}
-	while( FindNextFileW(hFind, &ffd) != 0 );
+	} while( FindNextFileW(hFind, &ffd) != 0 );
 
 	FindClose(hFind);
 #else
 	dirent *ent = 0;
 	DIR *dir = opendir(currentPath.c_str());
-	while( (ent = readdir(dir)) != NULL ) 
-	{
+	while( (ent = readdir(dir)) != NULL ) {
 		const string filename = ent->d_name;
 
 		// Skip . and ..
@@ -214,8 +208,7 @@ CScriptArray *CScriptFileSystem::GetDirs() const
 	return array;
 }
 
-bool CScriptFileSystem::ChangeCurrentPath(const string &path)
-{
+bool CScriptFileSystem::ChangeCurrentPath(const string &path) {
 	if( path.find(":") != string::npos || path.find("/") == 0 || path.find("\\") == 0 )
 		currentPath = path;
 	else
@@ -228,8 +221,7 @@ bool CScriptFileSystem::ChangeCurrentPath(const string &path)
 	return IsDir(currentPath);
 }
 
-bool CScriptFileSystem::IsDir(const string &path) const
-{
+bool CScriptFileSystem::IsDir(const string &path) const {
 	string search;
 	if( path.find(":") != string::npos || path.find("/") == 0 || path.find("\\") == 0 )
 		search = path;
@@ -244,7 +236,7 @@ bool CScriptFileSystem::IsDir(const string &path) const
 	// Check if the path exists and is a directory
 	DWORD attrib = GetFileAttributesW(bufUTF16);
 	if( attrib == INVALID_FILE_ATTRIBUTES ||
-		!(attrib & FILE_ATTRIBUTE_DIRECTORY) )
+	        !(attrib & FILE_ATTRIBUTE_DIRECTORY) )
 		return false;
 #else
 	// Check if the path exists and is a directory
@@ -258,8 +250,7 @@ bool CScriptFileSystem::IsDir(const string &path) const
 	return true;
 }
 
-string CScriptFileSystem::GetCurrentPath() const
-{
+string CScriptFileSystem::GetCurrentPath() const {
 	return currentPath;
 }
 

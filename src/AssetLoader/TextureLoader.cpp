@@ -1,7 +1,7 @@
 #include "TextureLoader.h"
 #include <gli/gli.hpp>
-TextureLoader::TextureLoader(){}
-TextureLoader::~TextureLoader(){}
+TextureLoader::TextureLoader() {}
+TextureLoader::~TextureLoader() {}
 
 char* TextureLoader::LoadTexture(const std::string& filename, TextureInfo& info) {
 	gli::texture texture(gli::load(filename));

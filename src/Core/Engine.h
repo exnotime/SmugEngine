@@ -4,12 +4,12 @@ class SubSystemSet;
 class Timer;
 
 class Engine {
-public:
+  public:
 	Engine();
 	~Engine();
 	void Init();
 	void Run();
-private:
+  private:
 	Window* m_Window;
 	SubSystemSet* m_MainSubSystemSet;
 	Timer* m_GlobalTimer;

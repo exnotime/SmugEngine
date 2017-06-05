@@ -26,7 +26,7 @@ class Window {
 	void MakeCurrent( );
 
   private:
-	  GLFWwindow* m_Window = nullptr;
+	GLFWwindow* m_Window = nullptr;
 	void* m_GLContext;
 	WindowSettings m_WindowSettings;
 	bool m_Initialized = false;

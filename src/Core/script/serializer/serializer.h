@@ -8,7 +8,7 @@
 #ifndef SERIALIZER_H
 #define SERIALIZER_H
 
-#ifndef ANGELSCRIPT_H 
+#ifndef ANGELSCRIPT_H
 // Avoid having to inform include path if header is already include before
 #include <angelscript.h>
 #endif
@@ -25,8 +25,7 @@ class CSerializedValue;
 // Need for register user types objects
 // string, any, array... for all object
 // user ref type.
-struct CUserType
-{
+struct CUserType {
 	virtual ~CUserType() {};
 	virtual void Store(CSerializedValue *val, void *ptr) = 0;
 	virtual void Restore(CSerializedValue *val, void *ptr) = 0;
@@ -34,9 +33,8 @@ struct CUserType
 };
 
 
-class CSerializedValue
-{
-public:
+class CSerializedValue {
+  public:
 	CSerializedValue();
 	CSerializedValue(CSerializedValue *parent, const std::string &name, const std::string &nameSpace, void *ref, int typeId);
 	~CSerializedValue();
@@ -63,12 +61,12 @@ public:
 	void *GetUserData();
 	void  SetUserData(void *data);
 
-	// Children, e.g. properties of a script class, or elements 
-	// of an array, or object pointed to by a handle unless it 
+	// Children, e.g. properties of a script class, or elements
+	// of an array, or object pointed to by a handle unless it
 	// is already a variable)
 	std::vector<CSerializedValue*> m_children;
 
-protected:
+  protected:
 	friend class CSerializer;
 
 	void Init();
@@ -77,17 +75,17 @@ protected:
 	// you first need to save all the objects before you can save references to objects
 	void ReplaceHandles();
 
-	// After the objects has been restored, the handles needs to 
+	// After the objects has been restored, the handles needs to
 	// be updated to point to the right objects
-	void RestoreHandles(); 
+	void RestoreHandles();
 
 	// Recursively get all ptrs of the children
 	void  GetAllPointersOfChildren(std::vector<void*> *ptrs);
 
-	// may be that the two references refer to the same variable. 
-	// But this variable is not available in the global list. 
-	// According to this reference will be restores it. 
-	// And so two links are not created 2 variables, 
+	// may be that the two references refer to the same variable.
+	// But this variable is not available in the global list.
+	// According to this reference will be restores it.
+	// And so two links are not created 2 variables,
 	// it is necessary to cancel the creation of one of them.
 	void CancelDuplicates(CSerializedValue *from);
 
@@ -109,10 +107,10 @@ protected:
 	// The type id of the stored value
 	int m_typeId;
 
-	// For non-primitives the typeId may change if the module is reloaded so 
+	// For non-primitives the typeId may change if the module is reloaded so
 	// it is necessary to store the type name to determine the new type id
 	std::string m_typeName;
-	
+
 	// Name of variable or property
 	std::string m_name;
 	std::string m_nameSpace;
@@ -120,8 +118,8 @@ protected:
 	// Is initialized
 	bool m_isInit;
 
-	// 'this' pointer to variable. 
-	// While storing, this points to the actual variable that was stored. 
+	// 'this' pointer to variable.
+	// While storing, this points to the actual variable that was stored.
 	// While restoring, it is just a unique identifier.
 	void *m_originalPtr;
 
@@ -141,18 +139,17 @@ protected:
 
 
 // This class keeps a list of variables, then restores them after the script is rebuilt.
-// But you have to be careful with the change of signature in classes, or 
-// changing the types of objects. You can remove or add variables, functions, 
-// methods, but you can not (yet) change the type of variables. 
+// But you have to be careful with the change of signature in classes, or
+// changing the types of objects. You can remove or add variables, functions,
+// methods, but you can not (yet) change the type of variables.
 //
-// You also need to understand that after a rebuild you should get  
+// You also need to understand that after a rebuild you should get
 // new functions and typeids from the module.
-class CSerializer
-{
-public:
+class CSerializer {
+  public:
 	CSerializer();
 	~CSerializer();
-	
+
 	// Add implementation for serializing user types
 	void AddUserType(CUserType *ref, const std::string &name);
 
@@ -168,7 +165,7 @@ public:
 	// Return new pointer to restored object
 	void *GetPointerToRestoredObject(void *originalObject);
 
-protected:
+  protected:
 	friend class CSerializedValue;
 
 	CSerializedValue  m_root;
@@ -177,8 +174,7 @@ protected:
 
 	std::map<std::string, CUserType*> m_userTypes;
 
-	struct SExtraObject
-	{
+	struct SExtraObject {
 		asIScriptObject *originalObject;
 		std::string      originalClassName;
 		int              originalTypeId;

@@ -8,7 +8,7 @@
 
 // OBSERVATION: This class is currently not thread safe.
 
-#ifndef ANGELSCRIPT_H 
+#ifndef ANGELSCRIPT_H
 // Avoid having to inform include path if header is already include before
 #include <angelscript.h>
 #endif
@@ -25,9 +25,8 @@ struct SContextInfo;
 // The signature of the get time callback function
 typedef asUINT (*TIMEFUNC_t)();
 
-class CContextMgr
-{
-public:
+class CContextMgr {
+  public:
 	CContextMgr();
 	~CContextMgr();
 
@@ -48,14 +47,14 @@ public:
 	//  void yield()
 	void RegisterCoRoutineSupport(asIScriptEngine *engine);
 
-	// Create a new context, prepare it with the function id, then return 
+	// Create a new context, prepare it with the function id, then return
 	// it so that the application can pass the argument values. The context
 	// will be released by the manager after the execution has completed.
 	// Set keepCtxAfterExecution to true if the application needs to retrieve
-	// information from the context after it the script has finished. 
+	// information from the context after it the script has finished.
 	asIScriptContext *AddContext(asIScriptEngine *engine, asIScriptFunction *func, bool keepCtxAfterExecution = false);
 
-	// If the context was kept after the execution, this method must be 
+	// If the context was kept after the execution, this method must be
 	// called when the application is done with the context so it can be
 	// returned to the pool for reuse.
 	void DoneWithContext(asIScriptContext *ctx);
@@ -65,7 +64,7 @@ public:
 	// will be added as a co-routine in the same thread as the currCtx.
 	asIScriptContext *AddContextForCoRoutine(asIScriptContext *currCtx, asIScriptFunction *func);
 
-	// Execute each script that is not currently sleeping. The function returns after 
+	// Execute each script that is not currently sleeping. The function returns after
 	// each script has been executed once. The application should call this function
 	// for each iteration of the message pump, or game loop, or whatever.
 	// Returns the number of scripts still in execution.
@@ -81,7 +80,7 @@ public:
 	// Abort all scripts
 	void AbortAll();
 
-protected:
+  protected:
 	std::vector<SContextInfo*> m_threads;
 	std::vector<SContextInfo*> m_freeThreads;
 	asUINT                     m_currentThread;

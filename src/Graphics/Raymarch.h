@@ -3,14 +3,14 @@
 #include "VkPipeline.h"
 #include "VkMemory.h"
 class Raymarcher {
-public: 
+  public:
 	Raymarcher();
 	~Raymarcher();
 
 	void Init(const vk::Device& device, const VulkanSwapChain& swapChain, const vk::PhysicalDevice& physDev);
-	void UpdateUniforms(VulkanCommandBuffer& cmdBuffer, const glm::mat4& viewProj, const glm::vec3& position);
+	void UpdateUniforms(VulkanCommandBuffer& cmdBuffer, const glm::mat4& viewProj, const glm::vec3& position, const glm::vec3& LightDir);
 	void Render(VulkanCommandBuffer& cmdBuffer, uint32_t frameIndex, vk::DescriptorSet& ibl, glm::vec2 screenSize);
-private:
+  private:
 	Tephra::VkPipeline m_Pipeline;
 	vk::Image m_TargetImage;
 	vk::DescriptorPool m_DescPool;
@@ -23,5 +23,6 @@ private:
 	struct PerFrame {
 		glm::mat4 invViewProj;
 		glm::vec4 CamPos;
+		glm::vec4 LightDir;
 	};
 };

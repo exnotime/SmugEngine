@@ -20,8 +20,7 @@ BEGIN_AS_NAMESPACE
 //
 // AngelScript signature:
 // array<string>@ string::split(const string &in delim) const
-static CScriptArray *StringSplit(const string &delim, const string &str)
-{
+static CScriptArray *StringSplit(const string &delim, const string &str) {
 	// Obtain a pointer to the engine
 	asIScriptContext *ctx = asGetActiveContext();
 	asIScriptEngine *engine = ctx->GetEngine();
@@ -35,8 +34,7 @@ static CScriptArray *StringSplit(const string &delim, const string &str)
 
 	// Find the existence of the delimiter in the input string
 	int pos = 0, prev = 0, count = 0;
-	while( (pos = (int)str.find(delim, prev)) != (int)string::npos )
-	{
+	while( (pos = (int)str.find(delim, prev)) != (int)string::npos ) {
 		// Add the part to the array
 		array->Resize(array->GetSize()+1);
 		((string*)array->At(count))->assign(&str[prev], pos-prev);
@@ -53,8 +51,7 @@ static CScriptArray *StringSplit(const string &delim, const string &str)
 	return array;
 }
 
-static void StringSplit_Generic(asIScriptGeneric *gen)
-{
+static void StringSplit_Generic(asIScriptGeneric *gen) {
 	// Get the arguments
 	string *str   = (string*)gen->GetObject();
 	string *delim = *(string**)gen->GetAddressOfArg(0);
@@ -78,15 +75,12 @@ static void StringSplit_Generic(asIScriptGeneric *gen)
 //
 // AngelScript signature:
 // string join(const array<string> &in array, const string &in delim)
-static string StringJoin(const CScriptArray &array, const string &delim)
-{
+static string StringJoin(const CScriptArray &array, const string &delim) {
 	// Create the new string
 	string str = "";
-	if( array.GetSize() )
-	{
+	if( array.GetSize() ) {
 		int n;
-		for( n = 0; n < (int)array.GetSize() - 1; n++ )
-		{
+		for( n = 0; n < (int)array.GetSize() - 1; n++ ) {
 			str += *(string*)array.At(n);
 			str += delim;
 		}
@@ -98,8 +92,7 @@ static string StringJoin(const CScriptArray &array, const string &delim)
 	return str;
 }
 
-static void StringJoin_Generic(asIScriptGeneric *gen)
-{
+static void StringJoin_Generic(asIScriptGeneric *gen) {
 	// Get the arguments
 	CScriptArray  *array = *(CScriptArray**)gen->GetAddressOfArg(0);
 	string *delim = *(string**)gen->GetAddressOfArg(1);
@@ -110,19 +103,19 @@ static void StringJoin_Generic(asIScriptGeneric *gen)
 
 // This is where the utility functions are registered.
 // The string type must have been registered first.
-void RegisterStdStringUtils(asIScriptEngine *engine)
-{
+void RegisterStdStringUtils(asIScriptEngine *engine) {
 	int r;
 
-	if( strstr(asGetLibraryOptions(), "AS_MAX_PORTABILITY") )
-	{
-		r = engine->RegisterObjectMethod("string", "array<string>@ split(const string &in) const", asFUNCTION(StringSplit_Generic), asCALL_GENERIC); assert(r >= 0);
-		r = engine->RegisterGlobalFunction("string join(const array<string> &in, const string &in)", asFUNCTION(StringJoin_Generic), asCALL_GENERIC); assert(r >= 0);
-	}
-	else
-	{
-		r = engine->RegisterObjectMethod("string", "array<string>@ split(const string &in) const", asFUNCTION(StringSplit), asCALL_CDECL_OBJLAST); assert(r >= 0);
-		r = engine->RegisterGlobalFunction("string join(const array<string> &in, const string &in)", asFUNCTION(StringJoin), asCALL_CDECL); assert(r >= 0);
+	if( strstr(asGetLibraryOptions(), "AS_MAX_PORTABILITY") ) {
+		r = engine->RegisterObjectMethod("string", "array<string>@ split(const string &in) const", asFUNCTION(StringSplit_Generic), asCALL_GENERIC);
+		assert(r >= 0);
+		r = engine->RegisterGlobalFunction("string join(const array<string> &in, const string &in)", asFUNCTION(StringJoin_Generic), asCALL_GENERIC);
+		assert(r >= 0);
+	} else {
+		r = engine->RegisterObjectMethod("string", "array<string>@ split(const string &in) const", asFUNCTION(StringSplit), asCALL_CDECL_OBJLAST);
+		assert(r >= 0);
+		r = engine->RegisterGlobalFunction("string join(const array<string> &in, const string &in)", asFUNCTION(StringJoin), asCALL_CDECL);
+		assert(r >= 0);
 	}
 }
 

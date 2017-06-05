@@ -39,3 +39,18 @@ struct GFX_DLL DirLight {
 	glm::vec3 Direction;
 	float padd;
 };
+
+struct alignas(16) Box {
+	glm::vec3 Bounds;
+	glm::vec3 Pos;
+};
+
+struct Sphere {
+	glm::vec3 Pos;
+	float Radius;
+};
+
+struct Cylinder {
+	glm::vec3 Pos;
+	float Radius;
+};

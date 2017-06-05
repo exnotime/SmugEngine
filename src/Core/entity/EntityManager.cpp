@@ -1,8 +1,8 @@
 #include "EntityManager.h"
 #include "../datasystem/ComponentManager.h"
-EntityManager::EntityManager(){}
+EntityManager::EntityManager() {}
 
-EntityManager::~EntityManager(){}
+EntityManager::~EntityManager() {}
 
 EntityManager& EntityManager::GetInstance() {
 	static EntityManager instance;

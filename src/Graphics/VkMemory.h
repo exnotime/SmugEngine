@@ -24,7 +24,7 @@ struct VkAlloc {
 };
 
 class VkMemory {
-public:
+  public:
 	VkMemory();
 	~VkMemory();
 
@@ -38,7 +38,7 @@ public:
 	void ScheduleTransfers(VulkanCommandBuffer& cmdBuffer);
 	void UpdateBuffer(VkAlloc buffer, uint64_t size, void* data);
 
-private:
+  private:
 	struct TextureTransfer {
 		vk::Image Image;
 		std::vector<vk::BufferImageCopy> copies;

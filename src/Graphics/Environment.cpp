@@ -1,7 +1,7 @@
 #include "LightEnvironment.h"
 
-LightEnvironment::LightEnvironment(){}
-LightEnvironment::~LightEnvironment(){}
+LightEnvironment::LightEnvironment() {}
+LightEnvironment::~LightEnvironment() {}
 
 void LightEnvironment::Init(const VkMemory* texMem, const VkMemory* bufferMem, uint32_t maxPointLights, uint32_t maxSpotLights, uint32_t maxDirLights) {
 

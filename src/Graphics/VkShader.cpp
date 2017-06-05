@@ -5,30 +5,24 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-vk::ShaderModule Tephra::LoadShader(const vk::Device& device, const std::string& filename, SHADER_STAGE stage, const std::string& entryPoint , SHADER_LANGUAGE language) {
+vk::ShaderModule Tephra::LoadShader(const vk::Device& device, const std::string& filename, SHADER_STAGE stage, const std::string& entryPoint, SHADER_LANGUAGE language) {
 	//read file ending and figure out shader type
 	size_t lastDot = filename.find_last_of('.');
 	std::string fileEnding = filename.substr(lastDot + 1);
 	shaderc_shader_kind shaderType;
 	if (stage == VERTEX) {
 		shaderType = shaderc_glsl_vertex_shader;
-	}
-	else if (stage == FRAGMENT) {
+	} else if (stage == FRAGMENT) {
 		shaderType = shaderc_glsl_fragment_shader;
-	}
-	else if (stage == GEOMETRY) {
+	} else if (stage == GEOMETRY) {
 		shaderType = shaderc_glsl_geometry_shader;
-	}
-	else if (stage == CONTROL) {
+	} else if (stage == CONTROL) {
 		shaderType = shaderc_glsl_tess_control_shader;
-	}
-	else if (stage == EVALUATION) {
+	} else if (stage == EVALUATION) {
 		shaderType = shaderc_glsl_tess_evaluation_shader;
-	}
-	else if (stage == COMPUTE) {
+	} else if (stage == COMPUTE) {
 		shaderType = shaderc_glsl_compute_shader;
-	}
-	else if (stage == PRECOMPILED) {
+	} else if (stage == PRECOMPILED) {
 		//Load  precompiled shader
 		vk::ShaderModuleCreateInfo shaderInfo;
 		FILE* fin = fopen(filename.c_str(), "rb");
@@ -90,13 +84,12 @@ vk::ShaderModule Tephra::LoadShader(const vk::Device& device, const std::string&
 	shaderc_compile_options_set_optimization_level(options, shaderc_optimization_level::shaderc_optimization_level_zero);
 	//include resolver lambda
 	auto includeResolver = [](void* user_data, const char* requested_source, int type,
-		const char* requesting_source, size_t include_depth) -> shaderc_include_result* {
+	const char* requesting_source, size_t include_depth) -> shaderc_include_result* {
 		std::string filename;
 		if (type == shaderc_include_type_relative) {
 			std::string reqSrc = std::string(requesting_source);
 			filename = reqSrc.substr(0, reqSrc.find_last_of('/')) + '/' + std::string(requested_source);
-		}
-		else if (type == shaderc_include_type_standard) {
+		} else if (type == shaderc_include_type_standard) {
 			filename = "shaders/" + std::string(requested_source);
 		}
 		FILE* fin = fopen(filename.c_str(), "rb");
@@ -119,7 +112,7 @@ vk::ShaderModule Tephra::LoadShader(const vk::Device& device, const std::string&
 	};
 
 	auto includeResRelease = [](void* user_data, shaderc_include_result* include_result) {
-		 delete include_result;
+		delete include_result;
 	};
 	shaderc_compile_options_set_include_callbacks(options, includeResolver, includeResRelease, nullptr);
 

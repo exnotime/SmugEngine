@@ -30,7 +30,7 @@ struct Gamepad {
 	bool Connected;
 };
 class Input {
-public:
+  public:
 	~Input();
 	static Input& GetInstance();
 	void SetKeyState(int key, int state);
@@ -49,7 +49,7 @@ public:
 	glm::dvec2 GetMousePos();
 	void Update();
 	void SetMouseDeltaUpdate(bool val);
-private:
+  private:
 	Input();
 	int m_Keys[GLFW_KEY_LAST];
 	int m_KeysLastFrame[GLFW_KEY_LAST];
@@ -62,10 +62,10 @@ private:
 	float m_MouseScroll;
 	bool m_UpdateMouseDelta;
 };
-static void MousePosCallback(GLFWwindow* window, double xpos, double ypos){
+static void MousePosCallback(GLFWwindow* window, double xpos, double ypos) {
 	g_Input.SetMousePos(xpos, ypos);
 }
-static void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods){
+static void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
 	g_Input.SetMousebuttonState(button, action);
 	ImGui_ImplGlfwVulkan_MouseButtonCallback(window, button, action, mods);
 }

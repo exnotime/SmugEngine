@@ -34,7 +34,7 @@ struct CameraLens {
 // Basic camera provided by the Graphics Engine. Should not be controlled directly by input devices (use inheritance or similar instead)(Fuck this!).
 class Camera {
   public:
-	  Camera();
+	Camera();
 	// Returns true if Camera passes all tests.
 	static bool				UnitTest();
 
@@ -103,6 +103,6 @@ class Camera {
 	virtual void			SetMoveSpeed(const float newMoveSpeed);
 
   private:
-	  CameraData m_CamData;
-	  glm::quat m_Orientation;
+	CameraData m_CamData;
+	glm::quat m_Orientation;
 };

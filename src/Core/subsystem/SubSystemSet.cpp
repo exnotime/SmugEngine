@@ -10,7 +10,7 @@ SubSystemSet::~SubSystemSet() {
 void SubSystemSet::AddSubSystem( SubSystem* ss, uint32_t startUpPrio, uint32_t updatePrio, uint32_t shutdownPrio) {
 	SubSystemEntry sse;
 	sse.ss = ss;
-	
+
 	sse.start = (startUpPrio == SUBSYSTEM_INPUT_ORDER) ? m_Entries.size() : startUpPrio;
 	sse.update = (updatePrio == SUBSYSTEM_INPUT_ORDER) ? m_Entries.size() : updatePrio;
 	sse.shutdown = (shutdownPrio == SUBSYSTEM_INPUT_ORDER) ? m_Entries.size() : shutdownPrio;

@@ -1,13 +1,13 @@
 #pragma once
 #include <stdint.h>
 class Timer {
-public:
+  public:
 	Timer();
 	~Timer();
 	double Tick();
 	double Reset();
 
-private:
+  private:
 	uint64_t m_Start;
 	uint64_t m_LastTick;
 	uint64_t m_TimerFreq;

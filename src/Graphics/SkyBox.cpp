@@ -8,7 +8,7 @@
 SkyBox::SkyBox() {
 
 }
-SkyBox::~SkyBox(){
+SkyBox::~SkyBox() {
 }
 
 void SkyBox::Init(const vk::Device& device, const vk::PhysicalDevice& physDev, const std::string& filename,const vk::Viewport& vp, const vk::RenderPass& rp, const vk::PipelineMultisampleStateCreateInfo& mss) {
@@ -26,7 +26,7 @@ void SkyBox::Init(const vk::Device& device, const vk::PhysicalDevice& physDev, c
 	for (int i = 0; i < mesh->ntriangles * 3; i += 3) {
 		for (int k = 0; k < 3; k++) {
 			glm::vec3 p = glm::vec3(mesh->points[mesh->triangles[i + k] * 3],
-				mesh->points[mesh->triangles[i + k] * 3 + 1], mesh->points[mesh->triangles[i + k] * 3 + 2]);
+			                        mesh->points[mesh->triangles[i + k] * 3 + 1], mesh->points[mesh->triangles[i + k] * 3 + 2]);
 			vertices.push_back(p);
 		}
 	}

@@ -131,7 +131,7 @@ vec3 CalcDirLight(vec3 lightDir, vec3 albedo, vec3 normal, vec3 toEye, float rou
 	vec3 nom = D * F * G;
 	float denom = 4.0 * ndotl * ndotv + 0.01;
 	vec3 spec = nom / denom;
-	return (Kd * albedo / PI + spec) * ndotl;
+	return saturate((Kd * albedo / PI + spec) * ndotl);
 }
 
 vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
@@ -161,7 +161,7 @@ vec3 CalcIBLLight( vec3 inNormal, vec3 toeye, vec3 baseColor, float roughness, f
  	vec3 diffuse = baseColor * irradiance;
  	vec3 specular = saturate(color * (F * envBRDF.x + envBRDF.y));
 
-	return (Kd * diffuse + specular);
+	return saturate(Kd * diffuse + specular);
 }
 
 vec3 hash32(vec2 p){

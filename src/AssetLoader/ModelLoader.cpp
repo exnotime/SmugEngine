@@ -11,7 +11,7 @@ ModelLoader::~ModelLoader() {}
 char* ModelLoader::LoadModel(const std::string& filename, ModelInfo& model) {
 	Assimp::Importer importer;
 	const aiScene* scene = importer.ReadFile(filename, aiProcess_CalcTangentSpace | aiProcess_FlipUVs
-		| aiProcess_GenUVCoords | aiProcess_JoinIdenticalVertices | aiProcess_Triangulate);
+	                       | aiProcess_GenUVCoords | aiProcess_JoinIdenticalVertices | aiProcess_Triangulate);
 	if (scene) {
 		//meshes
 		if (scene->HasMeshes()) {
@@ -24,7 +24,7 @@ char* ModelLoader::LoadModel(const std::string& filename, ModelInfo& model) {
 				meshInfo.Material = mesh->mMaterialIndex;
 				meshInfo.VertexCount = mesh->mNumVertices;
 				meshInfo.Vertices = new Vertex[meshInfo.VertexCount];
- 				for (int v = 0; v < meshInfo.VertexCount; ++v) {
+				for (int v = 0; v < meshInfo.VertexCount; ++v) {
 					meshInfo.Vertices[v].Position = glm::vec3(mesh->mVertices[v].x, mesh->mVertices[v].y, mesh->mVertices[v].z);
 					meshInfo.Vertices[v].Normal = glm::normalize(glm::vec3(mesh->mNormals[v].x, mesh->mNormals[v].y, mesh->mNormals[v].z));
 					glm::vec3 t = glm::normalize(glm::vec3(mesh->mTangents[v].x, mesh->mTangents[v].y, mesh->mTangents[v].z));
@@ -76,8 +76,7 @@ char* ModelLoader::LoadModel(const std::string& filename, ModelInfo& model) {
 					texLoader.LoadTexture(dir + path.data, model.Materials[m].Metal);
 				}
 			}
-		}
-		else {
+		} else {
 			//force default material
 			model.MaterialCount = 1;
 			model.Materials = new MaterialInfo();
@@ -85,8 +84,7 @@ char* ModelLoader::LoadModel(const std::string& filename, ModelInfo& model) {
 				model.Meshes[m].Material = 0;
 			}
 		}
-	}
-	else {
+	} else {
 		return "Assimp error";
 	}
 	return nullptr;

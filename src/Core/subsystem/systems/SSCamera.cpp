@@ -15,11 +15,11 @@
 #define CAMERA_SPEED 20.0f
 #define SPRINT_FACTOR 5.0f
 #define CAMERA_ROTATION_SPEED 0.001f
-SSCamera::SSCamera(){
+SSCamera::SSCamera() {
 
 }
 
-SSCamera::~SSCamera(){
+SSCamera::~SSCamera() {
 
 }
 

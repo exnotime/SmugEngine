@@ -5,7 +5,7 @@
 
 ///this class manages the lighting environment
 class GFX_DLL LightEnvironment {
-public:
+  public:
 	LightEnvironment();
 	~LightEnvironment();
 	void Init(const VkMemory* texMem, const VkMemory* bufferMem, uint32_t maxPointLights = 64, uint32_t maxSpotLights = 16, uint32_t maxDirLights = 4);
@@ -17,7 +17,7 @@ public:
 	void TransferStaticLights();
 	void TransferDynamicLights(std::vector<DirLight>& dirLights, std::vector<PointLight>& pointLights);
 
-private:
+  private:
 	VkTexture m_Irradiance;
 	VkTexture m_Radiance;
 	VkTexture m_IntegratedBRDF;

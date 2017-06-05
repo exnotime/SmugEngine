@@ -91,12 +91,16 @@ void PhysicsEngine::Update(double deltaTime) {
 }
 
 void PhysicsEngine::Shutdown() {
-	m_Scene->release(); m_Scene = nullptr;
-	m_Physics->release(); m_Physics = nullptr;
+	m_Scene->release();
+	m_Scene = nullptr;
+	m_Physics->release();
+	m_Physics = nullptr;
 #ifdef _DEBUG
-	m_PVD->release(); m_PVD = nullptr;
+	m_PVD->release();
+	m_PVD = nullptr;
 #endif
-	m_Foundation->release(); m_Foundation = nullptr;
+	m_Foundation->release();
+	m_Foundation = nullptr;
 
 
 
@@ -107,16 +111,20 @@ void PhysicsEngine::Shutdown() {
 	m_Actors.clear();
 }
 
-PhysicsBody* PhysicsEngine::CreateDynamicActor(const glm::vec3& pos, const glm::quat& orientation, const glm::vec3& size, float mass, PHYSICS_SHAPE shape, bool kinematic){
+PhysicsBody* PhysicsEngine::CreateDynamicActor(const glm::vec3& pos, const glm::quat& orientation, const glm::vec3& size, float mass, PHYSICS_SHAPE shape, bool kinematic) {
 	PxTransform transform;
-	transform.p.x = pos.x; transform.p.y = pos.y; transform.p.z = pos.z;
-	transform.q.x = orientation.y; transform.q.y = orientation.z; transform.q.z = orientation.w; transform.q.w = orientation.x;
+	transform.p.x = pos.x;
+	transform.p.y = pos.y;
+	transform.p.z = pos.z;
+	transform.q.x = orientation.y;
+	transform.q.y = orientation.z;
+	transform.q.z = orientation.w;
+	transform.q.w = orientation.x;
 
 	PxRigidDynamic* actor = m_Physics->createRigidDynamic(transform);
 	PxMaterial* mat = m_Physics->createMaterial(0.5, 0.5, 0.1);
 	PxShape* pxshape;
-	switch (shape)
-	{
+	switch (shape) {
 	case SPHERE:
 		pxshape = PxRigidActorExt::createExclusiveShape(*actor, PxSphereGeometry(size.x), *mat);
 		break;
@@ -130,7 +138,7 @@ PhysicsBody* PhysicsEngine::CreateDynamicActor(const glm::vec3& pos, const glm::
 		return nullptr;
 		break;
 	}
-	 
+
 	PxRigidBodyExt::updateMassAndInertia(*actor, mass);
 	actor->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, kinematic);
 
@@ -148,8 +156,13 @@ PhysicsBody* PhysicsEngine::CreateDynamicActor(const glm::vec3& pos, const glm::
 
 PhysicsBody* PhysicsEngine::CreateStaticActor(const glm::vec3& pos, const glm::quat& orientation, const glm::vec3& size, PHYSICS_SHAPE shape) {
 	PxTransform transform;
-	transform.p.x = pos.x; transform.p.y = pos.y; transform.p.z = pos.z;
-	transform.q.x = orientation.y; transform.q.y = orientation.z; transform.q.z = orientation.w; transform.q.w = orientation.x;
+	transform.p.x = pos.x;
+	transform.p.y = pos.y;
+	transform.p.z = pos.z;
+	transform.q.x = orientation.y;
+	transform.q.y = orientation.z;
+	transform.q.z = orientation.w;
+	transform.q.w = orientation.x;
 
 	PxRigidStatic* actor = m_Physics->createRigidStatic(transform);
 	PxMaterial* mat = m_Physics->createMaterial(0.5, 0.5, 0.1);

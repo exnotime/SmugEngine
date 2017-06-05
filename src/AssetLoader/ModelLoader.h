@@ -4,7 +4,7 @@
 #include "AssetExport.h"
 
 class ASSET_DLL ModelLoader {
-public:
+  public:
 	ModelLoader();
 	~ModelLoader();
 	char* LoadModel(const std::string& filename, ModelInfo& info);

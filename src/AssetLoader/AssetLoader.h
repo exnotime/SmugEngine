@@ -32,7 +32,7 @@ struct ASSET_DLL ResourceAllocator {
 #define g_AssetLoader AssetLoader::GetInstance()
 
 class ASSET_DLL AssetLoader {
-public:
+  public:
 	~AssetLoader();
 	void SetResourceAllocator(ResourceAllocator allocator);
 	ResourceHandle LoadAsset(const char* filename);
@@ -40,7 +40,7 @@ public:
 	void Clear();
 
 	static AssetLoader& GetInstance();
-private:
+  private:
 	AssetLoader();
 
 	ResourceAllocator m_Allocator;

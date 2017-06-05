@@ -1,4 +1,4 @@
-#pragma once 
+#pragma once
 #include "SubSystem.h"
 #include <stdint.h>
 #include <vector>
@@ -11,7 +11,7 @@ struct SubSystemEntry {
 };
 
 class SubSystemSet {
-public:
+  public:
 	SubSystemSet();
 	~SubSystemSet();
 
@@ -20,7 +20,7 @@ public:
 	void UpdateSubSystems(const double deltaTime);
 	void ShutdownSubSystems();
 	void Clear();
-private:
+  private:
 	bool m_Updated = false;
 	std::vector<SubSystemEntry> m_Entries;
 	uint32_t m_Enumerator = 0;

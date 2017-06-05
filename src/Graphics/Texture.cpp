@@ -29,7 +29,7 @@ void VkTexture::Init(const std::string& filename, VkMemory& memory, const vk::De
 		memory.AllocateImageCube(m_Image, &cubeTex, cubeTex.data());
 
 		vk::ImageViewCreateInfo viewInfo;
-		viewInfo.components = { vk::ComponentSwizzle::eR,vk::ComponentSwizzle::eG ,vk::ComponentSwizzle::eB ,vk::ComponentSwizzle::eA };
+		viewInfo.components = { vk::ComponentSwizzle::eR,vk::ComponentSwizzle::eG,vk::ComponentSwizzle::eB,vk::ComponentSwizzle::eA };
 		viewInfo.format = imageInfo.format;
 		viewInfo.image = m_Image;
 		viewInfo.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
@@ -60,7 +60,7 @@ void VkTexture::Init(const std::string& filename, VkMemory& memory, const vk::De
 		memory.AllocateImage(m_Image, &tex2D, tex2D.data());
 
 		vk::ImageViewCreateInfo viewInfo;
-		viewInfo.components = { vk::ComponentSwizzle::eR,vk::ComponentSwizzle::eG ,vk::ComponentSwizzle::eB ,vk::ComponentSwizzle::eA };
+		viewInfo.components = { vk::ComponentSwizzle::eR,vk::ComponentSwizzle::eG,vk::ComponentSwizzle::eB,vk::ComponentSwizzle::eA };
 		viewInfo.format = imageInfo.format;
 		viewInfo.image = m_Image;
 		viewInfo.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
@@ -109,7 +109,7 @@ void VkTexture::Init(const TextureInfo& texInfo, VkMemory& memory, const vk::Dev
 		memory.AllocateImageCube(m_Image, texInfo);
 
 		vk::ImageViewCreateInfo viewInfo;
-		viewInfo.components = { vk::ComponentSwizzle::eR,vk::ComponentSwizzle::eG ,vk::ComponentSwizzle::eB ,vk::ComponentSwizzle::eA };
+		viewInfo.components = { vk::ComponentSwizzle::eR,vk::ComponentSwizzle::eG,vk::ComponentSwizzle::eB,vk::ComponentSwizzle::eA };
 		viewInfo.format = imageInfo.format;
 		viewInfo.image = m_Image;
 		viewInfo.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
@@ -121,8 +121,7 @@ void VkTexture::Init(const TextureInfo& texInfo, VkMemory& memory, const vk::Dev
 
 		m_View = device.createImageView(viewInfo);
 
-	}
-	else if (texInfo.Layers == 1) { //2D texture
+	} else if (texInfo.Layers == 1) { //2D texture
 		vk::ImageCreateInfo imageInfo;
 		imageInfo.arrayLayers = 1;
 		imageInfo.extent = vk::Extent3D(texInfo.Width, texInfo.Height, 1);
@@ -138,7 +137,7 @@ void VkTexture::Init(const TextureInfo& texInfo, VkMemory& memory, const vk::Dev
 		memory.AllocateImage(m_Image, texInfo);
 
 		vk::ImageViewCreateInfo viewInfo;
-		viewInfo.components = { vk::ComponentSwizzle::eR,vk::ComponentSwizzle::eG ,vk::ComponentSwizzle::eB ,vk::ComponentSwizzle::eA };
+		viewInfo.components = { vk::ComponentSwizzle::eR,vk::ComponentSwizzle::eG,vk::ComponentSwizzle::eB,vk::ComponentSwizzle::eA };
 		viewInfo.format = imageInfo.format;
 		viewInfo.image = m_Image;
 		viewInfo.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;

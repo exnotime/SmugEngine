@@ -16,27 +16,27 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #pragma once
 #include <vulkan/vulkan.hpp>
 #ifndef SHADER_CACHE_DIR
-#define USE_SHADER_CACHE 0
+#define USE_SHADER_CACHE 1
 #define SHADER_CACHE_DIR "./shader/cache/"
 #endif
 
 
 
 namespace Tephra {
-	enum SHADER_LANGUAGE {
-		GLSL,
-		HLSL
-	};
+enum SHADER_LANGUAGE {
+	GLSL,
+	HLSL
+};
 
-	enum SHADER_STAGE {
-		VERTEX,
-		FRAGMENT,
-		GEOMETRY,
-		CONTROL,
-		EVALUATION,
-		COMPUTE,
-		PRECOMPILED
-	};
+enum SHADER_STAGE {
+	VERTEX,
+	FRAGMENT,
+	GEOMETRY,
+	CONTROL,
+	EVALUATION,
+	COMPUTE,
+	PRECOMPILED
+};
 
-	vk::ShaderModule LoadShader(const vk::Device& device, const std::string& filename, SHADER_STAGE stage, const std::string& entryPoint = "main", SHADER_LANGUAGE language = GLSL);
+vk::ShaderModule LoadShader(const vk::Device& device, const std::string& filename, SHADER_STAGE stage, const std::string& entryPoint = "main", SHADER_LANGUAGE language = GLSL);
 };

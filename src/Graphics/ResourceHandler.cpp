@@ -43,7 +43,7 @@ void ResourceHandler::Init(vk::Device* device, const vk::PhysicalDevice& physDev
 	poolInfo.poolSizeCount = 1;
 	poolInfo.pPoolSizes = &poolSize;
 	m_DescPool = device->createDescriptorPool(poolInfo);
-	
+
 	vk::DescriptorSetLayoutCreateInfo layoutInfo;
 	layoutInfo.bindingCount = 1;
 	vk::DescriptorSetLayoutBinding binding;
@@ -149,24 +149,21 @@ ResourceHandle ResourceHandler::AllocateModel(const ModelInfo& model) {
 		if (model.Materials[mesh.Material].Normal.Data) {
 			normalTex.Init(model.Materials[mesh.Material].Normal, m_MaterialMemory, *m_Device);
 			imageInfo[1] = normalTex.GetDescriptorInfo();
-		}
-		else {
+		} else {
 			imageInfo[1] = m_DefaultNormal.GetDescriptorInfo();
 		}
 		//roughness
 		if (model.Materials[mesh.Material].Roughness.Data) {
 			roughness.Init(model.Materials[mesh.Material].Roughness, m_MaterialMemory, *m_Device);
 			imageInfo[2] = roughness.GetDescriptorInfo();
-		}
-		else {
+		} else {
 			imageInfo[2] = m_DefaultRoughness.GetDescriptorInfo();
 		}
 		//metal
 		if (model.Materials[mesh.Material].Metal.Data) {
 			metal.Init(model.Materials[mesh.Material].Metal, m_MaterialMemory, *m_Device);
 			imageInfo[3] = metal.GetDescriptorInfo();
-		}
-		else {
+		} else {
 			imageInfo[3] = m_DefaultMetal.GetDescriptorInfo();
 		}
 		materialWrite.pImageInfo = imageInfo;
@@ -175,19 +172,19 @@ ResourceHandle ResourceHandler::AllocateModel(const ModelInfo& model) {
 	//allocate buffers
 	vk::BufferUsageFlags flags = vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst;
 	internalModel.IndexBuffer = m_IndexMemory.AllocateBuffer(
-		sizeof(uint16_t) * indices.size(), flags, indices.data());
+	                                sizeof(uint16_t) * indices.size(), flags, indices.data());
 	internalModel.IndexCount = indices.size();
 
 	flags = vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst;
 	internalModel.VertexBuffers[POSITION] = m_VertexMemory[POSITION].AllocateBuffer(
-			positions.size() * sizeof(glm::vec3), flags, positions.data());
+	        positions.size() * sizeof(glm::vec3), flags, positions.data());
 	internalModel.VertexBuffers[NORMAL] = m_VertexMemory[NORMAL].AllocateBuffer(
-		normals.size() * sizeof(glm::vec3), flags, normals.data());
+	        normals.size() * sizeof(glm::vec3), flags, normals.data());
 	internalModel.VertexBuffers[TANGENT] = m_VertexMemory[TANGENT].AllocateBuffer(
-		tangents.size() * sizeof(glm::vec3), flags, tangents.data());
+	        tangents.size() * sizeof(glm::vec3), flags, tangents.data());
 	internalModel.VertexBuffers[TEXCOORD] = m_VertexMemory[TEXCOORD].AllocateBuffer(
-		texcoords.size() * sizeof(glm::vec2), flags, texcoords.data());
-	
+	        texcoords.size() * sizeof(glm::vec2), flags, texcoords.data());
+
 	m_Models.push_back(internalModel);
 	return m_Models.size() - 1;
 }

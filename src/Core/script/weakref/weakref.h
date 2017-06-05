@@ -3,7 +3,7 @@
 
 // The CScriptWeakRef class was originally implemented by vroad in March 2013
 
-#ifndef ANGELSCRIPT_H 
+#ifndef ANGELSCRIPT_H
 // Avoid having to inform include path if header is already include before
 #include <angelscript.h>
 #endif
@@ -11,9 +11,8 @@
 
 BEGIN_AS_NAMESPACE
 
-class CScriptWeakRef 
-{
-public:
+class CScriptWeakRef {
+  public:
 	// Constructors
 	CScriptWeakRef(asITypeInfo *type);
 	CScriptWeakRef(const CScriptWeakRef &other);
@@ -41,7 +40,7 @@ public:
 	// Returns the type of the reference held
 	asITypeInfo *GetRefType() const;
 
-protected:
+  protected:
 	// These functions need to have access to protected
 	// members in order to call them from the script engine
 	friend void RegisterScriptWeakRef_Native(asIScriptEngine *engine);

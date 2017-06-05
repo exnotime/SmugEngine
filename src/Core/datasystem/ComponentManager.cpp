@@ -29,8 +29,7 @@ void ComponentManager::CreateComponent(const void* comp, Entity& ent, uint type)
 		}
 		ent.ComponentBitfield = ent.ComponentBitfield | type;
 		ent.Components[log2(type)] = index;
-	}
-	else {
+	} else {
 		printf("trying to create component without initializing a buffer\n");
 	}
 }
@@ -41,8 +40,7 @@ void ComponentManager::RemoveComponent(Entity& ent, uint type) {
 		buffer->second.RemoveComponent(ent.Components[log2(type)]);
 		ent.Components[log2(type)] = 0;
 		ent.ComponentBitfield &= ~type;
-	}
-	else {
+	} else {
 		printf("trying to remove component without initializing a buffer\n");
 	}
 }
@@ -50,12 +48,12 @@ void ComponentManager::RemoveComponent(Entity& ent, uint type) {
 void ComponentManager::RemoveComponents(Entity& ent) {
 	unsigned int compFlag = 1;
 	for (int i = 0; i < m_Buffers.size(); i++) {
-		if ((ent.ComponentBitfield & compFlag) == compFlag){
+		if ((ent.ComponentBitfield & compFlag) == compFlag) {
 			RemoveComponent(ent, compFlag);
 		}
 		compFlag = compFlag << 1;
 	}
-	
+
 }
 
 int ComponentManager::GetBuffer(void** outBuffer, uint type) {
@@ -65,8 +63,7 @@ int ComponentManager::GetBuffer(void** outBuffer, uint type) {
 
 		*outBuffer = (void*)buffer->second.GetComponentList();
 		return buffer->second.GetListSize();
-	}
-	else {
+	} else {
 		printf("No componentbuffer of such type: %d\n", type);
 		*outBuffer = nullptr;
 		return -1;
@@ -79,8 +76,7 @@ void* ComponentManager::GetComponent(const Entity& ent, uint type) {
 	if (buffer != m_Buffers.end()) {
 		void* comp = buffer->second.GetComponent(ent.Components[log2(type)]);
 		return comp;
-	}
-	else {
+	} else {
 		printf("Error getting component\n");
 		return nullptr;
 	}

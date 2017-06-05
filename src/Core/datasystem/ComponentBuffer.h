@@ -7,7 +7,7 @@ typedef  unsigned char Byte;
 typedef  unsigned int uint;
 
 class ComponentBuffer {
-public:
+  public:
 	ComponentBuffer() {
 
 	}
@@ -39,10 +39,10 @@ public:
 			ResizeBuffer(m_ComponentSize * m_Size * 2);
 		//find an index, if there is a hole get that instead of end
 		uint index;
-		if(!m_Holes.empty()){
+		if(!m_Holes.empty()) {
 			index = m_Holes.front();
 			m_Holes.pop_front();
-		}else {
+		} else {
 			index = m_End;
 			m_End++;
 		}
@@ -65,13 +65,13 @@ public:
 	void* GetComponent(uint index) {
 		if (index >= m_Size)
 			return nullptr;
-		for(auto& hole : m_Holes){
+		for(auto& hole : m_Holes) {
 			if(index == hole)
 				return nullptr;
 		}
 		return (unsigned char*)(m_Buffer) + index * m_ComponentSize;
 	}
-	
+
 	void* GetComponentList() {
 		return m_Buffer;
 	}
@@ -83,7 +83,7 @@ public:
 		return m_Name;
 	}
 
-private:
+  private:
 	uint m_Size = 0; //sizeof memory allocated
 	uint m_End = 0; //end of current list
 	uint m_Count = 0; //number of alive components

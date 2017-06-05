@@ -9,11 +9,11 @@
 #include "../../GlobalSystems.h"
 #include <Imgui/imgui.h>
 
-SSRender::SSRender(){
+SSRender::SSRender() {
 
 }
 
-SSRender::~SSRender(){
+SSRender::~SSRender() {
 
 }
 
@@ -37,14 +37,26 @@ void SSRender::Update(const double deltaTime) {
 
 	int flag = ModelComponent::Flag | TransformComponent::Flag;
 	RenderQueue* rq = globals::g_Gfx->GetRenderQueue();
+	//Test Imgui
+	ImGui::Begin("Enities");
+	if (ImGui::TreeNode("EntityList")) {
+		for (auto& e : g_EntityManager.GetEntityList()) {
+			TransformComponent* tc = (TransformComponent*)g_ComponentManager.GetComponent(e, TransformComponent::Flag);
+			if (ImGui::TreeNode((void*)(intptr_t)e.UID, "Entity %d", e.UID)) {
+				ImGui::Text("Position: x=%f y=%f z=%f", tc->Position.x, tc->Position.y, tc->Position.z);
+				ImGui::Text("Rotation: x=%f y=%f z=%f w=%f", tc->Orientation.x, tc->Orientation.y, tc->Orientation.z, tc->Orientation.w);
+				ImGui::TreePop();
+			}
+		}
+		ImGui::TreePop();
+	}
+	ImGui::End();
 	for (auto& e : g_EntityManager.GetEntityList()) {
 		if ((e.ComponentBitfield & flag) == flag) {
 			ModelComponent* mc = (ModelComponent*)g_ComponentManager.GetComponent(e, ModelComponent::Flag);
 			TransformComponent* tc = (TransformComponent*)g_ComponentManager.GetComponent(e, TransformComponent::Flag);
-			if (e.UID == 2) {
-				ImGui::InputFloat3("KoopaPos", &tc->Position[0]);
-				ImGui::InputFloat4("KoopaRot", &tc->Orientation[0]);
-			}
+
+			
 
 			tc->Transform = glm::scale(tc->Scale) * glm::translate(tc->Position) * glm::toMat4(tc->Orientation);
 
@@ -54,7 +66,8 @@ void SSRender::Update(const double deltaTime) {
 			rq->AddModel(mc->ModelHandle, si);
 		}
 	}
-
+	
+	
 }
 
 void SSRender::Shutdown() {

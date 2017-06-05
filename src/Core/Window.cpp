@@ -40,8 +40,7 @@ void Window::Initialize(const WindowSettings& windowSettings) {
 	//set up vsync
 	if (m_WindowSettings.Vsync) {
 		glfwSwapInterval(1);
-	}
-	else {
+	} else {
 		glfwSwapInterval(0);
 	}
 }
