@@ -14,15 +14,17 @@ void Raymarcher::Init(const vk::Device& device, const VulkanSwapChain& swapChain
 	//build descriptor sets
 	vk::DescriptorPoolCreateInfo descPoolInfo;
 	descPoolInfo.maxSets = BUFFER_COUNT;
-	vk::DescriptorPoolSize sizes[3];
+	vk::DescriptorPoolSize sizes[4];
 	sizes[0].descriptorCount = BUFFER_COUNT;
 	sizes[0].type = vk::DescriptorType::eStorageImage;
 	sizes[1].descriptorCount = BUFFER_COUNT;
 	sizes[1].type = vk::DescriptorType::eCombinedImageSampler;
 	sizes[2].descriptorCount = BUFFER_COUNT;
 	sizes[2].type = vk::DescriptorType::eUniformBuffer;
+	sizes[3].descriptorCount = BUFFER_COUNT;
+	sizes[3].type = vk::DescriptorType::eStorageBuffer;
 	descPoolInfo.pPoolSizes = sizes;
-	descPoolInfo.poolSizeCount = 3;
+	descPoolInfo.poolSizeCount = ARRAYSIZE(sizes);
 	m_DescPool = device.createDescriptorPool(descPoolInfo);
 
 	vk::DescriptorSetAllocateInfo descSetAllocInfo;
@@ -79,9 +81,10 @@ void Raymarcher::Init(const vk::Device& device, const VulkanSwapChain& swapChain
 	//uniform buffer
 	m_BufferMem.Init(device, physDev, 4 * MEGA_BYTE, 4 * MEGA_BYTE);
 	m_UniformBuffer = m_BufferMem.AllocateBuffer(sizeof(PerFrame), vk::BufferUsageFlagBits::eUniformBuffer, nullptr);
+	m_PrimitiveBuffer = m_BufferMem.AllocateBuffer(sizeof(SDFSphere) * 100, vk::BufferUsageFlagBits::eStorageBuffer, nullptr);
 
 	for (int i = 0; i < BUFFER_COUNT; i++) {
-		std::array<vk::WriteDescriptorSet,3> writeSet;
+		std::array<vk::WriteDescriptorSet,4> writeSet;
 		writeSet[0].descriptorCount = 1;
 		writeSet[0].descriptorType = vk::DescriptorType::eStorageImage;
 		writeSet[0].dstArrayElement = 0;
@@ -114,16 +117,31 @@ void Raymarcher::Init(const vk::Device& device, const VulkanSwapChain& swapChain
 		bufferInfo.range = VK_WHOLE_SIZE;
 		writeSet[2].pBufferInfo = &bufferInfo;
 
+		writeSet[3].descriptorCount = 1;
+		writeSet[3].descriptorType = vk::DescriptorType::eStorageBuffer;
+		writeSet[3].dstArrayElement = 0;
+		writeSet[3].dstBinding = 3;
+		writeSet[3].dstSet = m_DescSets[i];
+		vk::DescriptorBufferInfo bufferInfo2;
+		bufferInfo2.buffer = m_PrimitiveBuffer.BufferHandle;
+		bufferInfo2.offset = 0;
+		bufferInfo2.range = VK_WHOLE_SIZE;
+		writeSet[3].pBufferInfo = &bufferInfo2;
+
 		device.updateDescriptorSets(writeSet, nullptr);
 	}
 }
 
-void Raymarcher::UpdateUniforms(VulkanCommandBuffer& cmdBuffer, const glm::mat4& viewProj, const glm::vec3& position, const glm::vec3& LightDir) {
+void Raymarcher::UpdateUniforms(VulkanCommandBuffer& cmdBuffer, const glm::mat4& viewProj, const glm::vec3& position, const glm::vec3& LightDir, const RenderQueue& queue) {
 	PerFrame frameInfo;
 	frameInfo.CamPos = glm::vec4(position,1);
 	frameInfo.invViewProj = glm::inverse(viewProj);
 	frameInfo.LightDir = glm::vec4(LightDir, 0);
+	frameInfo.SphereCount = queue.GetSpheres().size();
 	m_BufferMem.UpdateBuffer(m_UniformBuffer, sizeof(PerFrame), &frameInfo);
+
+	m_BufferMem.UpdateBuffer(m_PrimitiveBuffer, sizeof(SDFSphere) * frameInfo.SphereCount, (void*)queue.GetSpheres().data());
+
 	m_BufferMem.ScheduleTransfers(cmdBuffer);
 }
 

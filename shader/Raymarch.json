@@ -8,7 +8,8 @@
         [
             {"Binding":0, "Count":1, "Type":"StorageImage"},
             {"Binding":1, "Count":1, "Type":"CombinedImageSampler"},
-            {"Binding":2, "Count":1, "Type":"UniformBuffer"}
+            {"Binding":2, "Count":1, "Type":"UniformBuffer"},
+            {"Binding":3, "Count":1, "Type":"StorageBuffer"}
         ],
         [
             {"Binding":0, "Count":1, "Type":"CombinedImageSampler"},

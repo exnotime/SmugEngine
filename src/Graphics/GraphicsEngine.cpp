@@ -552,7 +552,7 @@ void GraphicsEngine::Render() {
 	m_vkCmdBuffer.Begin(nullptr, nullptr);
 	m_BufferMemory.ScheduleTransfers(m_vkCmdBuffer);
 	m_SkyBox.PrepareUniformBuffer(m_vkCmdBuffer, cd.ProjView, glm::translate(cd.Position));
-	m_Raymarcher.UpdateUniforms(m_vkCmdBuffer, cd.ProjView, cd.Position, LightDir);
+	m_Raymarcher.UpdateUniforms(m_vkCmdBuffer, cd.ProjView, cd.Position, LightDir, rq);
 	m_vkCmdBuffer.end();
 
 	m_vkQueue.Submit(m_vkCmdBuffer);

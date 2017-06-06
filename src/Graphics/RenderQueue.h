@@ -23,16 +23,16 @@ class GFX_DLL RenderQueue {
 	void AddModel(ResourceHandle handle, const ShaderInput& input);
 	void ScheduleTransfer(VkMemory& memory);
 
-	std::vector<CameraData>& GetCameras() {
+	const std::vector<CameraData>& GetCameras() const {
 		return m_Cameras;
 	}
-	std::vector<ShaderInput>& GetInputs() {
+	const std::vector<ShaderInput>& GetInputs() const {
 		return m_Inputs;
 	}
-	std::vector<ResourceHandle>& GetModels() {
+	const std::vector<ResourceHandle>& GetModels() const {
 		return m_Models;
 	}
-	VkAlloc& GetUniformBuffer() {
+	const VkAlloc& GetUniformBuffer() const {
 		return m_VkBuffer;
 	}
 
@@ -42,6 +42,9 @@ class GFX_DLL RenderQueue {
 	vk::DescriptorSet GetDescriptorSet() {
 		return m_DescSet;
 	}
+	//Signed distance field
+	void AddSphere(const SDFSphere& sphere) { m_Spheres.push_back(sphere); }
+	const std::vector<SDFSphere>& GetSpheres() const { return m_Spheres; }
 
   private:
 	std::vector<CameraData> m_Cameras;
@@ -49,4 +52,7 @@ class GFX_DLL RenderQueue {
 	std::vector<ResourceHandle> m_Models;
 	vk::DescriptorSet m_DescSet;
 	VkAlloc m_VkBuffer;
+
+	//Signed distance fields
+	std::vector<SDFSphere> m_Spheres;
 };

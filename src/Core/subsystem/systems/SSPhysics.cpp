@@ -25,7 +25,7 @@ void SSPhysics::Startup() {
 
 	RigidBodyComponent rc;
 	rc.Body = globals::g_Physics->CreateDynamicActor(tc.Position, tc.Orientation, tc.Scale, 1.0f, SPHERE);
-	rc.Body->Force = glm::vec3(1000, 0, 0);
+	rc.Body->Force = glm::vec3(300, 0, 0);
 	g_ComponentManager.CreateComponent(&rc, e, RigidBodyComponent::Flag);
 
 	ModelComponent mc;

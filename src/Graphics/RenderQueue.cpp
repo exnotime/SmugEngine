@@ -16,6 +16,7 @@ void RenderQueue::Clear() {
 	m_Cameras.clear();
 	m_Models.clear();
 	m_Inputs.clear();
+	m_Spheres.clear();
 }
 
 void RenderQueue::AddCamera(const CameraData & cd) {

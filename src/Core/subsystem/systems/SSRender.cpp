@@ -38,7 +38,6 @@ void SSRender::Update(const double deltaTime) {
 	int flag = ModelComponent::Flag | TransformComponent::Flag;
 	RenderQueue* rq = globals::g_Gfx->GetRenderQueue();
 	//Test Imgui
-	ImGui::ShowTestWindow();
 	ImGui::Begin("Enities");
 	if (ImGui::TreeNode("EntityList")) {
 		for (auto& e : g_EntityManager.GetEntityList()) {
@@ -52,13 +51,11 @@ void SSRender::Update(const double deltaTime) {
 		ImGui::TreePop();
 	}
 	ImGui::End();
+	//models
 	for (auto& e : g_EntityManager.GetEntityList()) {
 		if ((e.ComponentBitfield & flag) == flag) {
 			ModelComponent* mc = (ModelComponent*)g_ComponentManager.GetComponent(e, ModelComponent::Flag);
 			TransformComponent* tc = (TransformComponent*)g_ComponentManager.GetComponent(e, TransformComponent::Flag);
-
-			
-
 			tc->Transform = glm::scale(tc->Scale) * glm::translate(tc->Position) * glm::toMat4(tc->Orientation);
 
 			ShaderInput si;
@@ -67,7 +64,30 @@ void SSRender::Update(const double deltaTime) {
 			rq->AddModel(mc->ModelHandle, si);
 		}
 	}
-	
+	//sdf
+	SDFSphere s;
+	s.Pos = glm::vec3(0, -100, 0);
+	s.Radius = 100;
+	rq->AddSphere(s);
+
+	static float angle = 0.0f;
+	glm::quat q = glm::quat(glm::cos(angle), glm::vec3(0,1,0) * glm::sin(angle));
+	angle += 0.01f; if (angle > glm::pi<float>() * 2) angle = 0;
+	s.Pos = glm::vec3(5, 5, 5) * q;
+	s.Radius = 1;
+	rq->AddSphere(s);
+
+	s.Pos = glm::vec3(5, 5, -5) * q;
+	s.Radius = 2;
+	rq->AddSphere(s);
+
+	s.Pos = glm::vec3(-5, 5, 5) * q;
+	s.Radius = 3;
+	rq->AddSphere(s);
+
+	s.Pos = glm::vec3(-5, 5, -5) * q;
+	s.Radius = 4;
+	rq->AddSphere(s);
 	
 }
 

@@ -40,14 +40,15 @@ struct GFX_DLL DirLight {
 	float padd;
 };
 
-struct alignas(16) Box {
+struct Box {
 	glm::vec3 Bounds;
 	glm::vec3 Pos;
 };
 
-struct Sphere {
+struct SDFSphere {
 	glm::vec3 Pos;
 	float Radius;
+	glm::vec4 Color;
 };
 
 struct Cylinder {
