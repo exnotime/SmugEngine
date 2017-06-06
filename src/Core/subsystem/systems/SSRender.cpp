@@ -38,6 +38,7 @@ void SSRender::Update(const double deltaTime) {
 	int flag = ModelComponent::Flag | TransformComponent::Flag;
 	RenderQueue* rq = globals::g_Gfx->GetRenderQueue();
 	//Test Imgui
+	ImGui::ShowTestWindow();
 	ImGui::Begin("Enities");
 	if (ImGui::TreeNode("EntityList")) {
 		for (auto& e : g_EntityManager.GetEntityList()) {

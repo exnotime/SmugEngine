@@ -619,7 +619,7 @@ void VkPipeline::LoadPipelineFromFile(const vk::Device& device, const std::strin
 				bindings.push_back(binding);
 			}
 			vk::DescriptorSetLayoutCreateInfo descSetCreateInfo;
-			descSetCreateInfo.bindingCount = bindings.size();
+			descSetCreateInfo.bindingCount = (uint32_t)bindings.size();
 			descSetCreateInfo.pBindings = bindings.data();
 			vk::DescriptorSetLayout layout;
 			layout = device.createDescriptorSetLayout(descSetCreateInfo);
@@ -641,9 +641,9 @@ void VkPipeline::LoadPipelineFromFile(const vk::Device& device, const std::strin
 	//pipeline layout
 	vk::PipelineLayoutCreateInfo pipelineLayoutCreateInfo;
 	pipelineLayoutCreateInfo.pPushConstantRanges = pushConstRanges.data();
-	pipelineLayoutCreateInfo.pushConstantRangeCount = pushConstRanges.size();
+	pipelineLayoutCreateInfo.pushConstantRangeCount = (uint32_t)pushConstRanges.size();
 	pipelineLayoutCreateInfo.pSetLayouts = m_DescSetLayouts.data();
-	pipelineLayoutCreateInfo.setLayoutCount = m_DescSetLayouts.size();
+	pipelineLayoutCreateInfo.setLayoutCount = (uint32_t)m_DescSetLayouts.size();
 	m_PipelineLayout = device.createPipelineLayout(pipelineLayoutCreateInfo);
 	//if we use a compute shader we dont need anything else
 	if (m_ShaderBits & (1 << COMPUTE_SHADER)) {
@@ -676,7 +676,7 @@ void VkPipeline::LoadPipelineFromFile(const vk::Device& device, const std::strin
 	} else {
 		blendStateInfo = GetDefaultColorBlendState();
 	}
-	blendStateInfo.attachmentCount = ColorblendAttachmentStates.size();
+	blendStateInfo.attachmentCount = (uint32_t)ColorblendAttachmentStates.size();
 	blendStateInfo.pAttachments = ColorblendAttachmentStates.data();
 	//depth stencil state
 	vk::PipelineDepthStencilStateCreateInfo depthStencilState;
@@ -779,9 +779,9 @@ void VkPipeline::LoadPipelineFromFile(const vk::Device& device, const std::strin
 		}
 		vertexState = new vk::PipelineVertexInputStateCreateInfo();
 		vertexState->pVertexBindingDescriptions = vertexBindings.data();
-		vertexState->vertexBindingDescriptionCount = vertexBindings.size();
+		vertexState->vertexBindingDescriptionCount = (uint32_t)vertexBindings.size();
 		vertexState->pVertexAttributeDescriptions = vertexInputDescs.data();
-		vertexState->vertexAttributeDescriptionCount = vertexInputDescs.size();
+		vertexState->vertexAttributeDescriptionCount = (uint32_t)vertexInputDescs.size();
 	}
 
 	//viewport state
@@ -790,7 +790,7 @@ void VkPipeline::LoadPipelineFromFile(const vk::Device& device, const std::strin
 	viewportState.pViewports = &vp;
 	viewportState.scissorCount = 1;
 	vk::Rect2D scissor;
-	scissor.extent = vk::Extent2D(vp.width, vp.height);
+	scissor.extent = vk::Extent2D((uint32_t)vp.width, (uint32_t)vp.height);
 	scissor.offset = vk::Offset2D(0, 0);
 	viewportState.pScissors = &scissor;
 
@@ -808,7 +808,7 @@ void VkPipeline::LoadPipelineFromFile(const vk::Device& device, const std::strin
 	pipelineCreateInfo.pVertexInputState = (vertexState == nullptr) ? &m_DefaultVertexState : vertexState;
 	pipelineCreateInfo.pViewportState = &viewportState;
 	pipelineCreateInfo.renderPass = renderPass;
-	pipelineCreateInfo.stageCount = shaderStages.size();
+	pipelineCreateInfo.stageCount = (uint32_t)shaderStages.size();
 
 	m_Pipeline = device.createGraphicsPipeline(nullptr, pipelineCreateInfo);
 

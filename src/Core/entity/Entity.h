@@ -1,8 +1,8 @@
 #pragma once
 #include <vector>
 struct Entity {
-	unsigned int UID = 0;
-	unsigned int ComponentBitfield = 0;
-	unsigned int Tag = 0;
-	std::vector<int> Components;
+	uint64_t UID = 0;
+	uint32_t ComponentBitfield = 0;
+	uint32_t Tag = 0;
+	std::vector<uint32_t> Components;
 };

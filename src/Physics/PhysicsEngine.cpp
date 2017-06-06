@@ -74,7 +74,7 @@ void PhysicsEngine::Update(double deltaTime) {
 		}
 	}
 
-	m_Scene->simulate(m_StepTime);
+	m_Scene->simulate((PxReal)m_StepTime);
 	m_Scene->fetchResults(true);
 
 	//get updated positions
@@ -122,7 +122,7 @@ PhysicsBody* PhysicsEngine::CreateDynamicActor(const glm::vec3& pos, const glm::
 	transform.q.w = orientation.x;
 
 	PxRigidDynamic* actor = m_Physics->createRigidDynamic(transform);
-	PxMaterial* mat = m_Physics->createMaterial(0.5, 0.5, 0.1);
+	PxMaterial* mat = m_Physics->createMaterial((PxReal)0.5, (PxReal)0.5, (PxReal)0.1);
 	PxShape* pxshape;
 	switch (shape) {
 	case SPHERE:
@@ -146,7 +146,7 @@ PhysicsBody* PhysicsEngine::CreateDynamicActor(const glm::vec3& pos, const glm::
 	m_Actors.push_back(actor);
 
 	PhysicsBody* body = new PhysicsBody();
-	body->Actor = m_Actors.size() - 1;
+	body->Actor = (uint32_t)m_Actors.size() - 1;
 	body->Position = pos;
 	body->Orientation = orientation;
 	m_Bodies.push_back(body);
@@ -165,7 +165,7 @@ PhysicsBody* PhysicsEngine::CreateStaticActor(const glm::vec3& pos, const glm::q
 	transform.q.w = orientation.x;
 
 	PxRigidStatic* actor = m_Physics->createRigidStatic(transform);
-	PxMaterial* mat = m_Physics->createMaterial(0.5, 0.5, 0.1);
+	PxMaterial* mat = m_Physics->createMaterial((PxReal)0.5, (PxReal)0.5, (PxReal)0.1);
 	PxShape* pxshape;
 	switch (shape) {
 	case SPHERE:
@@ -186,7 +186,7 @@ PhysicsBody* PhysicsEngine::CreateStaticActor(const glm::vec3& pos, const glm::q
 	m_Actors.push_back(actor);
 
 	PhysicsBody* body = new PhysicsBody();
-	body->Actor = m_Actors.size() - 1;
+	body->Actor = uint32_t(m_Actors.size() - 1);
 	body->Position = pos;
 	body->Orientation = orientation;
 	m_Bodies.push_back(body);

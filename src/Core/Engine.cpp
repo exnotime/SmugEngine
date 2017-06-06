@@ -52,6 +52,7 @@ void Engine::Init() {
 	glfwSetMouseButtonCallback(m_Window->GetWindow(), MouseButtonCallback);
 	glfwSetCursorPosCallback(m_Window->GetWindow(), MousePosCallback);
 	glfwSetCharCallback(m_Window->GetWindow(), CharCallback);
+	glfwSetScrollCallback(m_Window->GetWindow(), ScrollCallback);
 	g_Input.SetCursorMode(m_Window->GetWindow(), GLFW_CURSOR_DISABLED);
 
 	//set up graphics engine

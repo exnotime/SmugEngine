@@ -7,7 +7,7 @@ class ComponentManager {
   public:
 	~ComponentManager();
 	static ComponentManager& GetInstance();
-	void AddComponentType(uint maxCount, size_t size, uint componentID, const char* name = "");
+	void AddComponentType(uint maxCount, uint size, uint componentID, const char* name = "");
 	void CreateComponent(const void* comp, Entity& ent, uint type);
 	void RemoveComponent(Entity& ent, uint type);
 	void RemoveComponents(Entity& ent);

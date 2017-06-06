@@ -141,7 +141,7 @@ void par_shapes_compute_normals(par_shapes_mesh* m);
 
 #ifndef PAR_HELPERS
 #define PAR_HELPERS 1
-#define PAR_PI (3.14159265359)
+#define PAR_PI (3.14159265359f)
 #define PAR_MIN(a, b) (a > b ? b : a)
 #define PAR_MAX(a, b) (a > b ? a : b)
 #define PAR_CLAMP(v, lo, hi) PAR_MAX(lo, PAR_MIN(hi, v))
@@ -1236,13 +1236,13 @@ par_shapes_mesh* par_shapes_create_lsystem(char const* text, int slices,
             par_shapes__copy3(frame->position, position);
             continue;
         } else {
-            value = atof(cmd->arg);
+            value = (float)atof(cmd->arg);
             if (!strcmp(cmd->cmd, "rx")) {
-                par_shapes_rotate(turtle, value * PAR_PI / 180.0, xaxis);
+                par_shapes_rotate(turtle, value * PAR_PI / 180.0f, xaxis);
             } else if (!strcmp(cmd->cmd, "ry")) {
-                par_shapes_rotate(turtle, value * PAR_PI / 180.0, yaxis);
+                par_shapes_rotate(turtle, value * PAR_PI / 180.0f, yaxis);
             } else if (!strcmp(cmd->cmd, "rz")) {
-                par_shapes_rotate(turtle, value * PAR_PI / 180.0, zaxis);
+                par_shapes_rotate(turtle, value * PAR_PI / 180.0f, zaxis);
             } else if (!strcmp(cmd->cmd, "tx")) {
                 float vec[3] = {value, 0, 0};
                 float t[3] = {
@@ -1413,15 +1413,15 @@ par_shapes_mesh* par_shapes_create_rock(int seed, int subd)
     par__simplex_noise(seed, &ctx);
     for (int p = 0; p < mesh->npoints; p++) {
         float* pt = mesh->points + p * 3;
-        float a = 0.25, f = 1.0;
+        float a = 0.25f, f = 1.0f;
         double n = a * par__simplex_noise2(ctx, f * pt[0], f * pt[2]);
         a *= 0.5; f *= 2;
         n += a * par__simplex_noise2(ctx, f * pt[0], f * pt[2]);
-        pt[0] *= 1 + 2 * n;
-        pt[1] *= 1 + n;
-        pt[2] *= 1 + 2 * n;
+        pt[0] *= 1 + 2 * (float)n;
+        pt[1] *= 1 + (float)n;
+        pt[2] *= 1 + 2 * (float)n;
         if (pt[1] < 0) {
-            pt[1] = -pow(-pt[1], 0.5) / 2;
+            pt[1] = -pow(-pt[1], 0.5f) / 2;
         }
     }
     par__simplex_noise_free(ctx);
@@ -1666,7 +1666,7 @@ par_shapes_mesh* par_shapes_weld(par_shapes_mesh const* mesh, float epsilon,
     par_shapes_mesh* clone = par_shapes_clone(mesh);
     float aabb[6];
     int gridsize = 20;
-    float maxcell = gridsize - 1;
+    float maxcell = (float)(gridsize - 1);
     par_shapes_compute_aabb(clone, aabb);
     float scale[3] = {
         maxcell / (aabb[3] - aabb[0]),
@@ -1697,7 +1697,7 @@ par_shapes_mesh* par_shapes_weld(par_shapes_mesh const* mesh, float epsilon,
         free(newmap);
     }
     free(sortmap);
-    par_shapes_scale(clone, 1.0 / scale[0], 1.0 / scale[1], 1.0 / scale[2]);
+    par_shapes_scale(clone, 1.0f / scale[0], 1.0f / scale[1], 1.0f / scale[2]);
     par_shapes_translate(clone, aabb[0], aabb[1], aabb[2]);
     return clone;
 }
@@ -1723,9 +1723,9 @@ struct osn_context {
     int16_t* perm;
     int16_t* permGradIndex3D;
 };
-
+#ifndef ARRAYSIZE
 #define ARRAYSIZE(x) (sizeof((x)) / sizeof((x)[0]))
-
+#endif
 /*
  * Gradients for 2D. They approximate the directions to the
  * vertices of an octagon from the center.

@@ -11,9 +11,9 @@ void SubSystemSet::AddSubSystem( SubSystem* ss, uint32_t startUpPrio, uint32_t u
 	SubSystemEntry sse;
 	sse.ss = ss;
 
-	sse.start = (startUpPrio == SUBSYSTEM_INPUT_ORDER) ? m_Entries.size() : startUpPrio;
-	sse.update = (updatePrio == SUBSYSTEM_INPUT_ORDER) ? m_Entries.size() : updatePrio;
-	sse.shutdown = (shutdownPrio == SUBSYSTEM_INPUT_ORDER) ? m_Entries.size() : shutdownPrio;
+	sse.start = (startUpPrio == SUBSYSTEM_INPUT_ORDER) ? (uint32_t)m_Entries.size() : startUpPrio;
+	sse.update = (updatePrio == SUBSYSTEM_INPUT_ORDER) ? (uint32_t)m_Entries.size() : updatePrio;
+	sse.shutdown = (shutdownPrio == SUBSYSTEM_INPUT_ORDER) ? (uint32_t)m_Entries.size() : shutdownPrio;
 
 	ss->SetID(++m_Enumerator);
 	m_Entries.push_back(sse);

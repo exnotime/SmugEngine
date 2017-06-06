@@ -59,9 +59,9 @@ static vk::PipelineVertexInputStateCreateInfo GetVertexState() {
 		VertexAttributes.push_back(attrDesc); //texcoord
 
 		VertexState.pVertexBindingDescriptions = VertexBindings.data();
-		VertexState.vertexBindingDescriptionCount = VertexBindings.size();
+		VertexState.vertexBindingDescriptionCount = (uint32_t)VertexBindings.size();
 		VertexState.pVertexAttributeDescriptions = VertexAttributes.data();
-		VertexState.vertexAttributeDescriptionCount = VertexAttributes.size();
+		VertexState.vertexAttributeDescriptionCount = (uint32_t)VertexAttributes.size();
 		first = false;
 	}
 	return VertexState;

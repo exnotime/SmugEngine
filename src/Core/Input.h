@@ -76,3 +76,7 @@ static void KeyboardCallBack(GLFWwindow* window, int key, int scancode, int acti
 static void CharCallback(GLFWwindow* window, unsigned int c) {
 	ImGui_ImplGlfwVulkan_CharCallback(window, c);
 };
+
+static void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
+	ImGui_ImplGlfwVulkan_ScrollCallback(window, xoffset, yoffset);
+}

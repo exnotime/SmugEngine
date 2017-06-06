@@ -62,7 +62,7 @@ ResourceHandle AssetLoader::LoadAsset(const char* filename) {
 		if (!error) {
 			ResourceHandle handle = m_Allocator.AllocModel(modelInfo, m_Allocator.ModelData);
 			//clean up model
-			for (int i = 0; i < modelInfo.MaterialCount; ++i) {
+			for (uint32_t i = 0; i < modelInfo.MaterialCount; ++i) {
 				SAFE_DELETE(modelInfo.Materials[i].Albedo.Data);
 				SAFE_DELETE(modelInfo.Materials[i].Normal.Data);
 				SAFE_DELETE(modelInfo.Materials[i].Roughness.Data);
@@ -70,7 +70,7 @@ ResourceHandle AssetLoader::LoadAsset(const char* filename) {
 			}
 			SAFE_DELETE(modelInfo.Materials);
 
-			for (int i = 0; i < modelInfo.MeshCount; ++i) {
+			for (uint32_t i = 0; i < modelInfo.MeshCount; ++i) {
 				SAFE_DELETE(modelInfo.Meshes[i].Indices);
 				SAFE_DELETE(modelInfo.Meshes[i].Vertices);
 			}

@@ -63,7 +63,7 @@ void VkMemory::Init(const vk::Device& device, const vk::PhysicalDevice& physDev,
 
 VkAlloc VkMemory::AllocateBuffer(uint64_t size, vk::BufferUsageFlags usage, void* data) {
 	if (m_DeviceOffset + size > m_DeviceSize) {
-		printf("Failed allocation of size %d\n Total memory in buffer %d, Used %d\n", size, m_DeviceSize, m_DeviceOffset);
+		printf("Failed allocation of size %d\n Total memory in buffer %d, Used %d\n", (uint32_t)size, (uint32_t)m_DeviceSize, (uint32_t)m_DeviceOffset);
 		return VkAlloc();
 	}
 
@@ -113,7 +113,7 @@ VkAlloc VkMemory::AllocateImage(vk::Image img, gli::texture2d* texture, void* da
 	m_DeviceOffset = (m_DeviceOffset + (memReq.alignment - 1)) & ~(memReq.alignment - 1);
 
 	if (m_DeviceOffset + memReq.size > m_DeviceSize) {
-		printf("Failed allocation of size %d\n Total memory in buffer %d, Used %d\n", memReq.size, m_DeviceSize, m_DeviceOffset);
+		printf("Failed allocation of size %d\n Total memory in buffer %d, Used %d\n", (uint32_t)memReq.size, (uint32_t)m_DeviceSize, (uint32_t)m_DeviceOffset);
 		return VkAlloc();
 	}
 	VkDeviceSize size = (texture) ? texture->size() : memReq.size;
@@ -156,7 +156,14 @@ VkAlloc VkMemory::AllocateImage(vk::Image img, gli::texture2d* texture, void* da
 		}
 
 	}
+
+	VkAlloc alloc;
+	alloc.Offset = m_DeviceOffset;
+	alloc.Size = memReq.size;
+
 	m_DeviceOffset += memReq.size;
+
+	return alloc;
 }
 
 VkAlloc VkMemory::AllocateImage(vk::Image img, const TextureInfo& texInfo) {
@@ -164,7 +171,7 @@ VkAlloc VkMemory::AllocateImage(vk::Image img, const TextureInfo& texInfo) {
 	m_DeviceOffset = (m_DeviceOffset + memReq.alignment - 1) & ~(memReq.alignment - 1);
 
 	if (m_DeviceOffset + memReq.size > m_DeviceSize) {
-		printf("Failed allocation of size %d\n Total memory in buffer %d, Used %d\n", memReq.size, m_DeviceSize, m_DeviceOffset);
+		printf("Failed allocation of size %d\n Total memory in buffer %d, Used %d\n", (uint32_t)memReq.size, (uint32_t)m_DeviceSize, (uint32_t)m_DeviceOffset);
 		return VkAlloc();
 	}
 	VkDeviceSize size = (texInfo.Data) ? texInfo.LinearSize : memReq.size;
@@ -185,7 +192,7 @@ VkAlloc VkMemory::AllocateImage(vk::Image img, const TextureInfo& texInfo) {
 			TextureTransfer transfer;
 			transfer.Image = img;
 			int w = texInfo.Width, h = texInfo.Height;
-			for (int i = 0; i < texInfo.MipCount; i++) {
+			for (uint32_t i = 0; i < texInfo.MipCount; i++) {
 				vk::BufferImageCopy copy;
 				copy.bufferOffset = m_StagingOffset;
 				copy.imageExtent = vk::Extent3D(w, h, 1);
@@ -222,7 +229,7 @@ VkAlloc VkMemory::AllocateImageCube(vk::Image img, gli::texture_cube* texture, v
 	m_DeviceOffset = (m_DeviceOffset + (memReq.alignment - 1)) & ~(memReq.alignment - 1);
 
 	if (m_DeviceOffset + memReq.size > m_DeviceSize) {
-		printf("Failed allocation of size %d\n Total memory in buffer %d, Used %d\n", memReq.size, m_DeviceSize, m_DeviceOffset);
+		printf("Failed allocation of size %d\n Total memory in buffer %d, Used %d\n", (uint32_t)memReq.size, (uint32_t)m_DeviceSize, (uint32_t)m_DeviceOffset);
 		return VkAlloc();
 	}
 	VkDeviceSize size = (texture) ? texture->size() : memReq.size;
@@ -281,7 +288,7 @@ VkAlloc VkMemory::AllocateImageCube(vk::Image img, const TextureInfo& texInfo) {
 	m_DeviceOffset = (m_DeviceOffset + memReq.alignment - 1) & ~memReq.alignment - 1;
 
 	if (m_DeviceOffset + memReq.size > m_DeviceSize) {
-		printf("Failed allocation of size %d\n Total memory in buffer %d, Used %d\n", memReq.size, m_DeviceSize, m_DeviceOffset);
+		printf("Failed allocation of size %d\n Total memory in buffer %d, Used %d\n", (uint32_t)memReq.size, (uint32_t)m_DeviceSize, (uint32_t)m_DeviceOffset);
 		return VkAlloc();
 	}
 	VkDeviceSize size = (texInfo.Data) ? texInfo.LinearSize : memReq.size;
@@ -301,9 +308,9 @@ VkAlloc VkMemory::AllocateImageCube(vk::Image img, const TextureInfo& texInfo) {
 		if (texInfo.Data) {
 			TextureTransfer transfer;
 			transfer.Image = img;
-			for (int f = 0; f < texInfo.Layers; f++) {
+			for (uint32_t f = 0; f < texInfo.Layers; f++) {
 				int w = texInfo.Width, h = texInfo.Height;
-				for (int i = 0; i < texInfo.MipCount; i++) {
+				for (uint32_t i = 0; i < texInfo.MipCount; i++) {
 					vk::BufferImageCopy copy;
 					copy.bufferOffset = m_StagingOffset;
 					copy.imageExtent = vk::Extent3D(w, h, 1);

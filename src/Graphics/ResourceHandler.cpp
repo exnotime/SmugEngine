@@ -105,17 +105,17 @@ ResourceHandle ResourceHandler::AllocateModel(const ModelInfo& model) {
 	internalModel.MeshCount = model.MeshCount;
 	internalModel.Meshes = new Mesh[model.MeshCount];
 	uint32_t indexCounter = 0;
-	for (int m = 0; m < model.MeshCount; ++m) {
+	for (uint32_t m = 0; m < model.MeshCount; ++m) {
 		//deinterleave the vertex data
 		MeshInfo& mesh = model.Meshes[m];
-		for (int v = 0; v < mesh.VertexCount; ++v) {
+		for (uint32_t v = 0; v < mesh.VertexCount; ++v) {
 			positions.push_back(mesh.Vertices[v].Position);
 			normals.push_back(mesh.Vertices[v].Normal);
 			tangents.push_back(mesh.Vertices[v].Tangent);
 			texcoords.push_back(mesh.Vertices[v].TexCoord);
 		}
 		//truncuate to 16 bit
-		for (int i = 0; i < mesh.IndexCount; ++i) {
+		for (uint32_t i = 0; i < mesh.IndexCount; ++i) {
 			indices.push_back(uint16_t(mesh.Indices[i]));
 		}
 		internalModel.Meshes[m].IndexCount = mesh.IndexCount;
@@ -173,7 +173,7 @@ ResourceHandle ResourceHandler::AllocateModel(const ModelInfo& model) {
 	vk::BufferUsageFlags flags = vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst;
 	internalModel.IndexBuffer = m_IndexMemory.AllocateBuffer(
 	                                sizeof(uint16_t) * indices.size(), flags, indices.data());
-	internalModel.IndexCount = indices.size();
+	internalModel.IndexCount = (uint32_t)indices.size();
 
 	flags = vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst;
 	internalModel.VertexBuffers[POSITION] = m_VertexMemory[POSITION].AllocateBuffer(

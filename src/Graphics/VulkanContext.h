@@ -80,7 +80,7 @@ class VulkanCommandBuffer : public vk::CommandBuffer {
 
 	void PushPipelineBarrier() {
 		this->pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe, vk::PipelineStageFlagBits::eTopOfPipe, vk::DependencyFlagBits::eByRegion,
-		                      0, nullptr, 0, nullptr, m_ImgBarriers.size(), m_ImgBarriers.data());
+		                      0, nullptr, 0, nullptr, (uint32_t)m_ImgBarriers.size(), m_ImgBarriers.data());
 		m_ImgBarriers.clear();
 		//TODO add memory and buffer barriers
 	}

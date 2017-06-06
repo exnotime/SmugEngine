@@ -58,10 +58,10 @@ void GraphicsEngine::CreateContext() {
 #endif
 
 	vk::InstanceCreateInfo instInfo;
-	instInfo.enabledExtensionCount = extensions.size();
+	instInfo.enabledExtensionCount = (uint32_t)extensions.size();
 	instInfo.pApplicationInfo = &appInfo;
 	instInfo.ppEnabledExtensionNames = &extensions[0];
-	instInfo.enabledLayerCount = layers.size();
+	instInfo.enabledLayerCount = (uint32_t)layers.size();
 	instInfo.ppEnabledLayerNames = &layers[0];
 	m_VKContext.Instance = vk::createInstance(instInfo);
 
@@ -119,9 +119,9 @@ void GraphicsEngine::CreateContext() {
 	vk::DeviceCreateInfo deviceInfo;
 	deviceInfo.queueCreateInfoCount = 1;
 	deviceInfo.pQueueCreateInfos = &m_vkQueue.GetInfo();
-	deviceInfo.enabledExtensionCount = deviceExtensions.size();
+	deviceInfo.enabledExtensionCount = (uint32_t)deviceExtensions.size();
 	deviceInfo.ppEnabledExtensionNames = &deviceExtensions[0];
-	deviceInfo.enabledLayerCount = devicelayers.size();
+	deviceInfo.enabledLayerCount = (uint32_t)devicelayers.size();
 	deviceInfo.ppEnabledLayerNames = &devicelayers[0];
 	deviceInfo.pEnabledFeatures = nullptr;
 	VK_DEVICE = VK_PHYS_DEVICE.createDevice(deviceInfo);
@@ -274,7 +274,7 @@ void GraphicsEngine::CreateSwapChain(VkSurfaceKHR surface) {
 	attachmentDesc.samples = msaaCount;
 	attachments.push_back(attachmentDesc);
 
-	renderPassInfo.attachmentCount = attachments.size();
+	renderPassInfo.attachmentCount = (uint32_t)attachments.size();
 	renderPassInfo.pAttachments = attachments.data();
 
 	vk::SubpassDescription subPassDesc;
@@ -317,7 +317,7 @@ void GraphicsEngine::CreateSwapChain(VkSurfaceKHR surface) {
 
 	attachments.push_back(attachmentDesc);
 
-	renderPassInfo.attachmentCount = attachments.size();
+	renderPassInfo.attachmentCount = (uint32_t)attachments.size();
 	renderPassInfo.pAttachments = attachments.data();
 
 	subPassDesc.colorAttachmentCount = 1;
@@ -425,7 +425,7 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eStorageBufferDynamic, 1000));
 	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eInputAttachment, 1000));
 	descPoolInfo.pPoolSizes = poolSizes.data();
-	descPoolInfo.poolSizeCount = poolSizes.size();
+	descPoolInfo.poolSizeCount = (uint32_t)poolSizes.size();
 	m_DescriptorPool = VK_DEVICE.createDescriptorPool(descPoolInfo);
 
 	{
@@ -608,7 +608,7 @@ void GraphicsEngine::Render() {
 		m_vkCmdBuffer.pushConstants(m_Pipeline.GetPipelineLayout(),vk::ShaderStageFlagBits::eAll, 0, sizeof(unsigned), &uniformOffset);
 
 		vk::DescriptorSet mat;
-		for (int m = 0; m < model.MeshCount; ++m) {
+		for (uint32_t m = 0; m < model.MeshCount; ++m) {
 			Mesh& mesh = model.Meshes[m];
 			if (mat != mesh.Material) {
 				mat = mesh.Material;
@@ -629,9 +629,9 @@ void GraphicsEngine::Render() {
 		resolve.dstSubresource.baseArrayLayer = 0;
 		resolve.dstSubresource.layerCount = 1;
 		resolve.dstSubresource.mipLevel = 0;
-		resolve.extent.width = m_Viewport.width;
-		resolve.extent.height = m_Viewport.height;
-		resolve.extent.depth = 1.0f;
+		resolve.extent.width = (uint32_t)m_Viewport.width;
+		resolve.extent.height = (uint32_t)m_Viewport.height;
+		resolve.extent.depth = 1;
 		resolve.srcOffset.x = 0;
 		resolve.srcOffset.y = 0;
 		resolve.srcSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
@@ -709,8 +709,8 @@ void GraphicsEngine::Render() {
 	rpBeginInfo.clearValueCount = 0;
 	rpBeginInfo.renderPass = m_ImguiRenderPass;
 	rpBeginInfo.framebuffer = m_VKSwapChain.FrameBuffers[VK_FRAME_INDEX];
-	rpBeginInfo.renderArea.extent.width = m_ScreenSize.x;
-	rpBeginInfo.renderArea.extent.height = m_ScreenSize.y;
+	rpBeginInfo.renderArea.extent.width = (uint32_t)m_ScreenSize.x;
+	rpBeginInfo.renderArea.extent.height = (uint32_t)m_ScreenSize.y;
 	m_vkImguiCmdBuffer.beginRenderPass(rpBeginInfo, vk::SubpassContents::eInline);
 	ImGui::SetCurrentContext(m_ImguiCtx);
 	ImGui_ImplGlfwVulkan_Render(m_vkImguiCmdBuffer);

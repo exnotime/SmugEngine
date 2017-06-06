@@ -48,7 +48,7 @@ void SSCamera::Update(const double deltaTime) {
 			TransformComponent* tc = (TransformComponent*)g_ComponentManager.GetComponent(e, TransformComponent::Flag);
 
 			glm::vec3 velocity = glm::vec3(0.0f);
-			float speed = CAMERA_SPEED * deltaTime;
+			double speed = CAMERA_SPEED * deltaTime;
 			if(g_Input.IsKeyDown(GLFW_KEY_LEFT_SHIFT)) {
 				speed *= SPRINT_FACTOR;
 			}
@@ -72,8 +72,8 @@ void SSCamera::Update(const double deltaTime) {
 				cc->Cam.MoveWorld(glm::vec3(0, -speed, 0));
 			}
 
-			cc->Cam.YawWorld(g_Input.GetMouseDelta().x * -CAMERA_ROTATION_SPEED);
-			cc->Cam.PitchRelative(g_Input.GetMouseDelta().y * CAMERA_ROTATION_SPEED);
+			cc->Cam.YawWorld((float)g_Input.GetMouseDelta().x * -CAMERA_ROTATION_SPEED);
+			cc->Cam.PitchRelative((float)g_Input.GetMouseDelta().y * CAMERA_ROTATION_SPEED);
 
 			cc->Cam.CalculateViewProjection();
 

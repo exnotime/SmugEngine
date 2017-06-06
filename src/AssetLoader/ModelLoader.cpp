@@ -18,13 +18,13 @@ char* ModelLoader::LoadModel(const std::string& filename, ModelInfo& model) {
 			model.MeshCount = scene->mNumMeshes;
 			model.Meshes = new MeshInfo[model.MeshCount];
 			uint32_t indexCount = 0;
-			for (int m = 0; m < model.MeshCount; ++m) {
+			for (uint32_t m = 0; m < model.MeshCount; ++m) {
 				MeshInfo& meshInfo = model.Meshes[m];
 				aiMesh* mesh = scene->mMeshes[m];
 				meshInfo.Material = mesh->mMaterialIndex;
 				meshInfo.VertexCount = mesh->mNumVertices;
 				meshInfo.Vertices = new Vertex[meshInfo.VertexCount];
-				for (int v = 0; v < meshInfo.VertexCount; ++v) {
+				for (uint32_t v = 0; v < meshInfo.VertexCount; ++v) {
 					meshInfo.Vertices[v].Position = glm::vec3(mesh->mVertices[v].x, mesh->mVertices[v].y, mesh->mVertices[v].z);
 					meshInfo.Vertices[v].Normal = glm::normalize(glm::vec3(mesh->mNormals[v].x, mesh->mNormals[v].y, mesh->mNormals[v].z));
 					glm::vec3 t = glm::normalize(glm::vec3(mesh->mTangents[v].x, mesh->mTangents[v].y, mesh->mTangents[v].z));
@@ -37,7 +37,7 @@ char* ModelLoader::LoadModel(const std::string& filename, ModelInfo& model) {
 				}
 				meshInfo.IndexCount = mesh->mNumFaces * 3;
 				meshInfo.Indices = new uint32_t[meshInfo.IndexCount];
-				for (int f = 0; f < mesh->mNumFaces; ++f) {
+				for (uint32_t f = 0; f < mesh->mNumFaces; ++f) {
 					meshInfo.Indices[f * 3] = indexCount + mesh->mFaces[f].mIndices[0];
 					meshInfo.Indices[f * 3 + 1] = indexCount + mesh->mFaces[f].mIndices[1];
 					meshInfo.Indices[f * 3 + 2] = indexCount + mesh->mFaces[f].mIndices[2];
@@ -48,7 +48,7 @@ char* ModelLoader::LoadModel(const std::string& filename, ModelInfo& model) {
 		if (scene->HasMaterials()) {
 			model.MaterialCount = scene->mNumMaterials;
 			model.Materials = new MaterialInfo[model.MaterialCount];
-			for (int m = 0; m < model.MaterialCount; ++m) {
+			for (uint32_t m = 0; m < model.MaterialCount; ++m) {
 				aiMaterial* mat = scene->mMaterials[m];
 				std::string dir = filename.substr(0, filename.find_last_of('/') + 1);
 				aiString path;
@@ -80,7 +80,7 @@ char* ModelLoader::LoadModel(const std::string& filename, ModelInfo& model) {
 			//force default material
 			model.MaterialCount = 1;
 			model.Materials = new MaterialInfo();
-			for (int m = 0; m < model.MeshCount; ++m) {
+			for (uint32_t m = 0; m < model.MeshCount; ++m) {
 				model.Meshes[m].Material = 0;
 			}
 		}

@@ -21,7 +21,7 @@ void Input::Update() {
 	memcpy(m_GamePadLastFrame, m_GamePads, sizeof(Gamepad) * 4);
 	//update gamepads
 	for (int i = 0; i < 4; i++) {
-		m_GamePads[i].Connected = (bool)glfwJoystickPresent(i);
+		m_GamePads[i].Connected = glfwJoystickPresent(i) != 0;
 		if (m_GamePads[i].Connected) {
 			const char* name = glfwGetJoystickName(i);
 			//update axes
@@ -35,20 +35,20 @@ void Input::Update() {
 			m_GamePads[i].LeftTrigger = axes[4] * 0.5f + 0.5f; //modify to 0 -> 1 instead of -1 -> 1
 			m_GamePads[i].RightTrigger = axes[5] * 0.5f + 0.5f;
 
-			m_GamePads[i].A = buttons[0];
-			m_GamePads[i].B = buttons[1];
-			m_GamePads[i].X = buttons[2];
-			m_GamePads[i].Y = buttons[3];
-			m_GamePads[i].LB = buttons[4];
-			m_GamePads[i].RB = buttons[5];
-			m_GamePads[i].Select = buttons[6];
-			m_GamePads[i].Start = buttons[7];
-			m_GamePads[i].LeftClick = buttons[8];
-			m_GamePads[i].RightClick = buttons[9];
-			m_GamePads[i].DpadUp = buttons[10];
-			m_GamePads[i].DpadRight = buttons[11];
-			m_GamePads[i].DpadDown = buttons[12];
-			m_GamePads[i].DpadLeft = buttons[13];
+			m_GamePads[i].A = buttons[0] != 0;
+			m_GamePads[i].B = buttons[1] != 0;
+			m_GamePads[i].X = buttons[2] != 0;
+			m_GamePads[i].Y = buttons[3] != 0;
+			m_GamePads[i].LB = buttons[4] != 0;
+			m_GamePads[i].RB = buttons[5] != 0;
+			m_GamePads[i].Select = buttons[6] != 0;
+			m_GamePads[i].Start = buttons[7] != 0;
+			m_GamePads[i].LeftClick = buttons[8] != 0;
+			m_GamePads[i].RightClick = buttons[9] != 0;
+			m_GamePads[i].DpadUp = buttons[10] != 0;
+			m_GamePads[i].DpadRight = buttons[11] != 0;
+			m_GamePads[i].DpadDown = buttons[12] != 0;
+			m_GamePads[i].DpadLeft = buttons[13] != 0;
 		}
 	}
 
