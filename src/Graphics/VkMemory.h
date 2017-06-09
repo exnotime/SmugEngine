@@ -37,7 +37,7 @@ class VkMemory {
 	void Deallocate(VkAlloc& alloc);
 	void ScheduleTransfers(VulkanCommandBuffer& cmdBuffer);
 	void UpdateBuffer(VkAlloc buffer, uint64_t size, void* data);
-
+	void UpdateBuffer(VkAlloc buffer,uint64_t offset, uint64_t size, void* data);
   private:
 	struct TextureTransfer {
 		vk::Image Image;

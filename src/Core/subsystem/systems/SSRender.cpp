@@ -68,26 +68,27 @@ void SSRender::Update(const double deltaTime) {
 	SDFSphere s;
 	s.Pos = glm::vec3(0, -100, 0);
 	s.Radius = 100;
-	rq->AddSphere(s);
+	rq->AddSphere(s, glm::vec4(0,0.4f,0,1));
 
 	static float angle = 0.0f;
 	glm::quat q = glm::quat(glm::cos(angle), glm::vec3(0,1,0) * glm::sin(angle));
 	angle += 0.01f; if (angle > glm::pi<float>() * 2) angle = 0;
 	s.Pos = glm::vec3(5, 5, 5) * q;
-	s.Radius = 1;
-	rq->AddSphere(s);
+	s.Radius = 1.3f + glm::cos(angle);
+	rq->AddSphere(s, glm::vec4(0.5f, 0.1f, 0, 1));
 
 	s.Pos = glm::vec3(5, 5, -5) * q;
-	s.Radius = 2;
-	rq->AddSphere(s);
+	s.Radius = 2.4f + glm::cos(angle) * 2.0f;
+	rq->AddSphere(s, glm::vec4(0, 0, 0.5f, 1));
 
 	s.Pos = glm::vec3(-5, 5, 5) * q;
-	s.Radius = 3;
-	rq->AddSphere(s);
+	s.Radius = 3 - abs(glm::cos(angle));
+	rq->AddSphere(s, glm::vec4(1, 1, 0, 1));
 
-	s.Pos = glm::vec3(-5, 5, -5) * q;
-	s.Radius = 4;
-	rq->AddSphere(s);
+	SDFBox box;
+	box.Pos = glm::vec3(-5, 5, -5) * q;
+	box.Bounds = glm::vec3(1.3f + glm::cos(angle));
+	rq->AddBox(box, glm::vec4(0.2f, 0.4f, 0.3f, 1));
 	
 }
 

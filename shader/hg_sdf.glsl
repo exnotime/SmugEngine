@@ -244,6 +244,10 @@ float fBox2(vec2 p, vec2 b) {
 	return length(max(d, vec2(0))) + vmax(min(d, vec2(0)));
 }
 
+float fBoxRound(vec3 p, vec3 b, float r){
+    return length(max(abs(p) - b, 0)) - r;
+}
+
 
 // Endless "corner"
 float fCorner (vec2 p) {

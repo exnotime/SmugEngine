@@ -53,8 +53,6 @@ void SSPhysics::Update(const double deltaTime) {
 			tc->Orientation = rc->Body->Orientation;
 		}
 	}
-
-
 }
 
 void SSPhysics::Shutdown() {

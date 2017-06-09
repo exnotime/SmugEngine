@@ -394,6 +394,26 @@ void VkMemory::UpdateBuffer(VkAlloc buffer, uint64_t size, void* data) {
 	}
 }
 
+void VkMemory::UpdateBuffer(VkAlloc buffer, uint64_t offset, uint64_t size, void* data) {
+	if (data && m_StagingOffset + size < m_StagingSize) {
+		//transfer data to staging buffer
+		void* bufferPtr = m_Device.mapMemory(m_StagingMem, m_StagingOffset, size);
+		memcpy(bufferPtr, data, size);
+		vk::MappedMemoryRange range;
+		range.memory = m_StagingMem;
+		range.offset = m_StagingOffset;
+		range.size = size;
+		m_Device.flushMappedMemoryRanges(1, &range);
+		m_Device.unmapMemory(m_StagingMem);
+		//prepare copy
+		vk::BufferCopy copy;
+		copy.dstOffset = buffer.Offset + offset;
+		copy.srcOffset = m_StagingOffset;
+		copy.size = size;
+		m_Transfers.push_back(copy);
+		m_StagingOffset += size;
+	}
+}
 void VkMemory::Deallocate(VkAlloc& alloc) {
 	//end of heap just needs to rewind head
 	if (alloc.Offset + alloc.Size == m_DeviceOffset) {
@@ -402,7 +422,7 @@ void VkMemory::Deallocate(VkAlloc& alloc) {
 	}
 	//otherwise we increase the amount of fragmented space
 	m_DeviceFragSpace += alloc.Size;
-
+	//TODO HANDLE ACTUAL DEALLOCATION
 	alloc.TextureHandle = nullptr;
 	alloc.Offset = 0;
 	alloc.Size = 0;

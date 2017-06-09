@@ -28,5 +28,6 @@ class Raymarcher {
 		glm::vec4 CamPos;
 		glm::vec4 LightDir;
 		uint32_t SphereCount;
+		uint32_t BoxCount;
 	};
 };

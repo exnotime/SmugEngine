@@ -81,7 +81,7 @@ void Raymarcher::Init(const vk::Device& device, const VulkanSwapChain& swapChain
 	//uniform buffer
 	m_BufferMem.Init(device, physDev, 4 * MEGA_BYTE, 4 * MEGA_BYTE);
 	m_UniformBuffer = m_BufferMem.AllocateBuffer(sizeof(PerFrame), vk::BufferUsageFlagBits::eUniformBuffer, nullptr);
-	m_PrimitiveBuffer = m_BufferMem.AllocateBuffer(sizeof(SDFSphere) * 100, vk::BufferUsageFlagBits::eStorageBuffer, nullptr);
+	m_PrimitiveBuffer = m_BufferMem.AllocateBuffer((sizeof(SDFSphere) + sizeof(SDFBox) + sizeof(glm::vec4)) * 128, vk::BufferUsageFlagBits::eStorageBuffer, nullptr);
 
 	for (int i = 0; i < BUFFER_COUNT; i++) {
 		std::array<vk::WriteDescriptorSet,4> writeSet;
@@ -137,11 +137,13 @@ void Raymarcher::UpdateUniforms(VulkanCommandBuffer& cmdBuffer, const glm::mat4&
 	frameInfo.CamPos = glm::vec4(position,1);
 	frameInfo.invViewProj = glm::inverse(viewProj);
 	frameInfo.LightDir = glm::vec4(LightDir, 0);
-	frameInfo.SphereCount = queue.GetSpheres().size();
+	frameInfo.SphereCount = (uint32_t)queue.GetSpheres().size();
+	frameInfo.BoxCount = (uint32_t)queue.GetBoxes().size();
 	m_BufferMem.UpdateBuffer(m_UniformBuffer, sizeof(PerFrame), &frameInfo);
 
 	m_BufferMem.UpdateBuffer(m_PrimitiveBuffer, sizeof(SDFSphere) * frameInfo.SphereCount, (void*)queue.GetSpheres().data());
-
+	m_BufferMem.UpdateBuffer(m_PrimitiveBuffer, sizeof(SDFSphere) * 128, sizeof(SDFBox) * frameInfo.BoxCount, (void*)queue.GetBoxes().data());
+	m_BufferMem.UpdateBuffer(m_PrimitiveBuffer, (sizeof(SDFSphere) + sizeof(SDFBox)) * 128, sizeof(glm::vec4) * queue.GetSDFColors().size(), (void*)queue.GetSDFColors().data());
 	m_BufferMem.ScheduleTransfers(cmdBuffer);
 }
 

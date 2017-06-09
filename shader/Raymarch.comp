@@ -11,43 +11,64 @@ layout(binding = 2) uniform PerFrame{
     vec4 CamPos;
     vec4 Lightdir;
     uint SphereCount;
+    uint BoxCount;
 };
 
 struct Sphere{
     vec3 P;
     float R;
-    vec4 C;
 };
-#define MAX_SPHERES 100
+
+struct Box {
+	vec3 B;
+    float padd;
+	vec3 P;
+    float padd2;
+};
+
+#define MAX_PRIM 128
 layout(binding = 3) buffer Primitives{
-    Sphere g_Spheres[MAX_SPHERES];
+    Sphere g_Spheres[MAX_PRIM];
+    Box g_Boxes[MAX_PRIM];
+    vec4 g_Colors[MAX_PRIM];
 };
 
 #include "lighting.glsl"
 #include "hg_sdf.glsl"
 
 float near = 0.1;
-float far = 250.0;
-int MaxIt = 128;
+float far = 1000.0;
+int MaxIt = 2048;
 
-float map(vec3 p){
-    float d = far;
+vec2 opUnion(vec2 p1, vec2 p2){
+    return p1.x < p2.x ? p1 : p2;
+}
+
+vec2 map(vec3 p){
+    vec2 d = vec2(far, 0);
+    pMod2(p.xz, vec2(100.0));
     for(uint s = 0; s < SphereCount; ++s){
         Sphere sp = g_Spheres[s];
-        d = min(d, fSphere(p - sp.P, sp.R));
+        d = opUnion(d, vec2(fSphere(p - sp.P, sp.R),s));
+    }
+    for(uint b = 0; b < BoxCount; ++b){
+        Box bo = g_Boxes[b];
+        d = opUnion(d, vec2(fBox(p - bo.P, bo.B), SphereCount + b));
     }
     return d;
 }
 
-float CastRay(vec3 ro, vec3 rd){
+vec2 CastRay(vec3 ro, vec3 rd){
     float t = near;
+    float m = 0;
     for(int i = 0; i < MaxIt; i++){
-        float precis = 0.0005*t;
-        float res = map(ro + rd * t);
-        if(res < precis || t > far) break;
+        float precis = 0.0001*t;
+        vec2 res = map(ro + rd * t);
+        if(res.x < precis || t > far) break;
         t += res.x;
+        m = res.y;
     }
-    return t;
+    return vec2(t,m);
 }
 
 vec3 CalcNormal( vec3 pos ){
@@ -77,20 +98,19 @@ void main() {
     vec4 posH =  (invViewProj * vec4(hcs.x, hcs.y, 0.0, 1.0));
     vec3 ro = posH.xyz / posH.w;
     vec3 rd = normalize(ro - CamPos.xyz);
-    float t = CastRay(ro, rd);
+    vec2 tm = CastRay(ro, rd);
     //calc posw and normal
-    vec3 posw = (ro + rd * t );
-    vec3 normal = CalcNormal(posw);
-
-    vec3 colors[] = {vec3(0.3, 0.4, 0.3), vec3(1.0, 0.71,0.29), vec3(1.0, 0.0, 0.0) };
-    vec3 color = colors[0];
+    vec3 posw = (ro + rd * tm.x );    
 
     float d = texture(g_DepthTex, vec2(screenPos)).r;
     d = near / (far - d * (far - near)); //linearize the depth buffer
-    if( d >= (t - near) / (far - near)){
+    if( d >= (tm.x - near) / (far - near)){
         const vec3 toCam = normalize(CamPos.xyz - posw);
+        vec3 normal = CalcNormal(posw);
+
         float r = 0.6;
         float m = 0.0;
+        vec3 color = g_Colors[uint(tm.y)].rgb;
 
         vec3 litColor = CalcDirLight(-normalize(Lightdir.xyz), color, normal, toCam, r, m);
         litColor += CalcIBLLight( normal, toCam, color, r, m);

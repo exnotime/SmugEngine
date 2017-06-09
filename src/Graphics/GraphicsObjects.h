@@ -40,15 +40,16 @@ struct GFX_DLL DirLight {
 	float padd;
 };
 
-struct Box {
+struct SDFBox {
 	glm::vec3 Bounds;
+	float padd;
 	glm::vec3 Pos;
+	float padd2;
 };
 
 struct SDFSphere {
 	glm::vec3 Pos;
 	float Radius;
-	glm::vec4 Color;
 };
 
 struct Cylinder {

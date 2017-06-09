@@ -540,7 +540,7 @@ void GraphicsEngine::Render() {
 	uniformBuffer.ViewProj = cd.ProjView;
 	uniformBuffer.CameraPos = glm::vec4(cd.Position, 1);
 	ImGui::SetCurrentContext(m_ImguiCtx);
-	static glm::vec3 LightDir = glm::vec3(0.1f,-2.0f, -1.0f);
+	static glm::vec3 LightDir = glm::vec3(0.1f,-1.0f, -0.5f);
 	ImGui::DragFloat3("LightDir", &LightDir[0], 0.01f, -1.0f, 1.0f);
 	uniformBuffer.LightDir = glm::normalize(glm::vec4(LightDir, 1.0f));
 
