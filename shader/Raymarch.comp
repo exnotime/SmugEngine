@@ -46,7 +46,7 @@ vec2 opUnion(vec2 p1, vec2 p2){
 
 vec2 map(vec3 p){
     vec2 d = vec2(far, 0);
-    pMod2(p.xz, vec2(100.0));
+    pMod2(p.xz, vec2(250.0));
     for(uint s = 0; s < SphereCount; ++s){
         Sphere sp = g_Spheres[s];
         d = opUnion(d, vec2(fSphere(p - sp.P, sp.R),s));
@@ -104,7 +104,7 @@ void main() {
 
     float d = texture(g_DepthTex, vec2(screenPos)).r;
     d = near / (far - d * (far - near)); //linearize the depth buffer
-    if( d >= (tm.x - near) / (far - near)){
+    if( d >= (tm.x - near) / (far - near) && tm.x < far * 0.9){
         const vec3 toCam = normalize(CamPos.xyz - posw);
         vec3 normal = CalcNormal(posw);
 
@@ -114,10 +114,6 @@ void main() {
 
         vec3 litColor = CalcDirLight(-normalize(Lightdir.xyz), color, normal, toCam, r, m);
         litColor += CalcIBLLight( normal, toCam, color, r, m);
-
-        //litColor = ditherRGB(litColor, vec2(screenPos));
-        //litColor = litColor / (litColor + vec3(1.0));
-
         imageStore(output_img, screenPos, vec4(litColor,1));
     }
 }

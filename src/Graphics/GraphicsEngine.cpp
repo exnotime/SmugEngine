@@ -153,11 +153,9 @@ void GraphicsEngine::CreateSwapChain(VkSurfaceKHR surface) {
 	}
 
 	vk::PresentModeKHR mode = m_VSync ? vk::PresentModeKHR::eFifo : vk::PresentModeKHR::eMailbox;
-	vk::SampleCountFlagBits msaaCount = m_MSAA ? vk::SampleCountFlagBits::e4 : vk::SampleCountFlagBits::e1;
+	vk::SampleCountFlagBits msaaCount = vk::SampleCountFlagBits::e1;
 
-	m_VKSwapChain.MSAA = m_MSAA;
 	m_VKSwapChain.Format = format.format;
-	m_VKSwapChain.SampleCount = msaaCount;
 
 	vk::SwapchainCreateInfoKHR swapChainInfo;
 	swapChainInfo.clipped = true;
@@ -177,28 +175,9 @@ void GraphicsEngine::CreateSwapChain(VkSurfaceKHR surface) {
 
 	uint32_t swapChainImageCount;
 	VK_DEVICE.getSwapchainImagesKHR(m_VKSwapChain.SwapChain, &swapChainImageCount, nullptr);
-	if (m_MSAA) {
-		VK_DEVICE.getSwapchainImagesKHR(m_VKSwapChain.SwapChain, &swapChainImageCount, m_VKSwapChain.ResolveImages);
-	} else {
-		VK_DEVICE.getSwapchainImagesKHR(m_VKSwapChain.SwapChain, &swapChainImageCount, m_VKSwapChain.Images);
-	}
+	VK_DEVICE.getSwapchainImagesKHR(m_VKSwapChain.SwapChain, &swapChainImageCount, m_VKSwapChain.Images);
 
 	for (int i = 0; i < BUFFER_COUNT; i++) {
-		if (m_MSAA) {
-			vk::ImageCreateInfo imageInfo;
-			imageInfo.arrayLayers = 1;
-			imageInfo.extent = vk::Extent3D(surfCapabilities.currentExtent.width, surfCapabilities.currentExtent.height, 1);
-			imageInfo.format = format.format;
-			imageInfo.imageType = vk::ImageType::e2D;
-			imageInfo.initialLayout = vk::ImageLayout::eUndefined;
-			imageInfo.mipLevels = 1;
-			imageInfo.samples = msaaCount;
-			imageInfo.usage = vk::ImageUsageFlagBits::eColorAttachment;
-			m_VKSwapChain.Images[i] = VK_DEVICE.createImage(imageInfo);
-
-			m_TextureMemory.AllocateImage(m_VKSwapChain.Images[i]);
-		}
-
 		vk::ImageViewCreateInfo imageViewInfo;
 		imageViewInfo.components = { vk::ComponentSwizzle::eR,vk::ComponentSwizzle::eG,vk::ComponentSwizzle::eB, vk::ComponentSwizzle::eA };
 		imageViewInfo.format = format.format;
@@ -207,46 +186,6 @@ void GraphicsEngine::CreateSwapChain(VkSurfaceKHR surface) {
 		imageViewInfo.subresourceRange = { vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 };
 		m_VKSwapChain.ImageViews[i] = VK_DEVICE.createImageView(imageViewInfo);
 	}
-	//create depth stencil
-	for (int i = 0; i < BUFFER_COUNT; i++) {
-		vk::ImageCreateInfo dsiInfo;
-		dsiInfo.arrayLayers = 1;
-		dsiInfo.extent = vk::Extent3D(surfCapabilities.currentExtent.width, surfCapabilities.currentExtent.height, 1);
-		dsiInfo.format = vk::Format::eD24UnormS8Uint;
-		dsiInfo.imageType = vk::ImageType::e2D;
-		dsiInfo.initialLayout = vk::ImageLayout::eUndefined;
-		dsiInfo.mipLevels = 1;
-		dsiInfo.samples = msaaCount;
-		dsiInfo.tiling = vk::ImageTiling::eOptimal;
-		dsiInfo.usage = vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled;
-		m_VKSwapChain.DepthStencilImages[i] = VK_DEVICE.createImage(dsiInfo);
-
-		if (m_VKSwapChain.MSAA) {
-			dsiInfo.arrayLayers = 1;
-			dsiInfo.extent = vk::Extent3D(surfCapabilities.currentExtent.width, surfCapabilities.currentExtent.height, 1);
-			dsiInfo.format = vk::Format::eD24UnormS8Uint;
-			dsiInfo.imageType = vk::ImageType::e2D;
-			dsiInfo.initialLayout = vk::ImageLayout::eUndefined;
-			dsiInfo.mipLevels = 1;
-			dsiInfo.samples = vk::SampleCountFlagBits::e1;
-			dsiInfo.tiling = vk::ImageTiling::eOptimal;
-			dsiInfo.usage = vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled;
-			m_VKSwapChain.DepthResolveImages[i] = VK_DEVICE.createImage(dsiInfo);
-			m_TextureMemory.AllocateImage(m_VKSwapChain.DepthResolveImages[i]);
-		}
-
-		//bind memory
-		m_TextureMemory.AllocateImage(m_VKSwapChain.DepthStencilImages[i]);
-		//create View
-		vk::ImageViewCreateInfo dsiViewInfo;
-		dsiViewInfo.components = { vk::ComponentSwizzle::eR,vk::ComponentSwizzle::eG,vk::ComponentSwizzle::eB, vk::ComponentSwizzle::eA };
-		dsiViewInfo.format = dsiInfo.format;
-		dsiViewInfo.image = m_VKSwapChain.DepthStencilImages[i];
-		dsiViewInfo.viewType = vk::ImageViewType::e2D;
-		dsiViewInfo.subresourceRange = { vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil, 0, 1, 0, 1 };
-		m_VKSwapChain.DepthStencilImageViews[i] = VK_DEVICE.createImageView(dsiViewInfo);
-
-	}
 
 	//renderpass
 	vk::RenderPassCreateInfo renderPassInfo;
@@ -254,19 +193,8 @@ void GraphicsEngine::CreateSwapChain(VkSurfaceKHR surface) {
 	std::vector<vk::AttachmentDescription> attachments;
 	vk::AttachmentDescription attachmentDesc;
 	attachmentDesc.format = format.format;
-	attachmentDesc.finalLayout = vk::ImageLayout::eColorAttachmentOptimal;
+	attachmentDesc.finalLayout = vk::ImageLayout::ePresentSrcKHR;
 	attachmentDesc.initialLayout = vk::ImageLayout::eColorAttachmentOptimal;
-	attachmentDesc.loadOp = vk::AttachmentLoadOp::eClear;
-	attachmentDesc.storeOp = vk::AttachmentStoreOp::eStore;
-	attachmentDesc.stencilLoadOp = vk::AttachmentLoadOp::eDontCare;
-	attachmentDesc.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
-	attachmentDesc.samples = msaaCount;
-	attachments.push_back(attachmentDesc);
-
-	attachmentDesc = {};
-	attachmentDesc.format = vk::Format::eD24UnormS8Uint;
-	attachmentDesc.initialLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
-	attachmentDesc.finalLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
 	attachmentDesc.loadOp = vk::AttachmentLoadOp::eClear;
 	attachmentDesc.storeOp = vk::AttachmentStoreOp::eStore;
 	attachmentDesc.stencilLoadOp = vk::AttachmentLoadOp::eDontCare;
@@ -283,8 +211,7 @@ void GraphicsEngine::CreateSwapChain(VkSurfaceKHR surface) {
 	vk::AttachmentReference colorRef = { 0, vk::ImageLayout::eColorAttachmentOptimal };
 	subPassDesc.pColorAttachments = &colorRef;
 	subPassDesc.pipelineBindPoint = vk::PipelineBindPoint::eGraphics;
-	vk::AttachmentReference depthRef = { 1, vk::ImageLayout::eDepthStencilAttachmentOptimal };
-	subPassDesc.pDepthStencilAttachment = &depthRef;
+	subPassDesc.pDepthStencilAttachment = nullptr;
 	subPassDesc.pInputAttachments = nullptr;
 	subPassDesc.pPreserveAttachments = nullptr;
 	subPassDesc.pResolveAttachments = nullptr;
@@ -293,70 +220,33 @@ void GraphicsEngine::CreateSwapChain(VkSurfaceKHR surface) {
 	renderPassInfo.pSubpasses = &subPassDesc;
 	m_RenderPass = VK_DEVICE.createRenderPass(renderPassInfo);
 
-#ifdef USE_IMGUI
-	attachments.clear();
-	attachmentDesc.format = format.format;
-	attachmentDesc.finalLayout = vk::ImageLayout::eColorAttachmentOptimal;
-	attachmentDesc.initialLayout = vk::ImageLayout::eColorAttachmentOptimal;
-	attachmentDesc.loadOp = vk::AttachmentLoadOp::eDontCare;
-	attachmentDesc.storeOp = vk::AttachmentStoreOp::eStore;
-	attachmentDesc.stencilLoadOp = vk::AttachmentLoadOp::eDontCare;
-	attachmentDesc.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
-	attachmentDesc.samples = vk::SampleCountFlagBits::e1;
-	attachments.push_back(attachmentDesc);
-
-	attachmentDesc = {};
-	attachmentDesc.format = vk::Format::eD24UnormS8Uint;
-	attachmentDesc.initialLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
-	attachmentDesc.finalLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
-	attachmentDesc.loadOp = vk::AttachmentLoadOp::eDontCare;
-	attachmentDesc.storeOp = vk::AttachmentStoreOp::eStore;
-	attachmentDesc.stencilLoadOp = vk::AttachmentLoadOp::eDontCare;
-	attachmentDesc.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
-	attachmentDesc.samples = vk::SampleCountFlagBits::e1;
-
-	attachments.push_back(attachmentDesc);
-
-	renderPassInfo.attachmentCount = (uint32_t)attachments.size();
-	renderPassInfo.pAttachments = attachments.data();
-
-	subPassDesc.colorAttachmentCount = 1;
-	subPassDesc.inputAttachmentCount = 0;
-	subPassDesc.pColorAttachments = &colorRef;
-	subPassDesc.pipelineBindPoint = vk::PipelineBindPoint::eGraphics;
-	subPassDesc.pDepthStencilAttachment = &depthRef;
-	subPassDesc.pInputAttachments = nullptr;
-	subPassDesc.pPreserveAttachments = nullptr;
-	subPassDesc.pResolveAttachments = nullptr;
-	subPassDesc.preserveAttachmentCount = 0;
-	renderPassInfo.subpassCount = 1;
-	renderPassInfo.pSubpasses = &subPassDesc;
-	m_ImguiRenderPass = VK_DEVICE.createRenderPass(renderPassInfo);
-#endif
-
 	//framebuffers
 	vk::FramebufferCreateInfo framebufferInfo;
-	framebufferInfo.attachmentCount = 2;
+	framebufferInfo.attachmentCount = 1;
 	framebufferInfo.height = surfCapabilities.currentExtent.height;
 	framebufferInfo.width = surfCapabilities.currentExtent.width;
 	framebufferInfo.layers = 1;
-	vk::ImageView fbViews1[] = { m_VKSwapChain.ImageViews[0], m_VKSwapChain.DepthStencilImageViews[0] };
+	vk::ImageView fbViews1[] = { m_VKSwapChain.ImageViews[0] };
 	framebufferInfo.pAttachments = fbViews1;
 	framebufferInfo.renderPass = m_RenderPass;
 	m_VKSwapChain.FrameBuffers[0] = VK_DEVICE.createFramebuffer(framebufferInfo);
 
-	vk::ImageView fbViews2[] = { m_VKSwapChain.ImageViews[1], m_VKSwapChain.DepthStencilImageViews[1] };
+	vk::ImageView fbViews2[] = { m_VKSwapChain.ImageViews[1] };
 	framebufferInfo.pAttachments = fbViews2;
 	m_VKSwapChain.FrameBuffers[1] = VK_DEVICE.createFramebuffer(framebufferInfo);
 
-	if (m_MSAA) {
-		m_MSState.sampleShadingEnable = true;
-		m_MSState.rasterizationSamples = msaaCount;
-	}
+	//hdr offscreen framebuffer
+	std::vector<vk::Format> fboFormats;
+	fboFormats.push_back(vk::Format::eA2R10G10B10UnormPack32); // hdr
+	fboFormats.push_back(vk::Format::eD24UnormS8Uint);
+	std::vector<vk::ImageUsageFlags> usages = {
+		vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled,
+		vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled
+	};
+	m_FrameBuffer.Init(VK_DEVICE, VK_PHYS_DEVICE, m_ScreenSize, fboFormats, usages);
 }
 
 void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
-	m_CurrentPipeline = 0;
 	CreateContext();
 
 	vk::Win32SurfaceCreateInfoKHR surfaceInfo = {};
@@ -365,13 +255,11 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 
 	m_VKSwapChain.Surface = m_VKContext.Instance.createWin32SurfaceKHR(surfaceInfo);
 
-	m_MSAA = false;
 	m_VSync = vsync;
 	m_ScreenSize = windowSize;
 
 	//Allocate memory on gpu
 	uint64_t fboSize = (uint64_t)(m_ScreenSize.x * m_ScreenSize.y * 4 * (2 * BUFFER_COUNT)); //size of rgba and depth + stencil
-	fboSize = m_MSAA ? fboSize * 4 : fboSize;
 	fboSize += 64 * MEGA_BYTE; //3 * 256 * 256 * 6 + mipchain // cubemaps
 	m_TextureMemory.Init(VK_DEVICE, VK_PHYS_DEVICE, fboSize);
 	m_BufferMemory.Init(VK_DEVICE, VK_PHYS_DEVICE, BUFFER_COUNT * 8 * MEGA_BYTE, 4 * MEGA_BYTE);
@@ -399,11 +287,7 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	//load pipelines
 	m_Pipeline.SetDefaultVertexState(Geometry::GetVertexState());
 
-	if (m_MSAA) {
-		m_Pipeline.SetDefaultMulitSampleState(m_MSState);
-	}
-
-	m_Pipeline.LoadPipelineFromFile(VK_DEVICE, "shader/filled.json", m_Viewport, m_RenderPass);
+	m_Pipeline.LoadPipelineFromFile(VK_DEVICE, "shader/filled.json", m_Viewport, m_FrameBuffer.GetRenderPass());
 
 	m_PerFrameBuffer = m_BufferMemory.AllocateBuffer(sizeof(PerFrameBuffer), vk::BufferUsageFlagBits::eUniformBuffer, nullptr);
 
@@ -427,6 +311,8 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	descPoolInfo.pPoolSizes = poolSizes.data();
 	descPoolInfo.poolSizeCount = (uint32_t)poolSizes.size();
 	m_DescriptorPool = VK_DEVICE.createDescriptorPool(descPoolInfo);
+	//tonemapping
+	m_ToneMapping.Init(VK_DEVICE, m_ScreenSize, m_FrameBuffer, m_DescriptorPool, m_RenderPass);
 
 	{
 		//uniform set
@@ -488,7 +374,7 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	vk::DescriptorBufferInfo bufferInfos[BUFFER_COUNT];
 	for (int q = 0; q < BUFFER_COUNT; ++q) {
 		descWrites[c + q].descriptorCount = 1;
-		descWrites[c + q].descriptorType = vk::DescriptorType::eUniformBufferDynamic;
+		descWrites[c + q].descriptorType = vk::DescriptorType::eStorageBuffer;
 		descWrites[c + q].dstArrayElement = 0;
 		descWrites[c + q].dstBinding = 0;
 		descWrites[c + q].dstSet = m_RenderQueues[q].GetDescriptorSet();
@@ -500,8 +386,8 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	}
 	VK_DEVICE.updateDescriptorSets(3 + BUFFER_COUNT, descWrites, 0, nullptr);
 
-	m_SkyBox.Init(VK_DEVICE, VK_PHYS_DEVICE, "assets/skybox_rad.dds", m_Viewport, m_RenderPass, m_MSState);
-	m_Raymarcher.Init(VK_DEVICE, m_VKSwapChain, VK_PHYS_DEVICE);
+	m_SkyBox.Init(VK_DEVICE, VK_PHYS_DEVICE, "assets/skybox_rad.dds", m_Viewport, m_FrameBuffer.GetRenderPass(), m_MSState);
+	m_Raymarcher.Init(VK_DEVICE, m_FrameBuffer, VK_PHYS_DEVICE);
 
 	MemoryBudget memBudget;
 	memBudget.GeometryBudget = 64 * MEGA_BYTE;
@@ -511,16 +397,12 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	m_vkCmdBuffer.Begin(nullptr, nullptr);
 
 	for (int i = 0; i < BUFFER_COUNT; i++) {
-		if (m_MSAA) {
-			m_vkCmdBuffer.ImageBarrier(m_VKSwapChain.Images[i], vk::ImageLayout::eUndefined, vk::ImageLayout::eColorAttachmentOptimal);
-			m_vkCmdBuffer.ImageBarrier(m_VKSwapChain.ResolveImages[i], vk::ImageLayout::eUndefined, vk::ImageLayout::ePresentSrcKHR);
+		m_vkCmdBuffer.ImageBarrier(m_VKSwapChain.Images[i], vk::ImageLayout::eUndefined, vk::ImageLayout::ePresentSrcKHR);
 
-			m_vkCmdBuffer.ImageBarrier(m_VKSwapChain.DepthStencilImages[i], vk::ImageLayout::eUndefined, vk::ImageLayout::eDepthStencilAttachmentOptimal);
-		} else {
-			m_vkCmdBuffer.ImageBarrier(m_VKSwapChain.DepthStencilImages[i], vk::ImageLayout::eUndefined, vk::ImageLayout::eDepthStencilAttachmentOptimal);
-			m_vkCmdBuffer.ImageBarrier(m_VKSwapChain.Images[i], vk::ImageLayout::eUndefined, vk::ImageLayout::ePresentSrcKHR);
-		}
+		std::vector<vk::ImageLayout> layouts = {vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eDepthStencilAttachmentOptimal };
+		m_FrameBuffer.ChangeLayout(m_vkCmdBuffer, layouts, i);
 	}
+	
 	m_vkCmdBuffer.PushPipelineBarrier();
 
 	m_BufferMemory.ScheduleTransfers(m_vkCmdBuffer);
@@ -540,7 +422,7 @@ void GraphicsEngine::Render() {
 	uniformBuffer.ViewProj = cd.ProjView;
 	uniformBuffer.CameraPos = glm::vec4(cd.Position, 1);
 	ImGui::SetCurrentContext(m_ImguiCtx);
-	static glm::vec3 LightDir = glm::vec3(0.1f,-1.0f, -0.5f);
+	static glm::vec3 LightDir = glm::vec3(0.1f, -1.0f, -0.5f);
 	ImGui::DragFloat3("LightDir", &LightDir[0], 0.01f, -1.0f, 1.0f);
 	uniformBuffer.LightDir = glm::normalize(glm::vec4(LightDir, 1.0f));
 
@@ -558,18 +440,14 @@ void GraphicsEngine::Render() {
 	m_vkQueue.Submit(m_vkCmdBuffer);
 	VK_DEVICE.waitIdle();
 
-	m_vkCmdBuffer.Begin(m_VKSwapChain.FrameBuffers[VK_FRAME_INDEX], m_RenderPass);
-
-	//set layout to color attachment for current backbuffer
-	if (!m_VKSwapChain.MSAA) {
-		m_vkCmdBuffer.ImageBarrier(m_VKSwapChain.Images[VK_FRAME_INDEX], vk::ImageLayout::ePresentSrcKHR, vk::ImageLayout::eColorAttachmentOptimal);
-		m_vkCmdBuffer.PushPipelineBarrier();
-	}
+	m_vkCmdBuffer.Begin(m_FrameBuffer.GetFrameBuffer(VK_FRAME_INDEX), m_FrameBuffer.GetRenderPass());
+	m_FrameBuffer.ChangeLayout(m_vkCmdBuffer, { vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eDepthStencilAttachmentOptimal }, VK_FRAME_INDEX);
+	m_vkCmdBuffer.PushPipelineBarrier();
 
 	vk::RenderPassBeginInfo renderPassInfo;
-	renderPassInfo.framebuffer = m_VKSwapChain.FrameBuffers[VK_FRAME_INDEX];
-	renderPassInfo.renderPass = m_RenderPass;
-	glm::vec4 color = glm::vec4(100.0f / 255, 149.0f / 255, 237.0f / 255,1);
+	renderPassInfo.framebuffer = m_FrameBuffer.GetFrameBuffer(VK_FRAME_INDEX);
+	renderPassInfo.renderPass = m_FrameBuffer.GetRenderPass();
+	glm::vec4 color = glm::vec4(100.0f / 255, 149.0f / 255, 237.0f / 255, 1);
 	vk::ClearColorValue clearColor;
 	clearColor.float32[0] = color.r;
 	clearColor.float32[1] = color.g;
@@ -582,8 +460,8 @@ void GraphicsEngine::Render() {
 	renderPassInfo.clearValueCount = 2;
 	renderPassInfo.pClearValues = clearValues;
 	renderPassInfo.renderArea = { 0, 0, (uint32_t)m_ScreenSize.x, (uint32_t)m_ScreenSize.y };
-
 	m_vkCmdBuffer.beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
+	#pragma region Rendering
 	//skybox
 	m_SkyBox.Render(m_vkCmdBuffer);
 
@@ -618,115 +496,55 @@ void GraphicsEngine::Render() {
 		}
 		uniformOffset++;
 	}
-
+	#pragma endregion
 	m_vkCmdBuffer.endRenderPass();
 
-	if (m_MSAA) {
-		vk::ImageResolve resolve;
-		resolve.dstOffset.x = 0;
-		resolve.dstOffset.y = 0;
-		resolve.dstSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
-		resolve.dstSubresource.baseArrayLayer = 0;
-		resolve.dstSubresource.layerCount = 1;
-		resolve.dstSubresource.mipLevel = 0;
-		resolve.extent.width = (uint32_t)m_Viewport.width;
-		resolve.extent.height = (uint32_t)m_Viewport.height;
-		resolve.extent.depth = 1;
-		resolve.srcOffset.x = 0;
-		resolve.srcOffset.y = 0;
-		resolve.srcSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
-		resolve.srcSubresource.baseArrayLayer = 0;
-		resolve.srcSubresource.layerCount = 1;
-		resolve.srcSubresource.mipLevel = 0;
-
-		m_vkCmdBuffer.resolveImage(m_VKSwapChain.Images[VK_FRAME_INDEX], vk::ImageLayout::eColorAttachmentOptimal,
-		                           m_VKSwapChain.ResolveImages[VK_FRAME_INDEX], vk::ImageLayout::ePresentSrcKHR, resolve);
-
-		resolve.dstSubresource.aspectMask = vk::ImageAspectFlagBits::eDepth;
-		resolve.srcSubresource.aspectMask = vk::ImageAspectFlagBits::eDepth;
-		m_vkCmdBuffer.resolveImage(m_VKSwapChain.DepthStencilImages[VK_FRAME_INDEX], vk::ImageLayout::eDepthStencilAttachmentOptimal,
-		                           m_VKSwapChain.DepthResolveImages[VK_FRAME_INDEX], vk::ImageLayout::eDepthStencilReadOnlyOptimal, resolve);
-
-	} else {
-		m_vkCmdBuffer.ImageBarrier(m_VKSwapChain.Images[VK_FRAME_INDEX], vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::ePresentSrcKHR);
-		m_vkCmdBuffer.PushPipelineBarrier();
-	}
-
 	m_vkCmdBuffer.end();
-
 	m_vkQueue.Submit(m_vkCmdBuffer, m_ImageAquiredSemaphore, m_RenderCompleteSemaphore, nullptr);
 
 	//raymarch
 	m_vkMarchCmdBuffer.reset(vk::CommandBufferResetFlagBits::eReleaseResources);
 	m_vkMarchCmdBuffer.Begin(nullptr, nullptr);
 
-	if (m_VKSwapChain.MSAA) {
-		m_vkMarchCmdBuffer.ImageBarrier(m_VKSwapChain.DepthResolveImages[VK_FRAME_INDEX], vk::ImageLayout::eDepthStencilAttachmentOptimal, vk::ImageLayout::eDepthStencilReadOnlyOptimal);
-		m_vkMarchCmdBuffer.ImageBarrier(m_VKSwapChain.ResolveImages[VK_FRAME_INDEX], vk::ImageLayout::ePresentSrcKHR, vk::ImageLayout::eGeneral);
-	} else {
-		m_vkMarchCmdBuffer.ImageBarrier(m_VKSwapChain.DepthStencilImages[VK_FRAME_INDEX], vk::ImageLayout::eDepthStencilAttachmentOptimal, vk::ImageLayout::eDepthStencilReadOnlyOptimal);
-		m_vkMarchCmdBuffer.ImageBarrier(m_VKSwapChain.Images[VK_FRAME_INDEX], vk::ImageLayout::ePresentSrcKHR, vk::ImageLayout::eGeneral);
-	}
+	m_FrameBuffer.ChangeLayout(m_vkMarchCmdBuffer, { vk::ImageLayout::eGeneral , vk::ImageLayout::eDepthStencilReadOnlyOptimal }, VK_FRAME_INDEX);
 	m_vkMarchCmdBuffer.PushPipelineBarrier();
-
 	m_Raymarcher.Render(m_vkMarchCmdBuffer, VK_FRAME_INDEX, m_IBLDescSet, m_ScreenSize);
 
-#ifndef USE_IMGUI
-	if (m_VKSwapChain.MSAA) {
-		m_vkMarchCmdBuffer.ImageBarrier(m_VKSwapChain.DepthResolveImages[VK_FRAME_INDEX], vk::ImageLayout::eDepthStencilReadOnlyOptimal, vk::ImageLayout::eDepthStencilAttachmentOptimal);
-		m_vkMarchCmdBuffer.ImageBarrier(m_VKSwapChain.ResolveImages[VK_FRAME_INDEX], vk::ImageLayout::eGeneral, vk::ImageLayout::ePresentSrcKHR);
-	} else {
-		m_vkMarchCmdBuffer.ImageBarrier(m_VKSwapChain.DepthStencilImages[VK_FRAME_INDEX], vk::ImageLayout::eDepthStencilReadOnlyOptimal, vk::ImageLayout::eDepthStencilAttachmentOptimal);
-		m_vkMarchCmdBuffer.ImageBarrier(m_VKSwapChain.Images[VK_FRAME_INDEX], vk::ImageLayout::eGeneral, vk::ImageLayout::ePresentSrcKHR);
-	}
-#endif
-
-
 	m_vkMarchCmdBuffer.end();
-#ifdef USE_IMGUI
-	vk::Fence f = nullptr;
-#else
-	vk::Fence f = m_Fence[VK_FRAME_INDEX];
-#endif
-	m_vkQueue.Submit(m_vkMarchCmdBuffer, m_RenderCompleteSemaphore, m_RayMarchComplete, f);
+	m_vkQueue.Submit(m_vkMarchCmdBuffer, m_RenderCompleteSemaphore, m_RayMarchComplete, nullptr);
 
-
-#ifdef USE_IMGUI
 	//Render Imgui
 	m_vkImguiCmdBuffer.Reset(VK_DEVICE, VK_FRAME_INDEX);
-	m_vkImguiCmdBuffer.Begin(m_VKSwapChain.FrameBuffers[VK_FRAME_INDEX], m_ImguiRenderPass);
-
-	if (m_VKSwapChain.MSAA) {
-		m_vkImguiCmdBuffer.ImageBarrier(m_VKSwapChain.DepthResolveImages[VK_FRAME_INDEX], vk::ImageLayout::eDepthStencilReadOnlyOptimal, vk::ImageLayout::eDepthStencilAttachmentOptimal);
-		m_vkImguiCmdBuffer.ImageBarrier(m_VKSwapChain.ResolveImages[VK_FRAME_INDEX], vk::ImageLayout::eGeneral, vk::ImageLayout::eColorAttachmentOptimal);
-	} else {
-		m_vkImguiCmdBuffer.ImageBarrier(m_VKSwapChain.DepthStencilImages[VK_FRAME_INDEX], vk::ImageLayout::eDepthStencilReadOnlyOptimal, vk::ImageLayout::eDepthStencilAttachmentOptimal);
-		m_vkImguiCmdBuffer.ImageBarrier(m_VKSwapChain.Images[VK_FRAME_INDEX], vk::ImageLayout::eGeneral, vk::ImageLayout::eColorAttachmentOptimal);
-	}
+	m_vkImguiCmdBuffer.Begin(m_VKSwapChain.FrameBuffers[VK_FRAME_INDEX], m_RenderPass);
+	// dont trust the renderpass inital layout
+	m_vkImguiCmdBuffer.ImageBarrier(m_VKSwapChain.Images[VK_FRAME_INDEX], vk::ImageLayout::ePresentSrcKHR, vk::ImageLayout::eColorAttachmentOptimal);
 	m_vkImguiCmdBuffer.PushPipelineBarrier();
 
 	vk::RenderPassBeginInfo rpBeginInfo;
-	rpBeginInfo.clearValueCount = 0;
-	rpBeginInfo.renderPass = m_ImguiRenderPass;
+	rpBeginInfo.clearValueCount = 1;
+	rpBeginInfo.renderPass = m_RenderPass;
 	rpBeginInfo.framebuffer = m_VKSwapChain.FrameBuffers[VK_FRAME_INDEX];
 	rpBeginInfo.renderArea.extent.width = (uint32_t)m_ScreenSize.x;
 	rpBeginInfo.renderArea.extent.height = (uint32_t)m_ScreenSize.y;
-	m_vkImguiCmdBuffer.beginRenderPass(rpBeginInfo, vk::SubpassContents::eInline);
-	ImGui::SetCurrentContext(m_ImguiCtx);
-	ImGui_ImplGlfwVulkan_Render(m_vkImguiCmdBuffer);
-	m_vkImguiCmdBuffer.endRenderPass();
+	vk::ClearColorValue cc;
+	cc.float32[0] = 0.0f; cc.float32[1] = 1.0f; cc.float32[2] = 1.0f; cc.float32[3] = 1.0f;
+	vk::ClearValue cv = { cc };
+	rpBeginInfo.pClearValues = &cv;
 
-	if (m_VKSwapChain.MSAA) {
-		m_vkImguiCmdBuffer.ImageBarrier(m_VKSwapChain.ResolveImages[VK_FRAME_INDEX], vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::ePresentSrcKHR);
-	} else {
-		m_vkImguiCmdBuffer.ImageBarrier(m_VKSwapChain.Images[VK_FRAME_INDEX], vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::ePresentSrcKHR);
-	}
+	m_FrameBuffer.ChangeLayout(m_vkImguiCmdBuffer, { vk::ImageLayout::eShaderReadOnlyOptimal, vk::ImageLayout::eDepthStencilReadOnlyOptimal }, VK_FRAME_INDEX);
 	m_vkImguiCmdBuffer.PushPipelineBarrier();
+	m_vkImguiCmdBuffer.beginRenderPass(rpBeginInfo, vk::SubpassContents::eInline);
+	m_vkImguiCmdBuffer.setViewport(0, 1, &m_Viewport);
+	//transfer from fbo to swapchain images
+	m_ToneMapping.Render(m_vkImguiCmdBuffer, VK_FRAME_INDEX);
+	//render imgui on top
+	//ImGui::SetCurrentContext(m_ImguiCtx);
+	//ImGui_ImplGlfwVulkan_Render(m_vkImguiCmdBuffer);
+	m_vkImguiCmdBuffer.endRenderPass();
 
 	m_vkImguiCmdBuffer.end();
 
 	m_vkQueue.Submit(m_vkImguiCmdBuffer, m_RayMarchComplete, m_ImguiComplete, m_Fence[VK_FRAME_INDEX]);
-#endif
 }
 
 void GraphicsEngine::Swap() {
@@ -779,11 +597,12 @@ ImGui_ImplGlfwVulkan_Init_Data GraphicsEngine::GetImguiInit() {
 	id.descriptor_pool = m_DescriptorPool;
 	id.device = VK_DEVICE;
 	id.gpu = VK_PHYS_DEVICE;
-	id.render_pass = m_ImguiRenderPass;
+	id.render_pass = m_RenderPass;
 	id.allocator = nullptr;
 	id.pipeline_cache = nullptr;
 	return id;
 }
+
 void GraphicsEngine::CreateImguiFont(ImGuiContext* imguiCtx) {
 	m_ImguiCtx = imguiCtx;
 	ImGui::SetCurrentContext(imguiCtx);

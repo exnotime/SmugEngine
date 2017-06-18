@@ -35,28 +35,29 @@ void VkMemory::Init(const vk::Device& device, const vk::PhysicalDevice& physDev,
 			break;
 		}
 	}
-
-	vk::BufferCreateInfo stageBufferInfo;
-	stageBufferInfo.sharingMode = vk::SharingMode::eExclusive;
-	stageBufferInfo.size = stageSize;
-	stageBufferInfo.usage = vk::BufferUsageFlagBits::eTransferSrc;
-	m_StagingBuffer = device.createBuffer(stageBufferInfo);
-	vk::MemoryRequirements stageMemReq = device.getBufferMemoryRequirements(m_StagingBuffer);
-	vk::MemoryPropertyFlags stagingMemFlags = vk::MemoryPropertyFlagBits::eHostVisible;
-
-	for (uint32_t i = 0; i < m_MemProps.memoryTypeCount; i++) {
-		if ((m_MemProps.memoryTypes[i].propertyFlags & stagingMemFlags) == stagingMemFlags &&
-		        stageMemReq.memoryTypeBits & (1 << i)) {
-			vk::MemoryAllocateInfo allocInfo;
-			allocInfo.allocationSize = stageSize;
-			allocInfo.memoryTypeIndex = i;
-			m_StagingMem = device.allocateMemory(allocInfo);
-			m_StagingSize = stageSize;
-			break;
-		}
-	}
 	device.bindBufferMemory(m_DeviceBuffer, m_DevMem, 0);
-	device.bindBufferMemory(m_StagingBuffer, m_StagingMem, 0);
+	if (stageSize > 0) {
+		vk::BufferCreateInfo stageBufferInfo;
+		stageBufferInfo.sharingMode = vk::SharingMode::eExclusive;
+		stageBufferInfo.size = stageSize;
+		stageBufferInfo.usage = vk::BufferUsageFlagBits::eTransferSrc;
+		m_StagingBuffer = device.createBuffer(stageBufferInfo);
+		vk::MemoryRequirements stageMemReq = device.getBufferMemoryRequirements(m_StagingBuffer);
+		vk::MemoryPropertyFlags stagingMemFlags = vk::MemoryPropertyFlagBits::eHostVisible;
+
+		for (uint32_t i = 0; i < m_MemProps.memoryTypeCount; i++) {
+			if ((m_MemProps.memoryTypes[i].propertyFlags & stagingMemFlags) == stagingMemFlags &&
+				stageMemReq.memoryTypeBits & (1 << i)) {
+				vk::MemoryAllocateInfo allocInfo;
+				allocInfo.allocationSize = stageSize;
+				allocInfo.memoryTypeIndex = i;
+				m_StagingMem = device.allocateMemory(allocInfo);
+				m_StagingSize = stageSize;
+				break;
+			}
+		}
+		device.bindBufferMemory(m_StagingBuffer, m_StagingMem, 0);
+	}
 	m_DeviceOffset = 0;
 	m_StagingOffset = 0;
 }
@@ -113,7 +114,7 @@ VkAlloc VkMemory::AllocateImage(vk::Image img, gli::texture2d* texture, void* da
 	m_DeviceOffset = (m_DeviceOffset + (memReq.alignment - 1)) & ~(memReq.alignment - 1);
 
 	if (m_DeviceOffset + memReq.size > m_DeviceSize) {
-		printf("Failed allocation of size %d\n Total memory in buffer %d, Used %d\n", (uint32_t)memReq.size, (uint32_t)m_DeviceSize, (uint32_t)m_DeviceOffset);
+		printf("Failed allocation of size %d\nTotal memory in buffer %d, Used %d\n", (uint32_t)memReq.size, (uint32_t)m_DeviceSize, (uint32_t)m_DeviceOffset);
 		return VkAlloc();
 	}
 	VkDeviceSize size = (texture) ? texture->size() : memReq.size;

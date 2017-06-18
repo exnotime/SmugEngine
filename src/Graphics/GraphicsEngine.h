@@ -8,6 +8,8 @@
 #include "Raymarch.h"
 #include "RenderQueue.h"
 #include "ResourceHandler.h"
+#include "FrameBuffer.h"
+#include "ToneMapProgram.h"
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
@@ -74,13 +76,15 @@ class GFX_DLL GraphicsEngine {
 	//uniform and FBO memory
 	VkMemory m_BufferMemory;
 	VkMemory m_TextureMemory;
+	FrameBuffer m_FrameBuffer;
 
-	bool m_MSAA;
 	bool m_VSync;
 	glm::vec2 m_ScreenSize;
 	vk::PipelineMultisampleStateCreateInfo m_MSState;
 
 	Raymarcher m_Raymarcher;
+	ToneMapProgram m_ToneMapping;
+
 	VkDebugReportCallbackEXT m_DebugCallbacks;
 
 	RenderQueue m_RenderQueues[BUFFER_COUNT];
@@ -92,7 +96,6 @@ class GFX_DLL GraphicsEngine {
 	void CreateImguiFont(ImGuiContext* imguiCtx);
   private:
 	vk::Semaphore m_ImguiComplete;
-	vk::RenderPass m_ImguiRenderPass;
 	ImGuiContext* m_ImguiCtx;
 #endif
 

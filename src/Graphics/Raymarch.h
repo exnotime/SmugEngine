@@ -1,6 +1,7 @@
 #pragma once
 #include "VulkanContext.h"
 #include "VkPipeline.h"
+#include "FrameBuffer.h"
 #include "VkMemory.h"
 #include "RenderQueue.h"
 
@@ -9,7 +10,7 @@ class Raymarcher {
 	Raymarcher();
 	~Raymarcher();
 
-	void Init(const vk::Device& device, const VulkanSwapChain& swapChain, const vk::PhysicalDevice& physDev);
+	void Init(const vk::Device& device, FrameBuffer& fbo, const vk::PhysicalDevice& physDev);
 	void UpdateUniforms(VulkanCommandBuffer& cmdBuffer, const glm::mat4& viewProj, const glm::vec3& position, const glm::vec3& LightDir, const RenderQueue& queue);
 	void Render(VulkanCommandBuffer& cmdBuffer, uint32_t frameIndex, vk::DescriptorSet& ibl, glm::vec2 screenSize);
   private:

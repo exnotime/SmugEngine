@@ -8,7 +8,7 @@ Raymarcher::~Raymarcher() {
 
 }
 
-void Raymarcher::Init(const vk::Device& device, const VulkanSwapChain& swapChain, const vk::PhysicalDevice& physDev) {
+void Raymarcher::Init(const vk::Device& device,FrameBuffer& fbo, const vk::PhysicalDevice& physDev) {
 	m_Pipeline.LoadPipelineFromFile(device, "shader/Raymarch.json", vk::Viewport(), nullptr);
 
 	//build descriptor sets
@@ -38,7 +38,7 @@ void Raymarcher::Init(const vk::Device& device, const VulkanSwapChain& swapChain
 		vk::ImageViewCreateInfo dsiViewInfo;
 		dsiViewInfo.components = { vk::ComponentSwizzle::eR,vk::ComponentSwizzle::eG,vk::ComponentSwizzle::eB, vk::ComponentSwizzle::eA };
 		dsiViewInfo.format = vk::Format::eD24UnormS8Uint;
-		dsiViewInfo.image = swapChain.MSAA ? swapChain.DepthResolveImages[i] : swapChain.DepthStencilImages[i];
+		dsiViewInfo.image = fbo.GetImage(1, i);
 		dsiViewInfo.viewType = vk::ImageViewType::e2D;
 		dsiViewInfo.subresourceRange = { vk::ImageAspectFlagBits::eDepth, 0, 1, 0, 1 };
 		m_DepthViews[i] = device.createImageView(dsiViewInfo);
@@ -62,20 +62,8 @@ void Raymarcher::Init(const vk::Device& device, const VulkanSwapChain& swapChain
 	m_DepthSampler = device.createSampler(sampInfo);
 
 	std::array<vk::ImageView, BUFFER_COUNT> imageViews;
-	if (swapChain.MSAA) {
-		for (int i = 0; i < BUFFER_COUNT; i++) {
-			vk::ImageViewCreateInfo viewInfo;
-			viewInfo.components = { vk::ComponentSwizzle::eR,vk::ComponentSwizzle::eG,vk::ComponentSwizzle::eB, vk::ComponentSwizzle::eA };
-			viewInfo.format = swapChain.Format;
-			viewInfo.image = swapChain.ResolveImages[i];
-			viewInfo.viewType = vk::ImageViewType::e2D;
-			viewInfo.subresourceRange = { vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 };
-			imageViews[i] = device.createImageView(viewInfo);
-		}
-	} else {
-		for (int i = 0; i < BUFFER_COUNT; i++) {
-			imageViews[i] = swapChain.ImageViews[i];
-		}
+	for (int i = 0; i < BUFFER_COUNT; i++) {
+		imageViews[i] = fbo.GetViews()[i * fbo.GetFormats().size()];
 	}
 
 	//uniform buffer
@@ -85,6 +73,7 @@ void Raymarcher::Init(const vk::Device& device, const VulkanSwapChain& swapChain
 
 	for (int i = 0; i < BUFFER_COUNT; i++) {
 		std::array<vk::WriteDescriptorSet,4> writeSet;
+		//framebuffer
 		writeSet[0].descriptorCount = 1;
 		writeSet[0].descriptorType = vk::DescriptorType::eStorageImage;
 		writeSet[0].dstArrayElement = 0;
@@ -92,9 +81,9 @@ void Raymarcher::Init(const vk::Device& device, const VulkanSwapChain& swapChain
 		writeSet[0].dstSet = m_DescSets[i];
 		vk::DescriptorImageInfo imageInfo;
 		imageInfo.imageLayout = vk::ImageLayout::eGeneral;
-		imageInfo.imageView = imageViews[i];
+		imageInfo.imageView = fbo.GetView(0, i);
 		writeSet[0].pImageInfo = &imageInfo;
-
+		//depth stencil image
 		writeSet[1].descriptorCount = 1;
 		writeSet[1].descriptorType = vk::DescriptorType::eCombinedImageSampler;
 		writeSet[1].dstArrayElement = 0;
@@ -105,7 +94,7 @@ void Raymarcher::Init(const vk::Device& device, const VulkanSwapChain& swapChain
 		imageInfo2.imageView = m_DepthViews[i];
 		imageInfo2.sampler = m_DepthSampler;
 		writeSet[1].pImageInfo = &imageInfo2;
-
+		//frame data
 		writeSet[2].descriptorCount = 1;
 		writeSet[2].descriptorType = vk::DescriptorType::eUniformBuffer;
 		writeSet[2].dstArrayElement = 0;
@@ -116,7 +105,7 @@ void Raymarcher::Init(const vk::Device& device, const VulkanSwapChain& swapChain
 		bufferInfo.offset = 0;
 		bufferInfo.range = VK_WHOLE_SIZE;
 		writeSet[2].pBufferInfo = &bufferInfo;
-
+		//primitives
 		writeSet[3].descriptorCount = 1;
 		writeSet[3].descriptorType = vk::DescriptorType::eStorageBuffer;
 		writeSet[3].dstArrayElement = 0;

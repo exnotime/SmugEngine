@@ -83,7 +83,7 @@ void SSRender::Update(const double deltaTime) {
 
 	s.Pos = glm::vec3(-5, 5, 5) * q;
 	s.Radius = 3 - abs(glm::cos(angle));
-	rq->AddSphere(s, glm::vec4(1, 1, 0, 1));
+	rq->AddSphere(s, glm::vec4(1, 1, 1, 1));
 
 	SDFBox box;
 	box.Pos = glm::vec3(-5, 5, -5) * q;

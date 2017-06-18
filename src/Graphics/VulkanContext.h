@@ -13,20 +13,10 @@ struct VulkanContext {
 struct VulkanSwapChain {
 	vk::SurfaceKHR Surface;
 	vk::SwapchainKHR SwapChain;
-
 	vk::Image Images[BUFFER_COUNT];
-	vk::Image ResolveImages[BUFFER_COUNT];
 	vk::ImageView ImageViews[BUFFER_COUNT];
-
 	vk::Framebuffer FrameBuffers[BUFFER_COUNT];
-
-	vk::Image DepthStencilImages[BUFFER_COUNT];
-	vk::Image DepthResolveImages[BUFFER_COUNT];
-	vk::ImageView DepthStencilImageViews[BUFFER_COUNT];
-
-	bool MSAA;
 	bool SRGB;
-	vk::SampleCountFlags SampleCount;
 	vk::Format Format;
 };
 
