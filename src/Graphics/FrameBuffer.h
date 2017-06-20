@@ -41,7 +41,7 @@ public:
 				break;
 		return m_ImageViews[m_FormatCount * frameIndex + i];
 	}
-
+	glm::vec2 GetSize() const { return m_FrameBufferSize; }
 
 	
 private:

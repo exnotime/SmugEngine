@@ -121,11 +121,12 @@ void Raymarcher::Init(const vk::Device& device,FrameBuffer& fbo, const vk::Physi
 	}
 }
 
-void Raymarcher::UpdateUniforms(VulkanCommandBuffer& cmdBuffer, const glm::mat4& viewProj, const glm::vec3& position, const glm::vec3& LightDir, const RenderQueue& queue) {
+void Raymarcher::UpdateUniforms(VulkanCommandBuffer& cmdBuffer, const glm::mat4& viewProj, const glm::vec3& position, const glm::vec3& LightDir, const RenderQueue& queue, const glm::vec2& screenSize) {
 	PerFrame frameInfo;
 	frameInfo.CamPos = glm::vec4(position,1);
 	frameInfo.invViewProj = glm::inverse(viewProj);
 	frameInfo.LightDir = glm::vec4(LightDir, 0);
+	frameInfo.ScreenSize = screenSize;
 	frameInfo.SphereCount = (uint32_t)queue.GetSpheres().size();
 	frameInfo.BoxCount = (uint32_t)queue.GetBoxes().size();
 	m_BufferMem.UpdateBuffer(m_UniformBuffer, sizeof(PerFrame), &frameInfo);

@@ -44,7 +44,7 @@ void Engine::Init() {
 	ws.HighDPI = false;
 	ws.OpenGL = true;
 	ws.Title = "Tephra";
-	ws.Vsync = true;
+	ws.Vsync = false;
 	ws.BorderLess = false;
 	m_Window->Initialize(ws);
 

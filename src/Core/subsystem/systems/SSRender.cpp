@@ -28,7 +28,7 @@ void SSRender::Startup() {
 	g_ComponentManager.CreateComponent(&tc, e, tc.Flag);
 
 	ModelComponent mc;
-	mc.ModelHandle = g_AssetLoader.LoadAsset("assets/KoopaTroopa/koopa.obj");
+	mc.ModelHandle = g_AssetLoader.LoadAsset("assets/KoopaTroopa/KoopaSimpl_LOD1/KoopaSimpl_LOD1.obj");
 	mc.Tint = glm::vec4(1.0f);
 	g_ComponentManager.CreateComponent(&mc, e, mc.Flag);
 }
@@ -88,7 +88,7 @@ void SSRender::Update(const double deltaTime) {
 	SDFBox box;
 	box.Pos = glm::vec3(-5, 5, -5) * q;
 	box.Bounds = glm::vec3(1.3f + glm::cos(angle));
-	rq->AddBox(box, glm::vec4(0.2f, 0.4f, 0.3f, 1));
+	rq->AddBox(box, glm::vec4(0.02f, 0.01f, 0.1f, 1));
 	
 }
 

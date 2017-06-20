@@ -18,8 +18,8 @@ vec3 Uncharted2Tonemap(vec3 x)
 
 void main(){
 	outColor = texture(InputTex, TexCoord);
-	if(TexCoord.x > 0.5)
-		outColor.rgb = Uncharted2Tonemap(outColor.rgb);
-	else
+	// if(TexCoord.x > 0.5)
+	// 	outColor.rgb = Uncharted2Tonemap(outColor.rgb);
+	// else
 		outColor.rgb  = outColor.rgb  / (outColor.rgb  + vec3(1.0));
 }

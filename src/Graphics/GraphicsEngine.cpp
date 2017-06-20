@@ -278,8 +278,8 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 
 	VK_FRAME_INDEX = VK_DEVICE.acquireNextImageKHR(m_VKSwapChain.SwapChain, UINT64_MAX, m_ImageAquiredSemaphore, nullptr).value;
 	//viewport
-	m_Viewport.width = m_ScreenSize.x;
-	m_Viewport.height = m_ScreenSize.y;
+	m_Viewport.width = m_FrameBuffer.GetSize().x;
+	m_Viewport.height = m_FrameBuffer.GetSize().y;
 	m_Viewport.minDepth = 0.0f;
 	m_Viewport.maxDepth = 1.0f;
 	m_Viewport.x = 0;
@@ -434,7 +434,7 @@ void GraphicsEngine::Render() {
 	m_vkCmdBuffer.Begin(nullptr, nullptr);
 	m_BufferMemory.ScheduleTransfers(m_vkCmdBuffer);
 	m_SkyBox.PrepareUniformBuffer(m_vkCmdBuffer, cd.ProjView, glm::translate(cd.Position));
-	m_Raymarcher.UpdateUniforms(m_vkCmdBuffer, cd.ProjView, cd.Position, LightDir, rq);
+	m_Raymarcher.UpdateUniforms(m_vkCmdBuffer, cd.ProjView, cd.Position, LightDir, rq, m_FrameBuffer.GetSize());
 	m_vkCmdBuffer.end();
 
 	m_vkQueue.Submit(m_vkCmdBuffer);
@@ -459,7 +459,7 @@ void GraphicsEngine::Render() {
 	vk::ClearValue clearValues[] = { clearColor, clearDepth };
 	renderPassInfo.clearValueCount = 2;
 	renderPassInfo.pClearValues = clearValues;
-	renderPassInfo.renderArea = { 0, 0, (uint32_t)m_ScreenSize.x, (uint32_t)m_ScreenSize.y };
+	renderPassInfo.renderArea = { 0, 0, (uint32_t)m_FrameBuffer.GetSize().x, (uint32_t)m_FrameBuffer.GetSize().y };
 	m_vkCmdBuffer.beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
 	#pragma region Rendering
 	//skybox
@@ -508,7 +508,7 @@ void GraphicsEngine::Render() {
 
 	m_FrameBuffer.ChangeLayout(m_vkMarchCmdBuffer, { vk::ImageLayout::eGeneral , vk::ImageLayout::eDepthStencilReadOnlyOptimal }, VK_FRAME_INDEX);
 	m_vkMarchCmdBuffer.PushPipelineBarrier();
-	m_Raymarcher.Render(m_vkMarchCmdBuffer, VK_FRAME_INDEX, m_IBLDescSet, m_ScreenSize);
+	m_Raymarcher.Render(m_vkMarchCmdBuffer, VK_FRAME_INDEX, m_IBLDescSet, m_FrameBuffer.GetSize());
 
 	m_vkMarchCmdBuffer.end();
 	m_vkQueue.Submit(m_vkMarchCmdBuffer, m_RenderCompleteSemaphore, m_RayMarchComplete, nullptr);
@@ -538,8 +538,9 @@ void GraphicsEngine::Render() {
 	//transfer from fbo to swapchain images
 	m_ToneMapping.Render(m_vkImguiCmdBuffer, VK_FRAME_INDEX);
 	//render imgui on top
-	//ImGui::SetCurrentContext(m_ImguiCtx);
-	//ImGui_ImplGlfwVulkan_Render(m_vkImguiCmdBuffer);
+	ImGui::SetCurrentContext(m_ImguiCtx);
+	ImGui::ShowMetricsWindow();
+	ImGui_ImplGlfwVulkan_Render(m_vkImguiCmdBuffer);
 	m_vkImguiCmdBuffer.endRenderPass();
 
 	m_vkImguiCmdBuffer.end();
