@@ -1,6 +1,9 @@
 #include "PhysicsEngine.h"
 #include <glm/glm.hpp>
+
+#if _DEBUG
 #include <PhysX/pvd/PxPvd.h>
+#endif
 
 using namespace physx;
 
@@ -19,16 +22,19 @@ void PhysicsEngine::Init() {
 		return;
 	}
 
-	PxPvd* pvd = nullptr;
+	
 #ifdef _DEBUG
 	m_PVD = PxCreatePvd(*m_Foundation);
 	PxPvdTransport* transport = PxDefaultPvdSocketTransportCreate("127.0.0.1", 5425, 10);
 	m_PVD->connect(*transport, PxPvdInstrumentationFlag::eALL);
-	pvd = m_PVD;
-#endif
 
 	PxTolerancesScale toleranses;
-	m_Physics = PxCreatePhysics(PX_PHYSICS_VERSION, *m_Foundation, toleranses, false, pvd);
+	m_Physics = PxCreatePhysics(PX_PHYSICS_VERSION, *m_Foundation, toleranses, false, m_PVD);
+#else
+	PxTolerancesScale toleranses;
+	m_Physics = PxCreatePhysics(PX_PHYSICS_VERSION, *m_Foundation, toleranses, false, nullptr);
+#endif
+	
 	if (!m_Physics) {
 		printf("Error creating physx physics\n");
 		return;

@@ -2,7 +2,7 @@ solution "Tephra"
     configurations { "Debug", "Release" }
         flags{ "Unicode", "NoPCH" }
         local vulkan_dir = os.getenv("VULKAN_SDK");
-        libdirs { "lib", vulkan_dir .. "/bin", vulkan_dir .. "/lib" }
+        libdirs { "lib", vulkan_dir .. "/bin", vulkan_dir .. "/lib", "lib/physx" }
         includedirs { "include", vulkan_dir .. "/include"}
         platforms{"x64" }
 
@@ -23,7 +23,7 @@ solution "Tephra"
 
     configuration { "Release" }
         defines { "NDEBUG", "RELEASE" }
-        flags { "Optimize", "FloatFast" }
+        flags { "Optimize", "FloatFast", "Symbols" }
         targetdir ( "bin/" .. "/release" )
 
 
