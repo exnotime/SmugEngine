@@ -48,9 +48,10 @@ class PHYSICS_DLL PhysicsEngine {
 
 	physx::PxDefaultAllocator m_Allocator;
 	physx::PxDefaultErrorCallback m_Error;
+	physx::PxDefaultCpuDispatcher* m_Disbatcher;
 
 	double m_Accumulator = 0.0f;
-	const double m_StepTime = 1.0f / 60.0f;
+	const double m_StepTime = 1.0 / 60.0;
 
 	std::vector<physx::PxRigidActor*> m_Actors;
 	std::vector<PhysicsBody*> m_Bodies;

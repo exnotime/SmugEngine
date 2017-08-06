@@ -8,6 +8,9 @@ GraphicsEngine::GraphicsEngine() {
 
 }
 GraphicsEngine::~GraphicsEngine() {
+#ifdef USE_IMGUI
+	ImGui_ImplGlfwVulkan_Shutdown();
+#endif
 }
 
 VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDebugCallback(
@@ -236,9 +239,10 @@ void GraphicsEngine::CreateSwapChain(VkSurfaceKHR surface) {
 	m_VKSwapChain.FrameBuffers[1] = VK_DEVICE.createFramebuffer(framebufferInfo);
 
 	//hdr offscreen framebuffer
-	std::vector<vk::Format> fboFormats;
-	fboFormats.push_back(vk::Format::eA2R10G10B10UnormPack32); // hdr
-	fboFormats.push_back(vk::Format::eD24UnormS8Uint);
+	std::vector<vk::Format> fboFormats = {
+		vk::Format::eA2B10G10R10UnormPack32,
+		vk::Format::eD24UnormS8Uint
+	};
 	std::vector<vk::ImageUsageFlags> usages = {
 		vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled,
 		vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled
@@ -539,7 +543,7 @@ void GraphicsEngine::Render() {
 	m_ToneMapping.Render(m_vkImguiCmdBuffer, VK_FRAME_INDEX);
 	//render imgui on top
 	ImGui::SetCurrentContext(m_ImguiCtx);
-	ImGui::ShowMetricsWindow();
+	//ImGui::ShowMetricsWindow();
 	ImGui_ImplGlfwVulkan_Render(m_vkImguiCmdBuffer);
 	m_vkImguiCmdBuffer.endRenderPass();
 

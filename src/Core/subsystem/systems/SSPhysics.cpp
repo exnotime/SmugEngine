@@ -15,27 +15,6 @@ SSPhysics::~SSPhysics() {
 }
 
 void SSPhysics::Startup() {
-	//create camera entity
-	Entity& e = g_EntityManager.CreateEntity();
-
-	TransformComponent tc;
-	tc.Position = glm::vec3(-5, 10, 0);
-	tc.Scale = glm::vec3(1.0f);
-	g_ComponentManager.CreateComponent(&tc, e, TransformComponent::Flag);
-
-	RigidBodyComponent rc;
-	rc.Body = globals::g_Physics->CreateDynamicActor(tc.Position, tc.Orientation, tc.Scale, 1.0f, SPHERE);
-	rc.Body->Force = glm::vec3(300, 0, 0);
-	g_ComponentManager.CreateComponent(&rc, e, RigidBodyComponent::Flag);
-
-	ModelComponent mc;
-	mc.ModelHandle = g_AssetLoader.LoadAsset("assets/suzzanne/suzzanne.obj");
-	g_ComponentManager.CreateComponent(&mc, e, ModelComponent::Flag);
-
-	globals::g_Physics->SetGravityPoint(glm::vec3(0, -100, 0), 1.0f);
-
-	globals::g_Physics->CreateStaticActor(glm::vec3(0, -100, 0), glm::quat(), glm::vec3(100), SPHERE);
-	globals::g_Physics->CreateStaticActor(glm::vec3(-10, 20, 0), glm::quat(), glm::vec3(10), SPHERE);
 }
 
 void SSPhysics::Update(const double deltaTime) {

@@ -9,6 +9,7 @@ class Engine {
 	~Engine();
 	void Init();
 	void Run();
+	void Shutdown();
   private:
 	Window* m_Window;
 	SubSystemSet* m_MainSubSystemSet;

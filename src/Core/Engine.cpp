@@ -121,3 +121,7 @@ void Engine::Run() {
 	}
 
 }
+
+void Engine::Shutdown() {
+	ImGui_ImplGlfwVulkan_Shutdown();
+}

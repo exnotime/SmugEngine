@@ -21,18 +21,14 @@ void PhysicsEngine::Init() {
 		printf("Error creating physx foundation\n");
 		return;
 	}
-
 	
 #ifdef _DEBUG
 	m_PVD = PxCreatePvd(*m_Foundation);
 	PxPvdTransport* transport = PxDefaultPvdSocketTransportCreate("127.0.0.1", 5425, 10);
 	m_PVD->connect(*transport, PxPvdInstrumentationFlag::eALL);
-
-	PxTolerancesScale toleranses;
-	m_Physics = PxCreatePhysics(PX_PHYSICS_VERSION, *m_Foundation, toleranses, false, m_PVD);
+	m_Physics = PxCreatePhysics(PX_PHYSICS_VERSION, *m_Foundation, PxTolerancesScale(), false, m_PVD);
 #else
-	PxTolerancesScale toleranses;
-	m_Physics = PxCreatePhysics(PX_PHYSICS_VERSION, *m_Foundation, toleranses, false, nullptr);
+	m_Physics = PxCreatePhysics(PX_PHYSICS_VERSION, *m_Foundation, PxTolerancesScale(), false, nullptr);
 #endif
 	
 	if (!m_Physics) {
@@ -40,11 +36,12 @@ void PhysicsEngine::Init() {
 		return;
 	}
 
-	PxSceneDesc sceneDesc(toleranses);
+	PxSceneDesc sceneDesc = PxSceneDesc(PxTolerancesScale());
 	sceneDesc.filterShader = PxDefaultSimulationFilterShader;
-	sceneDesc.cpuDispatcher = PxDefaultCpuDispatcherCreate(2);
+	m_Disbatcher = PxDefaultCpuDispatcherCreate(2);
+	sceneDesc.cpuDispatcher = m_Disbatcher;
 
-	sceneDesc.isValid();
+	//bool isValid = sceneDesc.isValid();
 	m_Scene = m_Physics->createScene(sceneDesc);
 	if (!m_Scene) {
 		printf("Error creating physx scene\n");
@@ -97,24 +94,33 @@ void PhysicsEngine::Update(double deltaTime) {
 }
 
 void PhysicsEngine::Shutdown() {
+	m_Disbatcher->release();
+	m_Disbatcher = nullptr;
+	
+	for (auto& a : m_Actors) {
+		m_Scene->removeActor(*a);
+	}
+	m_Actors.clear();
+
 	m_Scene->release();
 	m_Scene = nullptr;
+
 	m_Physics->release();
 	m_Physics = nullptr;
+
 #ifdef _DEBUG
+	m_PVD->getTransport()->release();
 	m_PVD->release();
 	m_PVD = nullptr;
 #endif
+
 	m_Foundation->release();
 	m_Foundation = nullptr;
-
-
 
 	for (auto& body : m_Bodies) {
 		delete body;
 	}
 	m_Bodies.clear();
-	m_Actors.clear();
 }
 
 PhysicsBody* PhysicsEngine::CreateDynamicActor(const glm::vec3& pos, const glm::quat& orientation, const glm::vec3& size, float mass, PHYSICS_SHAPE shape, bool kinematic) {

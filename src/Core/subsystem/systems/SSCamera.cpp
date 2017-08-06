@@ -24,8 +24,8 @@ SSCamera::~SSCamera() {
 }
 
 void SSCamera::Startup() {
-	//create camera entity
 
+	//create camera entity
 	Entity& e = g_EntityManager.CreateEntity();
 
 	TransformComponent tc;
