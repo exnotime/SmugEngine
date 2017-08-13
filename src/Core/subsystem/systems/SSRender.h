@@ -1,5 +1,7 @@
 #pragma once
 #include "../SubSystem.h"
+
+#include "../../Timer.h"
 class SSRender : public SubSystem {
   public:
 	SSRender();
@@ -9,6 +11,6 @@ class SSRender : public SubSystem {
 	virtual void Update(const double deltaTime);
 	virtual void Shutdown();
   private:
-
+	  Timer m_Timer;
 };
 

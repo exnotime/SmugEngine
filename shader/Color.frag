@@ -4,6 +4,7 @@ layout(location = 1) in vec3 NormalW;
 layout(location = 2) in vec3 TangentW;
 layout(location = 3) in vec2 TexCoordOut;
 layout(location = 4) in vec3 BiNormOut;
+layout (location = 5) in vec3 ColorOut;
 
 layout(location = 0) out vec4 outColor;
 
@@ -31,7 +32,7 @@ void main(){
     vec3 normal = CalcBumpedNormal(bump, NormalW, TangentW, BiNormOut);
     vec3 lightDir = normalize(LightDir.xyz);
     vec3 toCam = normalize(CamPos.xyz - PosW);
-    vec3 texColor = pow(texture(g_Material[0], TexCoordOut).rgb, vec3(GAMMA));
+    vec3 texColor = pow(texture(g_Material[0], TexCoordOut).rgb, vec3(GAMMA)) * ColorOut;
     vec3 mat = pow(texture(g_Material[2], TexCoordOut).rgb, vec3(GAMMA));
     
     vec3 lightColor = CalcDirLight(-lightDir, texColor, normal, toCam, mat.r, mat.g) * mat.b;

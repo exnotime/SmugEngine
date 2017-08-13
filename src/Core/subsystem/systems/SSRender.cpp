@@ -18,39 +18,33 @@ SSRender::~SSRender() {
 }
 
 void SSRender::Startup() {
-	Entity& e = g_EntityManager.CreateEntity();
-
-	TransformComponent tc;
-	tc.Orientation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
-	tc.Position = glm::vec3(0.0f, 0.08f, 0.0f);
-	tc.Scale = glm::vec3(10.0f);
-	tc.Transform = glm::mat4(1.0f);
-	g_ComponentManager.CreateComponent(&tc, e, tc.Flag);
-
+	//spheres
+	const int c = 16;
+	const float d = 10;
+	const float s = 5;
 	ModelComponent mc;
-	mc.ModelHandle = g_AssetLoader.LoadAsset("assets/KoopaTroopa/KoopaSimpl_LOD1/KoopaSimpl_LOD1.obj");
-	mc.Tint = glm::vec4(1.0f);
-	g_ComponentManager.CreateComponent(&mc, e, mc.Flag);
+	mc.ModelHandle = g_AssetLoader.LoadAsset("assets/cube/cube.obj");
+	for (int z = -c; z < c; z++) {
+		for (int y = -c; y < c; y++) {
+			for (int x = -c; x < c; x++) {
+
+				Entity& e = g_EntityManager.CreateEntity();
+
+				TransformComponent tc;
+				tc.Position = glm::vec3(x, y, z) * d;
+				tc.Scale = glm::vec3(s);
+				g_ComponentManager.CreateComponent(&tc, e, tc.Flag);
+				mc.Tint = glm::vec4(x / float(c), 1.0f - (y / float(c)), 0.5f, 1.0f);
+				g_ComponentManager.CreateComponent(&mc, e, mc.Flag);
+			}
+		}
+	}
 }
 
 void SSRender::Update(const double deltaTime) {
-
+	m_Timer.Reset();
 	int flag = ModelComponent::Flag | TransformComponent::Flag;
 	RenderQueue* rq = globals::g_Gfx->GetRenderQueue();
-	//Test Imgui
-	ImGui::Begin("Enities");
-	if (ImGui::TreeNode("EntityList")) {
-		for (auto& e : g_EntityManager.GetEntityList()) {
-			TransformComponent* tc = (TransformComponent*)g_ComponentManager.GetComponent(e, TransformComponent::Flag);
-			if (ImGui::TreeNode((void*)(intptr_t)e.UID, "Entity %d", e.UID)) {
-				ImGui::Text("Position: x=%f y=%f z=%f", tc->Position.x, tc->Position.y, tc->Position.z);
-				ImGui::Text("Rotation: x=%f y=%f z=%f w=%f", tc->Orientation.x, tc->Orientation.y, tc->Orientation.z, tc->Orientation.w);
-				ImGui::TreePop();
-			}
-		}
-		ImGui::TreePop();
-	}
-	ImGui::End();
 	//models
 	for (auto& e : g_EntityManager.GetEntityList()) {
 		if ((e.ComponentBitfield & flag) == flag) {
@@ -64,32 +58,12 @@ void SSRender::Update(const double deltaTime) {
 			rq->AddModel(mc->ModelHandle, si);
 		}
 	}
-	//sdf
-	SDFSphere s;
-	s.Pos = glm::vec3(0, -100, 0);
-	s.Radius = 100;
-	rq->AddSphere(s, glm::vec4(0,0.4f,0,1));
+	float t = m_Timer.Reset();
+	ImGui::Begin("Timing");
+	ImGui::Text("SSRender: %f ms", t * 1000.0f);
+	ImGui::End();
 
-	static float angle = 0.0f;
-	glm::quat q = glm::quat(glm::cos(angle), glm::vec3(0,1,0) * glm::sin(angle));
-	angle += 0.01f; if (angle > glm::pi<float>() * 2) angle = 0;
-	s.Pos = glm::vec3(5, 5, 5) * q;
-	s.Radius = 1.3f + glm::cos(angle);
-	rq->AddSphere(s, glm::vec4(0.5f, 0.1f, 0, 1));
-
-	s.Pos = glm::vec3(5, 5, -5) * q;
-	s.Radius = 2.4f + glm::cos(angle) * 2.0f;
-	rq->AddSphere(s, glm::vec4(0, 0, 0.5f, 1));
-
-	s.Pos = glm::vec3(-5, 5, 5) * q;
-	s.Radius = 3 - abs(glm::cos(angle));
-	rq->AddSphere(s, glm::vec4(1, 1, 1, 1));
-
-	SDFBox box;
-	box.Pos = glm::vec3(-5, 5, -5) * q;
-	box.Bounds = glm::vec3(1.3f + glm::cos(angle));
-	rq->AddBox(box, glm::vec4(0.02f, 0.01f, 0.1f, 1));
-	
+	ImGui::ShowMetricsWindow();
 }
 
 void SSRender::Shutdown() {

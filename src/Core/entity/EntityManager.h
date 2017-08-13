@@ -1,8 +1,8 @@
 #pragma once
 #include "Entity.h"
 #include <vector>
-#define ENTITY_DEFAULT_COMPONENT_COUNT 4
 #define g_EntityManager EntityManager::GetInstance()
+
 class EntityManager {
   public:
 	~EntityManager();

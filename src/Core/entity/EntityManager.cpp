@@ -12,7 +12,6 @@ EntityManager& EntityManager::GetInstance() {
 Entity& EntityManager::CreateEntity() {
 	Entity e;
 	e.ComponentBitfield = 0;
-	e.Components.reserve(ENTITY_DEFAULT_COMPONENT_COUNT);
 	e.UID = m_Counter++;
 	m_Entities.push_back(e);
 	return m_Entities.back();

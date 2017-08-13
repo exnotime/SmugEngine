@@ -34,6 +34,12 @@ struct PerFrameBuffer {
 	glm::vec4 LightDir;
 };
 
+struct PerFrameStatistics {
+	uint32_t ModelCount;
+	uint32_t MeshCount;
+	uint32_t TriangleCount;
+};
+
 class GFX_DLL GraphicsEngine {
   public:
 	GraphicsEngine();
@@ -43,6 +49,7 @@ class GFX_DLL GraphicsEngine {
 	void Render();
 	void Swap();
 	RenderQueue* GetRenderQueue();
+	void PrintStats();
 
   private:
 	void CreateContext();
@@ -50,17 +57,16 @@ class GFX_DLL GraphicsEngine {
 
 	VulkanContext m_VKContext;
 	VulkanSwapChain m_VKSwapChain;
-	VulkanCommandBuffer m_vkCmdBuffer;
-	VulkanCommandBuffer m_vkMarchCmdBuffer;
-	VulkanCommandBuffer m_vkImguiCmdBuffer;
+	VulkanCommandBufferFactory m_CmdBufferFactory;
+
 	VulkanQueue m_vkQueue;
 	Tephra::VkPipeline m_Pipeline;
 	int m_CurrentPipeline;
 
 	vk::RenderPass m_RenderPass;
 	vk::Semaphore m_ImageAquiredSemaphore;
+	vk::Semaphore m_TransferComplete;
 	vk::Semaphore m_RenderCompleteSemaphore;
-	vk::Semaphore m_RayMarchComplete;
 	vk::Fence m_Fence[BUFFER_COUNT];
 	vk::Viewport m_Viewport;
 
@@ -82,14 +88,13 @@ class GFX_DLL GraphicsEngine {
 	glm::vec2 m_ScreenSize;
 	vk::PipelineMultisampleStateCreateInfo m_MSState;
 
-	Raymarcher m_Raymarcher;
 	ToneMapProgram m_ToneMapping;
-
 	VkDebugReportCallbackEXT m_DebugCallbacks;
 
 	RenderQueue m_RenderQueues[BUFFER_COUNT];
 	ResourceHandler m_Resources;
 
+	PerFrameStatistics m_Stats;
 #ifdef USE_IMGUI
   public:
 	ImGui_ImplGlfwVulkan_Init_Data GetImguiInit();

@@ -1,6 +1,6 @@
 #pragma once
 #include <vulkan/vulkan.hpp>
-
+#include <deque>
 #define BUFFER_COUNT 2
 
 struct VulkanContext {
@@ -20,26 +20,70 @@ struct VulkanSwapChain {
 	vk::Format Format;
 };
 
+
+static vk::AccessFlags LayoutToAccessMask(vk::ImageLayout layout) {
+	switch (layout) {
+	case vk::ImageLayout::eColorAttachmentOptimal:
+		return vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite;
+		break;
+	case vk::ImageLayout::eDepthStencilAttachmentOptimal:
+		return vk::AccessFlagBits::eDepthStencilAttachmentRead | vk::AccessFlagBits::eDepthStencilAttachmentWrite;
+		break;
+	case vk::ImageLayout::eDepthStencilReadOnlyOptimal:
+		return vk::AccessFlagBits::eShaderRead;
+		break;
+	case vk::ImageLayout::ePresentSrcKHR:
+		return vk::AccessFlagBits::eMemoryRead;
+		break;
+	case vk::ImageLayout::eShaderReadOnlyOptimal:
+		return vk::AccessFlagBits::eShaderRead;
+		break;
+	case vk::ImageLayout::eTransferDstOptimal:
+		return vk::AccessFlagBits::eTransferWrite;
+		break;
+	case vk::ImageLayout::eTransferSrcOptimal:
+		return vk::AccessFlagBits::eTransferRead;
+		break;
+	case vk::ImageLayout::eGeneral:
+		return vk::AccessFlagBits::eShaderWrite;
+		break;
+	case vk::ImageLayout::ePreinitialized:
+		return vk::AccessFlags();
+		break;
+	case vk::ImageLayout::eUndefined:
+		return vk::AccessFlags();
+		break;
+	}
+	return vk::AccessFlags();
+}
+
+static vk::ImageAspectFlags LayoutToAspectMask(vk::ImageLayout layout) {
+	if (layout == vk::ImageLayout::eColorAttachmentOptimal || layout == vk::ImageLayout::eShaderReadOnlyOptimal ||
+		layout == vk::ImageLayout::eGeneral || layout == vk::ImageLayout::ePresentSrcKHR || layout == vk::ImageLayout::eTransferDstOptimal ||
+		layout == vk::ImageLayout::eTransferSrcOptimal) {
+		return vk::ImageAspectFlagBits::eColor;
+	}
+	else if (layout == vk::ImageLayout::eDepthStencilAttachmentOptimal || layout == vk::ImageLayout::eDepthStencilReadOnlyOptimal) {
+		return vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil;
+	}
+	else {
+		return vk::ImageAspectFlagBits::eMetadata;
+	}
+	return vk::ImageAspectFlagBits::eMetadata;
+}
+
 class VulkanCommandBuffer : public vk::CommandBuffer {
   public:
 	VulkanCommandBuffer() {
 
 	}
+
+	VulkanCommandBuffer(vk::CommandBuffer buffer) {
+		*static_cast<vk::CommandBuffer*>(this) = buffer;
+	}
+
 	~VulkanCommandBuffer() {
 
-	}
-	void Init(vk::Device device, int queueFamilyIndex) {
-		vk::CommandPoolCreateInfo poolInfo;
-		poolInfo.queueFamilyIndex = queueFamilyIndex;
-		poolInfo.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer;
-		m_CmdPools[0] = device.createCommandPool(poolInfo);
-		m_CmdPools[1] = device.createCommandPool(poolInfo);
-
-		vk::CommandBufferAllocateInfo bufferInfo;
-		bufferInfo.commandBufferCount = 1;
-		bufferInfo.commandPool = m_CmdPools[0];
-		bufferInfo.level = vk::CommandBufferLevel::ePrimary;
-		*static_cast<vk::CommandBuffer*>(this) = device.allocateCommandBuffers(bufferInfo)[0];
 	}
 
 	void Begin(const vk::Framebuffer& frameBuffer, const vk::RenderPass& renderPass) {
@@ -72,62 +116,66 @@ class VulkanCommandBuffer : public vk::CommandBuffer {
 		this->pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe, vk::PipelineStageFlagBits::eTopOfPipe, vk::DependencyFlagBits::eByRegion,
 		                      0, nullptr, 0, nullptr, (uint32_t)m_ImgBarriers.size(), m_ImgBarriers.data());
 		m_ImgBarriers.clear();
-		//TODO add memory and buffer barriers
-	}
-	void Reset(vk::Device device, int frameIndex) {
-		device.resetCommandPool(m_CmdPools[frameIndex], vk::CommandPoolResetFlagBits::eReleaseResources);
-	}
-  private:
-	vk::AccessFlags LayoutToAccessMask(vk::ImageLayout layout) {
-		switch (layout) {
-		case vk::ImageLayout::eColorAttachmentOptimal:
-			return vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite;
-			break;
-		case vk::ImageLayout::eDepthStencilAttachmentOptimal:
-			return vk::AccessFlagBits::eDepthStencilAttachmentRead | vk::AccessFlagBits::eDepthStencilAttachmentWrite;
-			break;
-		case vk::ImageLayout::eDepthStencilReadOnlyOptimal:
-			return vk::AccessFlagBits::eShaderRead;
-			break;
-		case vk::ImageLayout::ePresentSrcKHR:
-			return vk::AccessFlagBits::eMemoryRead;
-			break;
-		case vk::ImageLayout::eShaderReadOnlyOptimal:
-			return vk::AccessFlagBits::eShaderRead;
-			break;
-		case vk::ImageLayout::eTransferDstOptimal:
-			return vk::AccessFlagBits::eTransferWrite;
-			break;
-		case vk::ImageLayout::eTransferSrcOptimal:
-			return vk::AccessFlagBits::eTransferRead;
-			break;
-		case vk::ImageLayout::eGeneral:
-			return vk::AccessFlagBits::eShaderWrite;
-			break;
-		case vk::ImageLayout::ePreinitialized:
-			return vk::AccessFlags();
-			break;
-		case vk::ImageLayout::eUndefined:
-			return vk::AccessFlags();
-			break;
-		}
-		return vk::AccessFlags();
-	}
-	vk::ImageAspectFlags LayoutToAspectMask(vk::ImageLayout layout) {
-		if (layout == vk::ImageLayout::eColorAttachmentOptimal || layout == vk::ImageLayout::eShaderReadOnlyOptimal ||
-		        layout == vk::ImageLayout::eGeneral || layout == vk::ImageLayout::ePresentSrcKHR || layout == vk::ImageLayout::eTransferDstOptimal ||
-		        layout == vk::ImageLayout::eTransferSrcOptimal) {
-			return vk::ImageAspectFlagBits::eColor;
-		} else if (layout == vk::ImageLayout::eDepthStencilAttachmentOptimal || layout == vk::ImageLayout::eDepthStencilReadOnlyOptimal) {
-			return vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil;
-		} else {
-			return vk::ImageAspectFlagBits::eMetadata;
-		}
-		return vk::ImageAspectFlagBits::eMetadata;
 	}
 
-	vk::CommandPool m_CmdPools[BUFFER_COUNT];
+  private:
 	std::vector<vk::ImageMemoryBarrier> m_ImgBarriers;
+};
+
+class VulkanCommandBufferFactory {
+public:
+	VulkanCommandBufferFactory() {
+
+	}
+	~VulkanCommandBufferFactory() {
+
+	}
+
+	void Init(vk::Device device, int queueFamilyIndex, uint32_t bufferCount) {
+		vk::CommandPoolCreateInfo poolInfo;
+		poolInfo.queueFamilyIndex = queueFamilyIndex;
+		poolInfo.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer;
+		m_CmdPools[0] = device.createCommandPool(poolInfo);
+		m_CmdPools[1] = device.createCommandPool(poolInfo);
+
+		vk::CommandBufferAllocateInfo bufferInfo;
+		bufferInfo.commandBufferCount = bufferCount;
+		bufferInfo.commandPool = m_CmdPools[0];
+		bufferInfo.level = vk::CommandBufferLevel::ePrimary;
+
+		auto& buffers = device.allocateCommandBuffers(bufferInfo);
+		for (uint32_t i = 0; i < buffers.size(); ++i) {
+			m_CommandBuffers.push_back(VulkanCommandBuffer(buffers[i]));
+		}
+		m_ResetBuffers.insert(m_ResetBuffers.begin(), m_CommandBuffers.begin(), m_CommandBuffers.end());
+	}
+
+	void Reset(vk::Device device, int frameIndex) {
+		while (!m_UsedBuffers.empty()) {
+			auto& buffer = m_UsedBuffers.front();
+			buffer.reset(vk::CommandBufferResetFlagBits::eReleaseResources);
+			m_UsedBuffers.pop_front();
+			m_ResetBuffers.push_back(buffer);
+		}
+		device.resetCommandPool(m_CmdPools[frameIndex], vk::CommandPoolResetFlagBits::eReleaseResources);
+	}
+
+	VulkanCommandBuffer& GetNextBuffer() {
+		VulkanCommandBuffer& buffer = m_ResetBuffers.front();
+		m_ResetBuffers.pop_front();
+		return buffer;
+	}
+
+	void EndBuffer(VulkanCommandBuffer& buffer) {
+		buffer.end();
+		m_UsedBuffers.push_back(buffer);
+	}
+
+private:
+	std::vector<VulkanCommandBuffer> m_CommandBuffers;
+	std::deque<VulkanCommandBuffer> m_ResetBuffers;
+	std::deque<VulkanCommandBuffer> m_UsedBuffers;
+	vk::CommandPool m_CmdPools[BUFFER_COUNT];
 };
 
 class VulkanQueue : public vk::Queue {
@@ -188,6 +236,16 @@ class VulkanQueue : public vk::Queue {
 		vk::SubmitInfo submit;
 		submit.commandBufferCount = 1;
 		submit.pCommandBuffers = &cmdBuffer;
+		vk::PipelineStageFlags flags = vk::PipelineStageFlagBits::eBottomOfPipe;
+		submit.pWaitDstStageMask = &flags;
+
+		this->submit(1, &submit, nullptr);
+	}
+
+	void Submit(const std::vector<vk::CommandBuffer> buffers) {
+		vk::SubmitInfo submit;
+		submit.commandBufferCount = (uint32_t)buffers.size();
+		submit.pCommandBuffers = buffers.data();
 		vk::PipelineStageFlags flags = vk::PipelineStageFlagBits::eBottomOfPipe;
 		submit.pWaitDstStageMask = &flags;
 

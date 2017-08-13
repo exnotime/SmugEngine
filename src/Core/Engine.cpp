@@ -29,6 +29,7 @@ Engine::~Engine() {
 	m_MainSubSystemSet->Clear();
 	delete m_MainSubSystemSet;
 	delete m_GlobalTimer;
+	delete m_ProfilerTimer;
 	globals::Clear();
 	glfwTerminate();
 }
@@ -84,6 +85,8 @@ void Engine::Init() {
 	m_GlobalTimer = new Timer();
 	m_GlobalTimer->Reset();
 
+	m_ProfilerTimer = new Timer();
+
 	ImGui_ImplGlfwVulkan_Init_Data imguiData = globals::g_Gfx->GetImguiInit();
 	ImGui_ImplGlfwVulkan_Init(m_Window->GetWindow(), false, &imguiData);
 	ImGuiContext* ctx = ImGui::GetCurrentContext();
@@ -108,14 +111,19 @@ void Engine::Run() {
 		if (g_Input.IsKeyDown(GLFW_KEY_ESCAPE)) {
 			break;
 		}
-
+		printf("---NewFrame---\n");
+		m_ProfilerTimer->Reset();
+		globals::g_Gfx->PrintStats();
 		m_MainSubSystemSet->UpdateSubSystems(m_GlobalTimer->Tick());
-
+		printf("SubsystemUpdate: %f ms\n", m_ProfilerTimer->Reset() * 1000.0f);
 		globals::g_Physics->Update(1.0f / 60.0f);
-
+		printf("Physics: %f ms\n", m_ProfilerTimer->Reset() * 1000.0f);
 		globals::g_Gfx->Render();
+		printf("Graphics Render: %f ms\n", m_ProfilerTimer->Reset() * 1000.0f);
 		globals::g_Gfx->Swap();
+		printf("Graphics Swap: %f ms\n", m_ProfilerTimer->Reset() * 1000.0f);
 
+		printf("---EndFrame---\n");
 		g_Input.Update();
 		glfwPollEvents();
 	}

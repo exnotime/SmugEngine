@@ -3,7 +3,7 @@
 #include <glm/gtx/transform.hpp>
 #include <vulkan/vulkan.h>
 #include "Vertex.h"
-
+#include "Core/Timer.h"
 GraphicsEngine::GraphicsEngine() {
 
 }
@@ -131,10 +131,8 @@ void GraphicsEngine::CreateContext() {
 	//get queues
 	*static_cast<vk::Queue*>(&m_vkQueue) = VK_DEVICE.getQueue(m_vkQueue.GetQueueIndex(), 0);
 
-	//set up command buffer
-	m_vkCmdBuffer.Init(VK_DEVICE, m_vkQueue.GetQueueIndex());
-	m_vkMarchCmdBuffer.Init(VK_DEVICE, m_vkQueue.GetQueueIndex());
-	m_vkImguiCmdBuffer.Init(VK_DEVICE, m_vkQueue.GetQueueIndex());
+	//set up command buffers
+	m_CmdBufferFactory.Init(VK_DEVICE, m_vkQueue.GetQueueIndex(), 32);
 }
 
 void GraphicsEngine::CreateSwapChain(VkSurfaceKHR surface) {
@@ -272,13 +270,15 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 
 	vk::SemaphoreCreateInfo semaphoreInfo;
 	m_ImageAquiredSemaphore = VK_DEVICE.createSemaphore(semaphoreInfo);
+	m_TransferComplete = VK_DEVICE.createSemaphore(semaphoreInfo);
 	m_RenderCompleteSemaphore = VK_DEVICE.createSemaphore(semaphoreInfo);
-	m_RayMarchComplete = VK_DEVICE.createSemaphore(semaphoreInfo);
+
 	m_ImguiComplete = VK_DEVICE.createSemaphore(semaphoreInfo);
 
 	vk::FenceCreateInfo fenceInfo;
-	m_Fence[0] = VK_DEVICE.createFence(fenceInfo);
-	m_Fence[1] = VK_DEVICE.createFence(fenceInfo);
+	for (int q = 0; q < BUFFER_COUNT; ++q) {
+		m_Fence[q] = VK_DEVICE.createFence(fenceInfo);
+	}
 
 	VK_FRAME_INDEX = VK_DEVICE.acquireNextImageKHR(m_VKSwapChain.SwapChain, UINT64_MAX, m_ImageAquiredSemaphore, nullptr).value;
 	//viewport
@@ -391,165 +391,172 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	VK_DEVICE.updateDescriptorSets(3 + BUFFER_COUNT, descWrites, 0, nullptr);
 
 	m_SkyBox.Init(VK_DEVICE, VK_PHYS_DEVICE, "assets/skybox_rad.dds", m_Viewport, m_FrameBuffer.GetRenderPass(), m_MSState);
-	m_Raymarcher.Init(VK_DEVICE, m_FrameBuffer, VK_PHYS_DEVICE);
 
 	MemoryBudget memBudget;
 	memBudget.GeometryBudget = 64 * MEGA_BYTE;
 	memBudget.MaterialBudget = 512 * MEGA_BYTE;
 	m_Resources.Init(&VK_DEVICE, VK_PHYS_DEVICE, memBudget);
 	//prepare initial transfer
-	m_vkCmdBuffer.Begin(nullptr, nullptr);
+	auto& cmdBuffer = m_CmdBufferFactory.GetNextBuffer();
+	cmdBuffer.Begin(nullptr, nullptr);
 
 	for (int i = 0; i < BUFFER_COUNT; i++) {
-		m_vkCmdBuffer.ImageBarrier(m_VKSwapChain.Images[i], vk::ImageLayout::eUndefined, vk::ImageLayout::ePresentSrcKHR);
+		cmdBuffer.ImageBarrier(m_VKSwapChain.Images[i], vk::ImageLayout::eUndefined, vk::ImageLayout::ePresentSrcKHR);
 
 		std::vector<vk::ImageLayout> layouts = {vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eDepthStencilAttachmentOptimal };
-		m_FrameBuffer.ChangeLayout(m_vkCmdBuffer, layouts, i);
+		m_FrameBuffer.ChangeLayout(cmdBuffer, layouts, i);
 	}
 	
-	m_vkCmdBuffer.PushPipelineBarrier();
+	cmdBuffer.PushPipelineBarrier();
 
-	m_BufferMemory.ScheduleTransfers(m_vkCmdBuffer);
-	m_TextureMemory.ScheduleTransfers(m_vkCmdBuffer);
-	m_vkCmdBuffer.end();
+	m_BufferMemory.ScheduleTransfers(cmdBuffer);
+	m_TextureMemory.ScheduleTransfers(cmdBuffer);
+	m_CmdBufferFactory.EndBuffer(cmdBuffer);
 
-	m_vkQueue.Submit(m_vkCmdBuffer);
+	m_vkQueue.Submit(cmdBuffer);
 	VK_DEVICE.waitIdle();
 }
 
 void GraphicsEngine::Render() {
-	//transfer new camera data
+
+	Timer t;
+	ImGui::Begin("Timing");
 	RenderQueue& rq = m_RenderQueues[VK_FRAME_INDEX];
-	CameraData cd = rq.GetCameras()[0];
-
-	PerFrameBuffer uniformBuffer;
-	uniformBuffer.ViewProj = cd.ProjView;
-	uniformBuffer.CameraPos = glm::vec4(cd.Position, 1);
-	ImGui::SetCurrentContext(m_ImguiCtx);
-	static glm::vec3 LightDir = glm::vec3(0.1f, -1.0f, -0.5f);
-	ImGui::DragFloat3("LightDir", &LightDir[0], 0.01f, -1.0f, 1.0f);
-	uniformBuffer.LightDir = glm::normalize(glm::vec4(LightDir, 1.0f));
-
-	m_BufferMemory.UpdateBuffer(m_PerFrameBuffer, sizeof(PerFrameBuffer), (void*)(&uniformBuffer));
-	rq.ScheduleTransfer(m_BufferMemory);
-
-	m_vkCmdBuffer.Reset(VK_DEVICE, VK_FRAME_INDEX);
-
-	m_vkCmdBuffer.Begin(nullptr, nullptr);
-	m_BufferMemory.ScheduleTransfers(m_vkCmdBuffer);
-	m_SkyBox.PrepareUniformBuffer(m_vkCmdBuffer, cd.ProjView, glm::translate(cd.Position));
-	m_Raymarcher.UpdateUniforms(m_vkCmdBuffer, cd.ProjView, cd.Position, LightDir, rq, m_FrameBuffer.GetSize());
-	m_vkCmdBuffer.end();
-
-	m_vkQueue.Submit(m_vkCmdBuffer);
-	VK_DEVICE.waitIdle();
-
-	m_vkCmdBuffer.Begin(m_FrameBuffer.GetFrameBuffer(VK_FRAME_INDEX), m_FrameBuffer.GetRenderPass());
-	m_FrameBuffer.ChangeLayout(m_vkCmdBuffer, { vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eDepthStencilAttachmentOptimal }, VK_FRAME_INDEX);
-	m_vkCmdBuffer.PushPipelineBarrier();
-
-	vk::RenderPassBeginInfo renderPassInfo;
-	renderPassInfo.framebuffer = m_FrameBuffer.GetFrameBuffer(VK_FRAME_INDEX);
-	renderPassInfo.renderPass = m_FrameBuffer.GetRenderPass();
-	glm::vec4 color = glm::vec4(100.0f / 255, 149.0f / 255, 237.0f / 255, 1);
-	vk::ClearColorValue clearColor;
-	clearColor.float32[0] = color.r;
-	clearColor.float32[1] = color.g;
-	clearColor.float32[2] = color.b;
-	clearColor.float32[3] = 1;
-	vk::ClearDepthStencilValue clearDepth;
-	clearDepth.depth = 1.0f;
-	clearDepth.stencil = 0x0;
-	vk::ClearValue clearValues[] = { clearColor, clearDepth };
-	renderPassInfo.clearValueCount = 2;
-	renderPassInfo.pClearValues = clearValues;
-	renderPassInfo.renderArea = { 0, 0, (uint32_t)m_FrameBuffer.GetSize().x, (uint32_t)m_FrameBuffer.GetSize().y };
-	m_vkCmdBuffer.beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
-	#pragma region Rendering
-	//skybox
-	m_SkyBox.Render(m_vkCmdBuffer);
-
-	//render here
-	m_vkCmdBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipeline());
-	m_vkCmdBuffer.setViewport(0, 1, &m_Viewport);
-	vk::DescriptorSet sets[] = { m_PerFrameSet, m_IBLDescSet, rq.GetDescriptorSet() };
-	m_vkCmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipelineLayout(), 0, _countof(sets), sets, 0, nullptr);
-
-	uint32_t uniformOffset = 0;
-	for (auto& m : rq.GetModels()) {
-		const Model& model = m_Resources.GetModel(m);
-
-		vk::Buffer vertexBuffers[] = { model.VertexBuffers[0].BufferHandle, model.VertexBuffers[1].BufferHandle,
-		                               model.VertexBuffers[2].BufferHandle, model.VertexBuffers[3].BufferHandle
-		                             };
-
-		vk::DeviceSize offsets[] = { 0,0,0,0 };
-		m_vkCmdBuffer.bindVertexBuffers(0, 4, vertexBuffers, offsets);
-
-		m_vkCmdBuffer.bindIndexBuffer(model.IndexBuffer.BufferHandle, 0, vk::IndexType::eUint16);
-		m_vkCmdBuffer.pushConstants(m_Pipeline.GetPipelineLayout(),vk::ShaderStageFlagBits::eAll, 0, sizeof(unsigned), &uniformOffset);
-
-		vk::DescriptorSet mat;
-		for (uint32_t m = 0; m < model.MeshCount; ++m) {
-			Mesh& mesh = model.Meshes[m];
-			if (mat != mesh.Material) {
-				mat = mesh.Material;
-				m_vkCmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipelineLayout(), 3, 1, &mesh.Material, 0, nullptr);
-			}
-			m_vkCmdBuffer.drawIndexed(mesh.IndexCount, 1, mesh.IndexOffset, 0, 0);
-		}
-		uniformOffset++;
+	//reset stats
+	{
+		m_Stats.ModelCount = 0;
+		m_Stats.MeshCount = 0;
+		m_Stats.TriangleCount = 0;
 	}
-	#pragma endregion
-	m_vkCmdBuffer.endRenderPass();
+	//Transfer new frame data to GPU
+	{
+		CameraData cd = rq.GetCameras()[0];
 
-	m_vkCmdBuffer.end();
-	m_vkQueue.Submit(m_vkCmdBuffer, m_ImageAquiredSemaphore, m_RenderCompleteSemaphore, nullptr);
+		PerFrameBuffer uniformBuffer;
+		uniformBuffer.ViewProj = cd.ProjView;
+		uniformBuffer.CameraPos = glm::vec4(cd.Position, 1);
+		static glm::vec3 LightDir = glm::vec3(0.1f, -1.0f, -0.5f);
+		uniformBuffer.LightDir = glm::normalize(glm::vec4(LightDir, 1.0f));
 
-	//raymarch
-	m_vkMarchCmdBuffer.reset(vk::CommandBufferResetFlagBits::eReleaseResources);
-	m_vkMarchCmdBuffer.Begin(nullptr, nullptr);
+		m_BufferMemory.UpdateBuffer(m_PerFrameBuffer, sizeof(PerFrameBuffer), (void*)(&uniformBuffer));
+		rq.ScheduleTransfer(m_BufferMemory);
 
-	m_FrameBuffer.ChangeLayout(m_vkMarchCmdBuffer, { vk::ImageLayout::eGeneral , vk::ImageLayout::eDepthStencilReadOnlyOptimal }, VK_FRAME_INDEX);
-	m_vkMarchCmdBuffer.PushPipelineBarrier();
-	m_Raymarcher.Render(m_vkMarchCmdBuffer, VK_FRAME_INDEX, m_IBLDescSet, m_FrameBuffer.GetSize());
 
-	m_vkMarchCmdBuffer.end();
-	m_vkQueue.Submit(m_vkMarchCmdBuffer, m_RenderCompleteSemaphore, m_RayMarchComplete, nullptr);
+		m_CmdBufferFactory.Reset(VK_DEVICE, VK_FRAME_INDEX);
 
-	//Render Imgui
-	m_vkImguiCmdBuffer.Reset(VK_DEVICE, VK_FRAME_INDEX);
-	m_vkImguiCmdBuffer.Begin(m_VKSwapChain.FrameBuffers[VK_FRAME_INDEX], m_RenderPass);
-	// dont trust the renderpass inital layout
-	m_vkImguiCmdBuffer.ImageBarrier(m_VKSwapChain.Images[VK_FRAME_INDEX], vk::ImageLayout::ePresentSrcKHR, vk::ImageLayout::eColorAttachmentOptimal);
-	m_vkImguiCmdBuffer.PushPipelineBarrier();
+		auto& cmdBuffer = m_CmdBufferFactory.GetNextBuffer();
+		cmdBuffer.Begin(nullptr, nullptr);
+		m_BufferMemory.ScheduleTransfers(cmdBuffer);
+		m_SkyBox.PrepareUniformBuffer(cmdBuffer, cd.ProjView, glm::translate(cd.Position));
+		m_CmdBufferFactory.EndBuffer(cmdBuffer);
 
-	vk::RenderPassBeginInfo rpBeginInfo;
-	rpBeginInfo.clearValueCount = 1;
-	rpBeginInfo.renderPass = m_RenderPass;
-	rpBeginInfo.framebuffer = m_VKSwapChain.FrameBuffers[VK_FRAME_INDEX];
-	rpBeginInfo.renderArea.extent.width = (uint32_t)m_ScreenSize.x;
-	rpBeginInfo.renderArea.extent.height = (uint32_t)m_ScreenSize.y;
-	vk::ClearColorValue cc;
-	cc.float32[0] = 0.0f; cc.float32[1] = 1.0f; cc.float32[2] = 1.0f; cc.float32[3] = 1.0f;
-	vk::ClearValue cv = { cc };
-	rpBeginInfo.pClearValues = &cv;
+		m_vkQueue.Submit(cmdBuffer, nullptr, m_TransferComplete, nullptr);
+	}
+	ImGui::Text("Render: Transfer data: %f ms", t.Reset() * 1000.0f);
+	//render pass
+	{
+		auto& cmdBuffer = m_CmdBufferFactory.GetNextBuffer();
+		cmdBuffer.Begin(m_FrameBuffer.GetFrameBuffer(VK_FRAME_INDEX), m_FrameBuffer.GetRenderPass());
+		m_FrameBuffer.ChangeLayout(cmdBuffer, { vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eDepthStencilAttachmentOptimal }, VK_FRAME_INDEX);
+		cmdBuffer.PushPipelineBarrier();
 
-	m_FrameBuffer.ChangeLayout(m_vkImguiCmdBuffer, { vk::ImageLayout::eShaderReadOnlyOptimal, vk::ImageLayout::eDepthStencilReadOnlyOptimal }, VK_FRAME_INDEX);
-	m_vkImguiCmdBuffer.PushPipelineBarrier();
-	m_vkImguiCmdBuffer.beginRenderPass(rpBeginInfo, vk::SubpassContents::eInline);
-	m_vkImguiCmdBuffer.setViewport(0, 1, &m_Viewport);
-	//transfer from fbo to swapchain images
-	m_ToneMapping.Render(m_vkImguiCmdBuffer, VK_FRAME_INDEX);
-	//render imgui on top
-	ImGui::SetCurrentContext(m_ImguiCtx);
-	//ImGui::ShowMetricsWindow();
-	ImGui_ImplGlfwVulkan_Render(m_vkImguiCmdBuffer);
-	m_vkImguiCmdBuffer.endRenderPass();
+		vk::RenderPassBeginInfo renderPassInfo;
+		renderPassInfo.framebuffer = m_FrameBuffer.GetFrameBuffer(VK_FRAME_INDEX);
+		renderPassInfo.renderPass = m_FrameBuffer.GetRenderPass();
+		glm::vec4 color = glm::vec4(100.0f / 255, 149.0f / 255, 237.0f / 255, 1);
+		vk::ClearColorValue clearColor;
+		clearColor.float32[0] = color.r;
+		clearColor.float32[1] = color.g;
+		clearColor.float32[2] = color.b;
+		clearColor.float32[3] = 1;
+		vk::ClearDepthStencilValue clearDepth;
+		clearDepth.depth = 1.0f;
+		clearDepth.stencil = 0x0;
+		vk::ClearValue clearValues[] = { clearColor, clearDepth };
+		renderPassInfo.clearValueCount = 2;
+		renderPassInfo.pClearValues = clearValues;
+		renderPassInfo.renderArea = { 0, 0, (uint32_t)m_FrameBuffer.GetSize().x, (uint32_t)m_FrameBuffer.GetSize().y };
+		cmdBuffer.beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
 
-	m_vkImguiCmdBuffer.end();
+#pragma region Geometry Rendering
+		//skybox
+		m_SkyBox.Render(cmdBuffer);
+		ImGui::Text("Render: Skybox: %f ms", t.Reset() * 1000.0f);
+		//render here
+		cmdBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipeline());
+		cmdBuffer.setViewport(0, 1, &m_Viewport);
+		vk::DescriptorSet sets[] = { m_PerFrameSet, m_IBLDescSet, rq.GetDescriptorSet() };
+		cmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipelineLayout(), 0, _countof(sets), sets, 0, nullptr);
 
-	m_vkQueue.Submit(m_vkImguiCmdBuffer, m_RayMarchComplete, m_ImguiComplete, m_Fence[VK_FRAME_INDEX]);
+		uint32_t uniformOffset = 0;
+		for (auto& m : rq.GetModels()) {
+			m_Stats.ModelCount++;
+			const Model& model = m_Resources.GetModel(m);
+
+			const vk::Buffer vertexBuffers[] = { model.VertexBuffers[0].BufferHandle, model.VertexBuffers[1].BufferHandle,
+										   model.VertexBuffers[2].BufferHandle, model.VertexBuffers[3].BufferHandle };
+
+			const vk::DeviceSize offsets[] = { 0,0,0,0 };
+			cmdBuffer.bindVertexBuffers(0, 4, vertexBuffers, offsets);
+
+			cmdBuffer.bindIndexBuffer(model.IndexBuffer.BufferHandle, 0, vk::IndexType::eUint16);
+			cmdBuffer.pushConstants(m_Pipeline.GetPipelineLayout(), vk::ShaderStageFlagBits::eAll, 0, sizeof(unsigned), &uniformOffset);
+
+			vk::DescriptorSet mat;
+			for (uint32_t m = 0; m < model.MeshCount; ++m) {
+				m_Stats.MeshCount++;
+				Mesh& mesh = model.Meshes[m];
+				if (mat != mesh.Material) {
+					mat = mesh.Material;
+					cmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipelineLayout(), 3, 1, &mesh.Material, 0, nullptr);
+				}
+				m_Stats.TriangleCount += mesh.IndexCount / 3;
+				cmdBuffer.drawIndexed(mesh.IndexCount, 1, mesh.IndexOffset, 0, 0);
+			}
+			uniformOffset++;
+		}
+#pragma endregion
+		cmdBuffer.endRenderPass();
+
+		m_CmdBufferFactory.EndBuffer(cmdBuffer);
+		m_vkQueue.Submit({ cmdBuffer }, { m_TransferComplete, m_ImageAquiredSemaphore }, { m_RenderCompleteSemaphore }, nullptr);
+	}
+	
+	ImGui::Text("Render: Models: %f ms", t.Reset() * 1000.0f);
+	ImGui::End();
+	//Perform tonemapping and render Imgui
+	{
+		auto& cmdBuffer = m_CmdBufferFactory.GetNextBuffer();
+		cmdBuffer.Begin(m_VKSwapChain.FrameBuffers[VK_FRAME_INDEX], m_RenderPass);
+		// dont trust the renderpass inital layout
+		cmdBuffer.ImageBarrier(m_VKSwapChain.Images[VK_FRAME_INDEX], vk::ImageLayout::ePresentSrcKHR, vk::ImageLayout::eColorAttachmentOptimal);
+		cmdBuffer.PushPipelineBarrier();
+
+		vk::RenderPassBeginInfo rpBeginInfo;
+		rpBeginInfo.clearValueCount = 1;
+		rpBeginInfo.renderPass = m_RenderPass;
+		rpBeginInfo.framebuffer = m_VKSwapChain.FrameBuffers[VK_FRAME_INDEX];
+		rpBeginInfo.renderArea.extent.width = (uint32_t)m_ScreenSize.x;
+		rpBeginInfo.renderArea.extent.height = (uint32_t)m_ScreenSize.y;
+		vk::ClearColorValue cc;
+		cc.float32[0] = 0.0f; cc.float32[1] = 1.0f; cc.float32[2] = 1.0f; cc.float32[3] = 1.0f;
+		vk::ClearValue cv = { cc };
+		rpBeginInfo.pClearValues = &cv;
+
+		m_FrameBuffer.ChangeLayout(cmdBuffer, { vk::ImageLayout::eShaderReadOnlyOptimal, vk::ImageLayout::eDepthStencilReadOnlyOptimal }, VK_FRAME_INDEX);
+		cmdBuffer.PushPipelineBarrier();
+		cmdBuffer.beginRenderPass(rpBeginInfo, vk::SubpassContents::eInline);
+		cmdBuffer.setViewport(0, 1, &m_Viewport);
+		//transfer from fbo to back buffer
+		m_ToneMapping.Render(cmdBuffer, VK_FRAME_INDEX);
+		//render imgui on top
+		ImGui_ImplGlfwVulkan_Render(cmdBuffer);
+		cmdBuffer.endRenderPass();
+
+		m_CmdBufferFactory.EndBuffer(cmdBuffer);
+
+		m_vkQueue.Submit(cmdBuffer, m_RenderCompleteSemaphore, m_ImguiComplete, m_Fence[VK_FRAME_INDEX]);
+	}
 }
 
 void GraphicsEngine::Swap() {
@@ -562,11 +569,7 @@ void GraphicsEngine::Swap() {
 	presentInfo.swapchainCount = 1;
 	presentInfo.pSwapchains = &m_VKSwapChain.SwapChain;
 	presentInfo.waitSemaphoreCount = 1;
-#ifdef USE_IMGUI
 	presentInfo.pWaitSemaphores = &m_ImguiComplete;
-#else
-	presentInfo.pWaitSemaphores = &m_RayMarchComplete;
-#endif
 	m_vkQueue.presentKHR(presentInfo);
 
 	m_RenderQueues[VK_FRAME_INDEX].Clear();
@@ -579,12 +582,12 @@ RenderQueue* GraphicsEngine::GetRenderQueue() {
 }
 
 void GraphicsEngine::TransferToGPU() {
-	m_vkCmdBuffer.Reset(VK_DEVICE, VK_FRAME_INDEX);
-	m_vkCmdBuffer.Begin(nullptr, nullptr);
-	m_Resources.ScheduleTransfer(m_vkCmdBuffer);
-	m_vkCmdBuffer.end();
+	auto& cmdBuffer = m_CmdBufferFactory.GetNextBuffer();
+	cmdBuffer.Begin(nullptr, nullptr);
+	m_Resources.ScheduleTransfer(cmdBuffer);
+	m_CmdBufferFactory.EndBuffer(cmdBuffer);
 
-	m_vkQueue.Submit(m_vkCmdBuffer);
+	m_vkQueue.Submit(cmdBuffer);
 	VK_DEVICE.waitIdle();
 }
 
@@ -613,18 +616,27 @@ void GraphicsEngine::CreateImguiFont(ImGuiContext* imguiCtx) {
 	ImGui::SetCurrentContext(imguiCtx);
 	//upload font texture
 	{
-		m_vkImguiCmdBuffer.Reset(VK_DEVICE, VK_FRAME_INDEX);
+		auto& cmdBuffer = m_CmdBufferFactory.GetNextBuffer();
 		vk::CommandBufferBeginInfo begin_info = {};
 		begin_info.flags |= vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
-		m_vkImguiCmdBuffer.begin(&begin_info);
+		cmdBuffer.begin(&begin_info);
 
-		ImGui_ImplGlfwVulkan_CreateFontsTexture(m_vkImguiCmdBuffer);
+		ImGui_ImplGlfwVulkan_CreateFontsTexture(cmdBuffer);
 
-		m_vkImguiCmdBuffer.end();
-		m_vkQueue.Submit(m_vkImguiCmdBuffer);
+		m_CmdBufferFactory.EndBuffer(cmdBuffer);
+		m_vkQueue.Submit(cmdBuffer);
 
 		vkDeviceWaitIdle(VK_DEVICE);
 		ImGui_ImplGlfwVulkan_InvalidateFontUploadObjects();
 	}
 }
 #endif
+
+
+void GraphicsEngine::PrintStats() {
+	ImGui::Begin("FrameStats");
+	ImGui::Text("ModelCount: %u", m_Stats.ModelCount);
+	ImGui::Text("MeshCount: %u", m_Stats.MeshCount);
+	ImGui::Text("TriangleCount: %u", m_Stats.TriangleCount);
+	ImGui::End();
+}

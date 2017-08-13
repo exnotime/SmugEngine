@@ -23,12 +23,12 @@ void ComponentManager::AddComponentType(uint maxCount, uint size, uint component
 void ComponentManager::CreateComponent(const void* comp, Entity& ent, uint type) {
 	auto& buffer = m_Buffers.find(type);
 	if (buffer != m_Buffers.end()) {
-		int index = buffer->second.AddComponent(comp);
-		if (ent.Components.size() < m_Buffers.size()) {
-			ent.Components.resize(m_Buffers.size());
-		}
+		uint index = buffer->second.AddComponent(comp);
 		ent.ComponentBitfield = ent.ComponentBitfield | type;
-		ent.Components[(uint32_t)log2(type)] = index;
+		unsigned long bit_index = 0;
+		if (_BitScanReverse(&bit_index, type)) {
+			ent.Components[bit_index] = index;
+		}
 	} else {
 		printf("trying to create component without initializing a buffer\n");
 	}
@@ -71,7 +71,7 @@ int ComponentManager::GetBuffer(void** outBuffer, uint type) {
 }
 
 void* ComponentManager::GetComponent(const Entity& ent, uint type) {
-	auto buffer = m_Buffers.find(type);
+	auto& buffer = m_Buffers.find(type);
 
 	if (buffer != m_Buffers.end()) {
 		void* comp = buffer->second.GetComponent(ent.Components[(uint32_t)log2(type)]);

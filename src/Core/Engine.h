@@ -14,4 +14,5 @@ class Engine {
 	Window* m_Window;
 	SubSystemSet* m_MainSubSystemSet;
 	Timer* m_GlobalTimer;
+	Timer* m_ProfilerTimer;
 };
