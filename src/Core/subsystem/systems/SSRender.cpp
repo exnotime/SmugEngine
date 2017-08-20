@@ -19,11 +19,13 @@ SSRender::~SSRender() {
 
 void SSRender::Startup() {
 	//spheres
-	const int c = 16;
+	const int c = 12;
 	const float d = 10;
 	const float s = 5;
 	ModelComponent mc;
-	mc.ModelHandle = g_AssetLoader.LoadAsset("assets/cube/cube.obj");
+	mc.ModelHandle = g_AssetLoader.LoadAsset("assets/sphere/sphere.obj");
+	mc.Static = true;
+	RenderQueue* rq = globals::g_Gfx->GetStaticQueue();
 	for (int z = -c; z < c; z++) {
 		for (int y = -c; y < c; y++) {
 			for (int x = -c; x < c; x++) {
@@ -33,9 +35,20 @@ void SSRender::Startup() {
 				TransformComponent tc;
 				tc.Position = glm::vec3(x, y, z) * d;
 				tc.Scale = glm::vec3(s);
-				g_ComponentManager.CreateComponent(&tc, e, tc.Flag);
+				globals::g_Components->CreateComponent(&tc, e, tc.Flag);
 				mc.Tint = glm::vec4(x / float(c), 1.0f - (y / float(c)), 0.5f, 1.0f);
-				g_ComponentManager.CreateComponent(&mc, e, mc.Flag);
+				globals::g_Components->CreateComponent(&mc, e, mc.Flag);
+
+				tc.Transform = glm::toMat4(tc.Orientation);
+				tc.Transform[3][0] = tc.Position.x;
+				tc.Transform[3][1] = tc.Position.y;
+				tc.Transform[3][2] = tc.Position.z;
+
+				tc.Transform[0][0] *= tc.Scale.x;
+				tc.Transform[1][1] *= tc.Scale.y;
+				tc.Transform[2][2] *= tc.Scale.z;
+
+				rq->AddModel(mc.ModelHandle, tc.Transform, mc.Tint);
 			}
 		}
 	}
@@ -46,21 +59,31 @@ void SSRender::Update(const double deltaTime) {
 	int flag = ModelComponent::Flag | TransformComponent::Flag;
 	RenderQueue* rq = globals::g_Gfx->GetRenderQueue();
 	//models
-	for (auto& e : g_EntityManager.GetEntityList()) {
-		if ((e.ComponentBitfield & flag) == flag) {
-			ModelComponent* mc = (ModelComponent*)g_ComponentManager.GetComponent(e, ModelComponent::Flag);
-			TransformComponent* tc = (TransformComponent*)g_ComponentManager.GetComponent(e, TransformComponent::Flag);
-			tc->Transform = glm::scale(tc->Scale) * glm::translate(tc->Position) * glm::toMat4(tc->Orientation);
+	auto& entities = g_EntityManager.GetEntityList();
+	uint32_t entityCount = entities.size();
 
-			ShaderInput si;
-			si.Transform = tc->Transform;
-			si.Color = mc->Tint;
-			rq->AddModel(mc->ModelHandle, si);
+	for (uint32_t e = 0; e < entityCount; ++e) {
+		auto& entity = entities[e];
+		if ((entity.ComponentBitfield & flag) == flag) {
+			ModelComponent* mc = (ModelComponent*)globals::g_Components->GetComponent(entity, ModelComponent::Flag);
+			if (mc->Static) //it will already be on the static queue
+				continue;
+
+			TransformComponent* tc = (TransformComponent*)globals::g_Components->GetComponent(entity, TransformComponent::Flag);
+			tc->Transform = glm::toMat4(tc->Orientation);
+			tc->Transform[3][0] = tc->Position.x;
+			tc->Transform[3][1] = tc->Position.y;
+			tc->Transform[3][2] = tc->Position.z;
+
+			tc->Transform[0][0] *= tc->Scale.x;
+			tc->Transform[1][1] *= tc->Scale.y;
+			tc->Transform[2][2] *= tc->Scale.z;
+
+			rq->AddModel(mc->ModelHandle, tc->Transform, mc->Tint);
 		}
 	}
-	float t = m_Timer.Reset();
 	ImGui::Begin("Timing");
-	ImGui::Text("SSRender: %f ms", t * 1000.0f);
+	ImGui::Text("SSRender: %f ms", m_Timer.Reset() * 1000.0f);
 	ImGui::End();
 
 	ImGui::ShowMetricsWindow();

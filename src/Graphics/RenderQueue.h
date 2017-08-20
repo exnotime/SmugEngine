@@ -20,7 +20,7 @@ class GFX_DLL RenderQueue {
 	void Init(VkMemory& memory);
 	void Clear();
 	void AddCamera(const CameraData& cd);
-	void AddModel(ResourceHandle handle, const ShaderInput& input);
+	void AddModel(ResourceHandle handle, const glm::mat4& transform, const glm::vec4& tint);
 	void ScheduleTransfer(VkMemory& memory);
 
 	const std::vector<CameraData>& GetCameras() const { return m_Cameras; }
@@ -31,13 +31,6 @@ class GFX_DLL RenderQueue {
 	void SetDescSet(vk::DescriptorSet set) { m_DescSet = set; }
 	vk::DescriptorSet GetDescriptorSet() { return m_DescSet; }
 
-	//Signed distance field
-	void AddSphere(const SDFSphere& sphere, const glm::vec4& color) { m_Spheres.push_back(sphere); m_SDFColors.push_back(color); }
-	void AddBox(const SDFBox& box, const glm::vec4& color) { m_Boxes.push_back(box); m_SDFColors.push_back(color); }
-
-	const std::vector<SDFSphere>& GetSpheres() const { return m_Spheres; }
-	const std::vector<SDFBox>& GetBoxes() const { return m_Boxes; }
-	const std::vector<glm::vec4>& GetSDFColors() const { return m_SDFColors; }
 
   private:
 	std::vector<CameraData> m_Cameras;
@@ -45,9 +38,4 @@ class GFX_DLL RenderQueue {
 	std::vector<ResourceHandle> m_Models;
 	vk::DescriptorSet m_DescSet;
 	VkAlloc m_VkBuffer;
-
-	//Signed distance fields
-	std::vector<SDFSphere> m_Spheres;
-	std::vector<SDFBox> m_Boxes;
-	std::vector<glm::vec4> m_SDFColors;
 };

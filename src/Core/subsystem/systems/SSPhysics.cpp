@@ -25,8 +25,8 @@ void SSPhysics::Update(const double deltaTime) {
 	int flag = TransformComponent::Flag | RigidBodyComponent::Flag;
 	for (auto& e : g_EntityManager.GetEntityList()) {
 		if ((e.ComponentBitfield & flag) == flag) {
-			TransformComponent* tc = (TransformComponent*)g_ComponentManager.GetComponent(e, TransformComponent::Flag);
-			RigidBodyComponent* rc = (RigidBodyComponent*)g_ComponentManager.GetComponent(e, RigidBodyComponent::Flag);
+			TransformComponent* tc = (TransformComponent*)globals::g_Components->GetComponent(e, TransformComponent::Flag);
+			RigidBodyComponent* rc = (RigidBodyComponent*)globals::g_Components->GetComponent(e, RigidBodyComponent::Flag);
 
 			tc->Position = rc->Body->Position;
 			tc->Orientation = rc->Body->Orientation;

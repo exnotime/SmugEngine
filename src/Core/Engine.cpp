@@ -71,10 +71,11 @@ void Engine::Init() {
 	g_ScriptEngine.ExecuteModule(mod, "void Load()");
 
 	//create component buffers
-	g_ComponentManager.AddComponentType(100, sizeof(TransformComponent), TransformComponent::Flag, "TransformComponent");
-	g_ComponentManager.AddComponentType(100, sizeof(ModelComponent), ModelComponent::Flag, "ModelComponent");
-	g_ComponentManager.AddComponentType(100, sizeof(RigidBodyComponent), RigidBodyComponent::Flag, "RigidBodyComponent");
-	g_ComponentManager.AddComponentType(3, sizeof(CameraComponent), CameraComponent::Flag, "CameraComponent");
+	globals::g_Components = new ComponentManager();
+	globals::g_Components->AddComponentType(100, sizeof(TransformComponent), TransformComponent::Flag, "TransformComponent");
+	globals::g_Components->AddComponentType(100, sizeof(ModelComponent), ModelComponent::Flag, "ModelComponent");
+	globals::g_Components->AddComponentType(100, sizeof(RigidBodyComponent), RigidBodyComponent::Flag, "RigidBodyComponent");
+	globals::g_Components->AddComponentType(3, sizeof(CameraComponent), CameraComponent::Flag, "CameraComponent");
 
 	m_MainSubSystemSet = new SubSystemSet();
 	m_MainSubSystemSet->AddSubSystem(new SSCamera());

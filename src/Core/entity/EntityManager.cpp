@@ -1,5 +1,5 @@
 #include "EntityManager.h"
-#include "../datasystem/ComponentManager.h"
+#include <Core/GlobalSystems.h>
 EntityManager::EntityManager() {}
 
 EntityManager::~EntityManager() {}
@@ -21,7 +21,7 @@ void EntityManager::RemoveEntity(Entity& entity) {
 	//potentially slow
 	for (int i = 0; i < m_Entities.size(); i++) {
 		if (m_Entities[i].UID == entity.UID) {
-			g_ComponentManager.RemoveComponents(m_Entities[i]);
+			globals::g_Components->RemoveComponents(m_Entities[i]);
 			m_Entities.erase( m_Entities.begin() + i);
 			return;
 		}
@@ -30,7 +30,7 @@ void EntityManager::RemoveEntity(Entity& entity) {
 
 void EntityManager::RemoveAllEntities() {
 	for (int i = 0; i < m_Entities.size(); i++) {
-		g_ComponentManager.RemoveComponents(m_Entities[i]);
+		globals::g_Components->RemoveComponents(m_Entities[i]);
 	}
 	m_Entities.clear();
 }

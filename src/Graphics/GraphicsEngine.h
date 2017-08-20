@@ -49,11 +49,13 @@ class GFX_DLL GraphicsEngine {
 	void Render();
 	void Swap();
 	RenderQueue* GetRenderQueue();
+	RenderQueue* GetStaticQueue();
 	void PrintStats();
 
   private:
 	void CreateContext();
 	void CreateSwapChain(VkSurfaceKHR surface);
+	void RenderModels(RenderQueue& rq, VulkanCommandBuffer& cmdBuffer);
 
 	VulkanContext m_VKContext;
 	VulkanSwapChain m_VKSwapChain;
@@ -92,6 +94,7 @@ class GFX_DLL GraphicsEngine {
 	VkDebugReportCallbackEXT m_DebugCallbacks;
 
 	RenderQueue m_RenderQueues[BUFFER_COUNT];
+	RenderQueue m_StaticRenderQueue;
 	ResourceHandler m_Resources;
 
 	PerFrameStatistics m_Stats;

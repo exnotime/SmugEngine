@@ -211,8 +211,12 @@ class VulkanQueue : public vk::Queue {
 		submit.pSignalSemaphores = signalSemaphores.data();
 		submit.waitSemaphoreCount = (uint32_t)waitSemaphores.size();
 		submit.pWaitSemaphores = waitSemaphores.data();
-		vk::PipelineStageFlags flags = vk::PipelineStageFlagBits::eBottomOfPipe;
-		submit.pWaitDstStageMask = &flags;
+
+		std::vector<vk::PipelineStageFlags> flags;
+		for(auto& waits : waitSemaphores)
+			flags.push_back(vk::PipelineStageFlagBits::eBottomOfPipe);
+
+		submit.pWaitDstStageMask = flags.data();
 
 		this->submit(1, &submit, fence);
 	}

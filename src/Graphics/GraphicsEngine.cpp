@@ -298,6 +298,7 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	for (int q = 0; q < BUFFER_COUNT; ++q) {
 		m_RenderQueues[q].Init(m_BufferMemory);
 	}
+	m_StaticRenderQueue.Init(m_BufferMemory);
 
 	vk::DescriptorPoolCreateInfo descPoolInfo;
 	descPoolInfo.maxSets = 16 * 1000;
@@ -340,9 +341,12 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 			VK_DEVICE.allocateDescriptorSets(&descSetAllocInfo, &set);
 			m_RenderQueues[i].SetDescSet(set);
 		}
+
+		VK_DEVICE.allocateDescriptorSets(&descSetAllocInfo, &set);
+		m_StaticRenderQueue.SetDescSet(set);
 	}
 
-	vk::WriteDescriptorSet descWrites[3 + BUFFER_COUNT];
+	vk::WriteDescriptorSet descWrites[4 + BUFFER_COUNT];
 	uint32_t c = 0;
 	descWrites[c].descriptorCount = 1;
 	descWrites[c].descriptorType = vk::DescriptorType::eUniformBuffer;
@@ -375,7 +379,7 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	descWrites[c].pImageInfo = &imageInfo[1];
 	descWrites[c++].dstSet = m_IBLDescSet;
 
-	vk::DescriptorBufferInfo bufferInfos[BUFFER_COUNT];
+	vk::DescriptorBufferInfo bufferInfos[BUFFER_COUNT + 1];
 	for (int q = 0; q < BUFFER_COUNT; ++q) {
 		descWrites[c + q].descriptorCount = 1;
 		descWrites[c + q].descriptorType = vk::DescriptorType::eStorageBuffer;
@@ -388,7 +392,18 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 		bufferInfos[q].range = VK_WHOLE_SIZE;
 		descWrites[c + q].pBufferInfo = &bufferInfos[q];
 	}
-	VK_DEVICE.updateDescriptorSets(3 + BUFFER_COUNT, descWrites, 0, nullptr);
+	descWrites[c + 2].descriptorCount = 1;
+	descWrites[c + 2].descriptorType = vk::DescriptorType::eStorageBuffer;
+	descWrites[c + 2].dstArrayElement = 0;
+	descWrites[c + 2].dstBinding = 0;
+	descWrites[c + 2].dstSet = m_StaticRenderQueue.GetDescriptorSet();
+
+	bufferInfos[2].buffer = m_StaticRenderQueue.GetUniformBuffer().BufferHandle;
+	bufferInfos[2].offset = 0;
+	bufferInfos[2].range = VK_WHOLE_SIZE;
+	descWrites[c + 2].pBufferInfo = &bufferInfos[2];
+
+	VK_DEVICE.updateDescriptorSets(4 + BUFFER_COUNT, descWrites, 0, nullptr);
 
 	m_SkyBox.Init(VK_DEVICE, VK_PHYS_DEVICE, "assets/skybox_rad.dds", m_Viewport, m_FrameBuffer.GetRenderPass(), m_MSState);
 
@@ -417,6 +432,42 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	VK_DEVICE.waitIdle();
 }
 
+void GraphicsEngine::RenderModels(RenderQueue& rq, VulkanCommandBuffer& cmdBuffer) {
+	if (rq.GetModels().size() == 0) {
+		return;
+	}
+	vk::DescriptorSet sets[] = { m_PerFrameSet, m_IBLDescSet, rq.GetDescriptorSet() };
+	cmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipelineLayout(), 0, _countof(sets), sets, 0, nullptr);
+
+	uint32_t uniformOffset = 0;
+	for (auto& m : rq.GetModels()) {
+		m_Stats.ModelCount++;
+		const Model& model = m_Resources.GetModel(m);
+
+		const vk::Buffer vertexBuffers[] = { model.VertexBuffers[0].BufferHandle, model.VertexBuffers[1].BufferHandle,
+			model.VertexBuffers[2].BufferHandle, model.VertexBuffers[3].BufferHandle };
+
+		const vk::DeviceSize offsets[] = { 0,0,0,0 };
+		cmdBuffer.bindVertexBuffers(0, 4, vertexBuffers, offsets);
+
+		cmdBuffer.bindIndexBuffer(model.IndexBuffer.BufferHandle, 0, vk::IndexType::eUint16);
+		cmdBuffer.pushConstants(m_Pipeline.GetPipelineLayout(), vk::ShaderStageFlagBits::eAll, 0, sizeof(unsigned), &uniformOffset);
+
+		vk::DescriptorSet mat;
+		for (uint32_t m = 0; m < model.MeshCount; ++m) {
+			m_Stats.MeshCount++;
+			Mesh& mesh = model.Meshes[m];
+			if (mat != mesh.Material) {
+				mat = mesh.Material;
+				cmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipelineLayout(), 3, 1, &mesh.Material, 0, nullptr);
+			}
+			m_Stats.TriangleCount += mesh.IndexCount / 3;
+			cmdBuffer.drawIndexed(mesh.IndexCount, 1, mesh.IndexOffset, 0, 0);
+		}
+		uniformOffset++;
+	}
+}
+
 void GraphicsEngine::Render() {
 
 	Timer t;
@@ -440,7 +491,6 @@ void GraphicsEngine::Render() {
 
 		m_BufferMemory.UpdateBuffer(m_PerFrameBuffer, sizeof(PerFrameBuffer), (void*)(&uniformBuffer));
 		rq.ScheduleTransfer(m_BufferMemory);
-
 
 		m_CmdBufferFactory.Reset(VK_DEVICE, VK_FRAME_INDEX);
 
@@ -478,44 +528,16 @@ void GraphicsEngine::Render() {
 		renderPassInfo.renderArea = { 0, 0, (uint32_t)m_FrameBuffer.GetSize().x, (uint32_t)m_FrameBuffer.GetSize().y };
 		cmdBuffer.beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
 
-#pragma region Geometry Rendering
 		//skybox
 		m_SkyBox.Render(cmdBuffer);
-		ImGui::Text("Render: Skybox: %f ms", t.Reset() * 1000.0f);
+		
 		//render here
 		cmdBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipeline());
 		cmdBuffer.setViewport(0, 1, &m_Viewport);
-		vk::DescriptorSet sets[] = { m_PerFrameSet, m_IBLDescSet, rq.GetDescriptorSet() };
-		cmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipelineLayout(), 0, _countof(sets), sets, 0, nullptr);
 
-		uint32_t uniformOffset = 0;
-		for (auto& m : rq.GetModels()) {
-			m_Stats.ModelCount++;
-			const Model& model = m_Resources.GetModel(m);
+		RenderModels(m_StaticRenderQueue, cmdBuffer);
+		RenderModels(rq, cmdBuffer);
 
-			const vk::Buffer vertexBuffers[] = { model.VertexBuffers[0].BufferHandle, model.VertexBuffers[1].BufferHandle,
-										   model.VertexBuffers[2].BufferHandle, model.VertexBuffers[3].BufferHandle };
-
-			const vk::DeviceSize offsets[] = { 0,0,0,0 };
-			cmdBuffer.bindVertexBuffers(0, 4, vertexBuffers, offsets);
-
-			cmdBuffer.bindIndexBuffer(model.IndexBuffer.BufferHandle, 0, vk::IndexType::eUint16);
-			cmdBuffer.pushConstants(m_Pipeline.GetPipelineLayout(), vk::ShaderStageFlagBits::eAll, 0, sizeof(unsigned), &uniformOffset);
-
-			vk::DescriptorSet mat;
-			for (uint32_t m = 0; m < model.MeshCount; ++m) {
-				m_Stats.MeshCount++;
-				Mesh& mesh = model.Meshes[m];
-				if (mat != mesh.Material) {
-					mat = mesh.Material;
-					cmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipelineLayout(), 3, 1, &mesh.Material, 0, nullptr);
-				}
-				m_Stats.TriangleCount += mesh.IndexCount / 3;
-				cmdBuffer.drawIndexed(mesh.IndexCount, 1, mesh.IndexOffset, 0, 0);
-			}
-			uniformOffset++;
-		}
-#pragma endregion
 		cmdBuffer.endRenderPass();
 
 		m_CmdBufferFactory.EndBuffer(cmdBuffer);
@@ -581,12 +603,16 @@ RenderQueue* GraphicsEngine::GetRenderQueue() {
 	return &m_RenderQueues[VK_FRAME_INDEX];
 }
 
+RenderQueue* GraphicsEngine::GetStaticQueue() {
+	return &m_StaticRenderQueue;
+}
+
 void GraphicsEngine::TransferToGPU() {
 	auto& cmdBuffer = m_CmdBufferFactory.GetNextBuffer();
 	cmdBuffer.Begin(nullptr, nullptr);
 	m_Resources.ScheduleTransfer(cmdBuffer);
 	m_CmdBufferFactory.EndBuffer(cmdBuffer);
-
+	m_StaticRenderQueue.ScheduleTransfer(m_BufferMemory);
 	m_vkQueue.Submit(cmdBuffer);
 	VK_DEVICE.waitIdle();
 }

@@ -127,13 +127,13 @@ void Raymarcher::UpdateUniforms(VulkanCommandBuffer& cmdBuffer, const glm::mat4&
 	frameInfo.invViewProj = glm::inverse(viewProj);
 	frameInfo.LightDir = glm::vec4(LightDir, 0);
 	frameInfo.ScreenSize = screenSize;
-	frameInfo.SphereCount = (uint32_t)queue.GetSpheres().size();
-	frameInfo.BoxCount = (uint32_t)queue.GetBoxes().size();
-	m_BufferMem.UpdateBuffer(m_UniformBuffer, sizeof(PerFrame), &frameInfo);
+	//frameInfo.SphereCount = (uint32_t)queue.GetSpheres().size();
+	//frameInfo.BoxCount = (uint32_t)queue.GetBoxes().size();
+	//m_BufferMem.UpdateBuffer(m_UniformBuffer, sizeof(PerFrame), &frameInfo);
 
-	m_BufferMem.UpdateBuffer(m_PrimitiveBuffer, sizeof(SDFSphere) * frameInfo.SphereCount, (void*)queue.GetSpheres().data());
-	m_BufferMem.UpdateBuffer(m_PrimitiveBuffer, sizeof(SDFSphere) * 128, sizeof(SDFBox) * frameInfo.BoxCount, (void*)queue.GetBoxes().data());
-	m_BufferMem.UpdateBuffer(m_PrimitiveBuffer, (sizeof(SDFSphere) + sizeof(SDFBox)) * 128, sizeof(glm::vec4) * queue.GetSDFColors().size(), (void*)queue.GetSDFColors().data());
+	//m_BufferMem.UpdateBuffer(m_PrimitiveBuffer, sizeof(SDFSphere) * frameInfo.SphereCount, (void*)queue.GetSpheres().data());
+	//m_BufferMem.UpdateBuffer(m_PrimitiveBuffer, sizeof(SDFSphere) * 128, sizeof(SDFBox) * frameInfo.BoxCount, (void*)queue.GetBoxes().data());
+	//m_BufferMem.UpdateBuffer(m_PrimitiveBuffer, (sizeof(SDFSphere) + sizeof(SDFBox)) * 128, sizeof(glm::vec4) * queue.GetSDFColors().size(), (void*)queue.GetSDFColors().data());
 	m_BufferMem.ScheduleTransfers(cmdBuffer);
 }
 

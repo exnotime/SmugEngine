@@ -4,7 +4,7 @@
 #include <deque>
 #include <string>
 typedef  unsigned char Byte;
-typedef  unsigned int uint;
+typedef  uint32_t uint;
 
 class ComponentBuffer {
   public:

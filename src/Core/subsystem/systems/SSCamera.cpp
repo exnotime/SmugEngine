@@ -31,11 +31,11 @@ void SSCamera::Startup() {
 	TransformComponent tc;
 	tc.Position = glm::vec3(0, 3, -15);
 	tc.Scale = glm::vec3(1.0f);
-	g_ComponentManager.CreateComponent(&tc, e, TransformComponent::Flag);
+	globals::g_Components->CreateComponent(&tc, e, TransformComponent::Flag);
 
 	CameraComponent cc;
 	cc.Cam.SetPosition(tc.Position);
-	g_ComponentManager.CreateComponent(&cc, e, CameraComponent::Flag);
+	globals::g_Components->CreateComponent(&cc, e, CameraComponent::Flag);
 
 }
 
@@ -44,8 +44,8 @@ void SSCamera::Update(const double deltaTime) {
 	int flag = CameraComponent::Flag | TransformComponent::Flag;
 	for (auto& e : g_EntityManager.GetEntityList()) {
 		if ((e.ComponentBitfield & flag) == flag) {
-			CameraComponent* cc = (CameraComponent*)g_ComponentManager.GetComponent(e, CameraComponent::Flag);
-			TransformComponent* tc = (TransformComponent*)g_ComponentManager.GetComponent(e, TransformComponent::Flag);
+			CameraComponent* cc = (CameraComponent*)globals::g_Components->GetComponent(e, CameraComponent::Flag);
+			TransformComponent* tc = (TransformComponent*)globals::g_Components->GetComponent(e, TransformComponent::Flag);
 
 			glm::vec3 velocity = glm::vec3(0.0f);
 			double speed = CAMERA_SPEED * deltaTime;
