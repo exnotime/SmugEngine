@@ -12,7 +12,9 @@ enum ResourceTypes : uint64_t {
 	RT_ANIMATION = 0x4,
 	RT_SKELETON = 0x8,
 	RT_SCRIPT = 0x10,
-	RT_LEVEL = 0x20
+	RT_LEVEL = 0x20,
+	RT_GAME_MODEL = 0x40,
+	RT_ALL_TYPES = 0xff
 };
 
 /*
@@ -36,6 +38,7 @@ class ASSET_DLL AssetLoader {
 	~AssetLoader();
 	void SetResourceAllocator(ResourceAllocator allocator);
 	ResourceHandle LoadAsset(const char* filename);
+	void* GetAsset(ResourceHandle handle, ResourceTypes type = RT_ALL_TYPES);
 	void UnloadAsset(ResourceHandle h);
 	void Clear();
 
@@ -47,5 +50,6 @@ class ASSET_DLL AssetLoader {
 	TextureLoader m_TexLoader;
 	ModelLoader m_ModelLoader;
 	std::unordered_map<std::string, ResourceHandle> m_ResourceCache;
+
 };
 

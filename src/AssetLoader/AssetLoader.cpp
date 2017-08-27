@@ -52,7 +52,7 @@ ResourceHandle AssetLoader::LoadAsset(const char* filename) {
 		error = m_TexLoader.LoadTexture(file, texInfo);
 		if (!error) {
 			ResourceHandle handle = m_Allocator.AllocTexture(texInfo, m_Allocator.TextureData);
-			handle |= (RT_TEXTURE << 32);
+			handle |= (RT_TEXTURE << RESOURCE_INDEX_SHIFT);
 			m_ResourceCache[filename] = handle;
 			return handle;
 		}
@@ -61,7 +61,7 @@ ResourceHandle AssetLoader::LoadAsset(const char* filename) {
 		error = m_ModelLoader.LoadModel(file, modelInfo);
 		if (!error) {
 			ResourceHandle handle = m_Allocator.AllocModel(modelInfo, m_Allocator.ModelData);
-			//clean up model
+			//clean up model data
 			for (uint32_t i = 0; i < modelInfo.MaterialCount; ++i) {
 				SAFE_DELETE(modelInfo.Materials[i].Albedo.Data);
 				SAFE_DELETE(modelInfo.Materials[i].Normal.Data);
@@ -76,7 +76,7 @@ ResourceHandle AssetLoader::LoadAsset(const char* filename) {
 			}
 			SAFE_DELETE(modelInfo.Meshes);
 
-			handle |= (RT_MODEL << 32);
+			handle |= (RT_MODEL << RESOURCE_INDEX_SHIFT);
 			m_ResourceCache[filename] = handle;
 			return handle;
 		}
@@ -84,4 +84,8 @@ ResourceHandle AssetLoader::LoadAsset(const char* filename) {
 
 	printf("Error loading asset %s\n Error: %s\n", filename, error);
 	return -1;
+}
+
+void* AssetLoader::GetAsset(ResourceHandle handle, ResourceTypes type) {
+	return nullptr;
 }

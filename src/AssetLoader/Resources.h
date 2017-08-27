@@ -3,6 +3,9 @@
 #include <string>
 #include <glm/glm.hpp>
 #include "AssetExport.h"
+
+#define RESOURCE_TYPE_MASK 0x00000000ffffffff
+#define RESOURCE_INDEX_SHIFT 32
 typedef uint64_t ResourceHandle; //first 32 bits say type, second 32 bits say resource index
 
 struct ASSET_DLL TextureInfo {
@@ -43,4 +46,13 @@ struct ASSET_DLL ModelInfo {
 	MeshInfo* Meshes = nullptr;
 	uint32_t MaterialCount;
 	MaterialInfo* Materials = nullptr;
+};
+
+//info for the game to use for view-frustum culling etc
+struct ASSET_DLL GameModelInfo {
+	float Radius;
+	glm::vec3 Min;
+	glm::vec3 Max;
+	uint32_t TriangleCount;
+	uint32_t MaterialCount;
 };
