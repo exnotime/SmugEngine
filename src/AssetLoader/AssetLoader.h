@@ -1,9 +1,6 @@
 #pragma once
 #include "AssetExport.h"
 #include "Resources.h"
-#include "TextureLoader.h"
-#include "ModelLoader.h"
-
 #include <unordered_map>
 
 enum ResourceTypes : uint64_t {
@@ -13,7 +10,6 @@ enum ResourceTypes : uint64_t {
 	RT_SKELETON = 0x8,
 	RT_SCRIPT = 0x10,
 	RT_LEVEL = 0x20,
-	RT_GAME_MODEL = 0x40,
 	RT_ALL_TYPES = 0xff
 };
 
@@ -21,8 +17,8 @@ enum ResourceTypes : uint64_t {
 Allocations that need gpu upload need to go through an external allocator since
 this lib is API agnostic.
 */
-typedef ASSET_DLL ResourceHandle(*AllocateTexture)(const TextureInfo& info, void* userData);
-typedef ASSET_DLL ResourceHandle(*AllocateModel)(const ModelInfo& info, void* userData);
+typedef ASSET_DLL ResourceHandle(*AllocateTexture)(const TextureInfo& info, void* userData, const std::string& filename);
+typedef ASSET_DLL ResourceHandle(*AllocateModel)(const ModelInfo& info, void* userData, const std::string& filename);
 
 struct ASSET_DLL ResourceAllocator {
 	AllocateTexture AllocTexture;
@@ -33,6 +29,8 @@ struct ASSET_DLL ResourceAllocator {
 
 #define g_AssetLoader AssetLoader::GetInstance()
 
+class TextureLoader;
+class ModelLoader;
 class ASSET_DLL AssetLoader {
   public:
 	~AssetLoader();
@@ -47,8 +45,8 @@ class ASSET_DLL AssetLoader {
 	AssetLoader();
 
 	ResourceAllocator m_Allocator;
-	TextureLoader m_TexLoader;
-	ModelLoader m_ModelLoader;
+	TextureLoader* m_TexLoader;
+	ModelLoader* m_ModelLoader;
 	std::unordered_map<std::string, ResourceHandle> m_ResourceCache;
 
 };

@@ -8,6 +8,7 @@
 #define RESOURCE_INDEX_SHIFT 32
 typedef uint64_t ResourceHandle; //first 32 bits say type, second 32 bits say resource index
 
+
 struct ASSET_DLL TextureInfo {
 	uint32_t Width;
 	uint32_t Height;
@@ -20,10 +21,10 @@ struct ASSET_DLL TextureInfo {
 };
 
 struct ASSET_DLL MaterialInfo {
-	TextureInfo Albedo;
-	TextureInfo Normal;
-	TextureInfo Roughness;
-	TextureInfo Metal;
+	ResourceHandle Albedo;
+	ResourceHandle Normal;
+	ResourceHandle Roughness;
+	ResourceHandle Metal;
 };
 
 struct ASSET_DLL Vertex {
@@ -48,11 +49,12 @@ struct ASSET_DLL ModelInfo {
 	MaterialInfo* Materials = nullptr;
 };
 
-//info for the game to use for view-frustum culling etc
-struct ASSET_DLL GameModelInfo {
-	float Radius;
-	glm::vec3 Min;
-	glm::vec3 Max;
-	uint32_t TriangleCount;
-	uint32_t MaterialCount;
+enum SHADER_TYPE {
+	VERTEX, FRAGMENT, GEOMETRY, EVALUATION, CONTROL, COMPUTE
+};
+
+struct ASSET_DLL ShaderInfo {
+	SHADER_TYPE Type;
+	uint32_t ByteCodeSize;
+	void* ByteCode;
 };

@@ -1,5 +1,8 @@
 bin/
 solution/
+data/
 lib/shaderc_combined.lib
 lib/shaderc_combinedD.lib
-AS_DEBUG
+AS_DEBUG/
+imgui.ini
+

@@ -1,12 +1,22 @@
 #include "ModelLoader.h"
-#include "TextureLoader.h"
+
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 #include <algorithm>
+#include "AssetLoader.h"
 
 ModelLoader::ModelLoader() {}
 ModelLoader::~ModelLoader() {}
+
+std::string GetDir(const std::string& file) {
+	for (int i = file.length() - 1; i >= 0; i--) {
+		if (file[i] == '\\' || file[i] == '/') {
+			return file.substr(0, i + 1);
+		}
+	}
+	return "";
+}
 
 char* ModelLoader::LoadModel(const std::string& filename, ModelInfo& model) {
 	Assimp::Importer importer;
@@ -50,30 +60,34 @@ char* ModelLoader::LoadModel(const std::string& filename, ModelInfo& model) {
 			model.Materials = new MaterialInfo[model.MaterialCount];
 			for (uint32_t m = 0; m < model.MaterialCount; ++m) {
 				aiMaterial* mat = scene->mMaterials[m];
-				std::string dir = filename.substr(0, filename.find_last_of('/') + 1);
+				std::string dir = GetDir(filename);// filename.substr(0, filename.find_last_of() + 1);
 				aiString path;
-				TextureLoader texLoader;
 				if (mat->GetTextureCount(aiTextureType_DIFFUSE) > 0) {
 					mat->GetTexture(aiTextureType_DIFFUSE, 0, &path);
-					texLoader.LoadTexture(dir + path.data, model.Materials[m].Albedo);
+					std::string p = dir + path.data;
+					model.Materials[m].Albedo = g_AssetLoader.LoadAsset(p.c_str());
 				}
 				//obj stores normals in height
 				if (mat->GetTextureCount(aiTextureType_HEIGHT)) {
 					mat->GetTexture(aiTextureType_HEIGHT, 0, &path);
-					texLoader.LoadTexture(dir + path.data, model.Materials[m].Normal);
+					std::string p = dir + path.data;
+					model.Materials[m].Normal = g_AssetLoader.LoadAsset(p.c_str());
 				}
 				//dae in normals
 				if (mat->GetTextureCount(aiTextureType_NORMALS)) {
 					mat->GetTexture(aiTextureType_NORMALS, 0, &path);
-					texLoader.LoadTexture(dir + path.data, model.Materials[m].Normal);
+					std::string p = dir + path.data;
+					model.Materials[m].Normal = g_AssetLoader.LoadAsset(p.c_str());
 				}
 				if (mat->GetTextureCount(aiTextureType_SPECULAR)) {
 					mat->GetTexture(aiTextureType_SPECULAR, 0, &path);
-					texLoader.LoadTexture(dir + path.data, model.Materials[m].Roughness);
+					std::string p = dir + path.data;
+					model.Materials[m].Roughness = g_AssetLoader.LoadAsset(p.c_str());
 				}
 				if (mat->GetTextureCount(aiTextureType_EMISSIVE)) {
 					mat->GetTexture(aiTextureType_EMISSIVE, 0, &path);
-					texLoader.LoadTexture(dir + path.data, model.Materials[m].Metal);
+					std::string p = dir + path.data;
+					model.Materials[m].Metal = g_AssetLoader.LoadAsset(p.c_str());
 				}
 			}
 		} else {

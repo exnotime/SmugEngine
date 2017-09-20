@@ -9,11 +9,11 @@ ResourceHandler::~ResourceHandler() {
 	Clear();
 }
 
-ResourceHandle AllocModel(const ModelInfo& model, void* userData) {
+ResourceHandle AllocModel(const ModelInfo& model, void* userData, const std::string& filename) {
 	return ((ResourceHandler*)userData)->AllocateModel(model);
 }
 
-ResourceHandle AllocTexture(const TextureInfo& tex, void* userData) {
+ResourceHandle AllocTexture(const TextureInfo& tex, void* userData, const std::string& filename) {
 	return ((ResourceHandler*)userData)->AllocateTexture(tex);
 }
 

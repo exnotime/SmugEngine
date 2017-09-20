@@ -35,7 +35,7 @@ solution "TephraAssetCompiler"
 		kind "ConsoleApp"
 		files { "src/AssetCompiler/**"}
 		includedirs { "include", "src" }
-		links { "AssetLoader", "vulkan-1" }
+		links { "AssetLoader", "Utility", "vulkan-1" }
         configuration { "Debug" }
                 links { "angelscript64d", "as_integrationD", "shaderc_combinedD" }
         configuration { "Release" }
@@ -51,4 +51,15 @@ solution "TephraAssetCompiler"
     	includedirs { "include", "src" }
         links { "assimp" }
     	kind "SharedLib"
+
+    project "Utility"
+        targetname "Utility"
+        defines {}
+        debugdir ""
+        location (location_path)
+        language("C++")
+        files { "src/Utility/**"}
+    	includedirs { "include", "src" }
+        links { }
+    	kind "StaticLib"
         

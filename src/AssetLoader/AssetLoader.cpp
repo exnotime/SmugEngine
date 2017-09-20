@@ -1,14 +1,19 @@
 #include "AssetLoader.h"
 #include <string>
 #include <stdio.h>
-
+#include "TextureLoader.h"
+#include "ModelLoader.h"
 #define SAFE_DELETE(x) if(x) delete x
 
 AssetLoader::AssetLoader() {
+	m_TexLoader = new TextureLoader();
+	m_ModelLoader = new ModelLoader();
 	m_ResourceCache.reserve(1);
 }
 
 AssetLoader::~AssetLoader() {
+	SAFE_DELETE(m_TexLoader);
+	SAFE_DELETE(m_ModelLoader);
 }
 
 AssetLoader& AssetLoader::GetInstance() {
@@ -49,25 +54,21 @@ ResourceHandle AssetLoader::LoadAsset(const char* filename) {
 	char* error = nullptr;
 	if (IsTexture(extention)) {
 		TextureInfo texInfo;
-		error = m_TexLoader.LoadTexture(file, texInfo);
+		error = m_TexLoader->LoadTexture(file, texInfo);
 		if (!error) {
-			ResourceHandle handle = m_Allocator.AllocTexture(texInfo, m_Allocator.TextureData);
+			ResourceHandle handle = m_Allocator.AllocTexture(texInfo, m_Allocator.TextureData, filename);
 			handle |= (RT_TEXTURE << RESOURCE_INDEX_SHIFT);
 			m_ResourceCache[filename] = handle;
+			//clean up
+			SAFE_DELETE(texInfo.Data);
 			return handle;
 		}
 	} else if (IsModel(extention)) {
 		ModelInfo modelInfo;
-		error = m_ModelLoader.LoadModel(file, modelInfo);
+		error = m_ModelLoader->LoadModel(file, modelInfo);
 		if (!error) {
-			ResourceHandle handle = m_Allocator.AllocModel(modelInfo, m_Allocator.ModelData);
+			ResourceHandle handle = m_Allocator.AllocModel(modelInfo, m_Allocator.ModelData, filename);
 			//clean up model data
-			for (uint32_t i = 0; i < modelInfo.MaterialCount; ++i) {
-				SAFE_DELETE(modelInfo.Materials[i].Albedo.Data);
-				SAFE_DELETE(modelInfo.Materials[i].Normal.Data);
-				SAFE_DELETE(modelInfo.Materials[i].Roughness.Data);
-				SAFE_DELETE(modelInfo.Materials[i].Metal.Data);
-			}
 			SAFE_DELETE(modelInfo.Materials);
 
 			for (uint32_t i = 0; i < modelInfo.MeshCount; ++i) {

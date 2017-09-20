@@ -6,7 +6,7 @@ TextureLoader::~TextureLoader() {}
 char* TextureLoader::LoadTexture(const std::string& filename, TextureInfo& info) {
 	gli::texture texture(gli::load(filename));
 	if (texture.empty()) {
-		return "Error: Loading texture";
+		return "Loading texture";
 	}
 	info.Width = texture.extent().x;
 	info.Height = texture.extent().y;
