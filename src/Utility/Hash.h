@@ -4,7 +4,7 @@
 #include "MurmurHash3.h"
 
 typedef uint32_t ResourceHash;
-#define MURMUR_SEED 0x7E57BEEF
+#define MURMUR_SEED 0xBEEFC0DE
 
 ResourceHash HashString(const std::string& s) {
 	ResourceHash h;

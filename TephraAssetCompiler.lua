@@ -49,8 +49,13 @@ solution "TephraAssetCompiler"
     	language("C++")
     	files { "src/Assetloader/**"}
     	includedirs { "include", "src" }
-        links { "assimp" }
-    	kind "SharedLib"
+        kind "SharedLib"
+        links { "assimp", "Utility" }
+        configuration { "Debug" }
+                links { "angelscript64d", "as_integrationD", "shaderc_combinedD" }
+        configuration { "Release" }
+                links { "angelscript64", "as_integration", "shaderc_combined" }
+    	
 
     project "Utility"
         targetname "Utility"

@@ -49,12 +49,28 @@ struct ASSET_DLL ModelInfo {
 	MaterialInfo* Materials = nullptr;
 };
 
-enum SHADER_TYPE {
+enum ASSET_DLL SHADER_KIND {
 	VERTEX, FRAGMENT, GEOMETRY, EVALUATION, CONTROL, COMPUTE
 };
 
-struct ASSET_DLL ShaderInfo {
-	SHADER_TYPE Type;
+enum ASSET_DLL SHADER_BYTECODE_TYPE {
+	DXBC, DXIL, SPIRV
+};
+enum ASSET_DLL SHADER_LANGUAGE {
+	GLSL, HLSL
+};
+
+struct ASSET_DLL ShaderByteCode {
+	SHADER_BYTECODE_TYPE Type;
+	SHADER_KIND Kind;
+	SHADER_LANGUAGE SrcLanguage;
 	uint32_t ByteCodeSize;
 	void* ByteCode;
+	uint32_t DependencyCount;
+	uint32_t* DependenciesHashes;
+};
+
+struct ASSET_DLL ShaderInfo {
+	uint32_t ShaderCount;
+	ShaderByteCode* Shaders;
 };

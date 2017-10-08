@@ -3,17 +3,20 @@
 #include <stdio.h>
 #include "TextureLoader.h"
 #include "ModelLoader.h"
+#include "ShaderLoader.h"
 #define SAFE_DELETE(x) if(x) delete x
 
 AssetLoader::AssetLoader() {
 	m_TexLoader = new TextureLoader();
 	m_ModelLoader = new ModelLoader();
+	m_ShaderLoader = new ShaderLoader();
 	m_ResourceCache.reserve(1);
 }
 
 AssetLoader::~AssetLoader() {
 	SAFE_DELETE(m_TexLoader);
 	SAFE_DELETE(m_ModelLoader);
+	SAFE_DELETE(m_ShaderLoader);
 }
 
 AssetLoader& AssetLoader::GetInstance() {
@@ -37,6 +40,15 @@ bool IsTexture(const std::string& ext) {
 bool IsModel(const std::string& ext) {
 	const std::string modelTypes[] = { "dae", "obj" };
 	for (auto& e : modelTypes) {
+		if (e == ext)
+			return true;
+	}
+	return false;
+}
+
+bool IsShader(const std::string& ext) {
+	const std::string shaderTypes[] = { "shader" };
+	for (auto& e : shaderTypes) {
 		if (e == ext)
 			return true;
 	}
@@ -78,6 +90,20 @@ ResourceHandle AssetLoader::LoadAsset(const char* filename) {
 			SAFE_DELETE(modelInfo.Meshes);
 
 			handle |= (RT_MODEL << RESOURCE_INDEX_SHIFT);
+			m_ResourceCache[filename] = handle;
+			return handle;
+		}
+	} else if (IsShader(extention)) {
+		ShaderInfo shaderInfo;
+		error = m_ShaderLoader->LoadShaders(file, shaderInfo);
+		if (!error) {
+			ResourceHandle handle = m_Allocator.AllocShader(shaderInfo, m_Allocator.ShaderData, filename);
+			for (uint32_t i = 0; i < shaderInfo.ShaderCount; ++i) {
+				free(shaderInfo.Shaders[i].ByteCode);
+				free(shaderInfo.Shaders[i].DependenciesHashes);
+			}
+			free(shaderInfo.Shaders);
+			handle |= (RT_SHADER << RESOURCE_INDEX_SHIFT);
 			m_ResourceCache[filename] = handle;
 			return handle;
 		}

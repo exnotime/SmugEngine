@@ -4,10 +4,11 @@
 #include <unordered_map>
 
 struct LedgerEntry {
-	uint32_t Hash;
-	uint32_t Padding = 0;
+	uint64_t TimeStamp;
 	size_t Offset;
 	size_t Size;
+	uint32_t Hash;
+	uint32_t padding;
 };
 
 class FileBuffer {
@@ -26,6 +27,8 @@ private:
 	bool m_Open;
 	FILE* m_File;
 	FILE* m_LedgerFile;
+	std::string m_Filename;
+	std::string m_LedgerFilename;
 	size_t m_FilePtr;
 	std::unordered_map<uint32_t, LedgerEntry> m_Files;
 };

@@ -1,0 +1,121 @@
+#version 430 core
+
+#define WORK_GROUP_SIZE 32
+layout(local_size_x = WORK_GROUP_SIZE, local_size_y = WORK_GROUP_SIZE) in;
+
+layout(rgba8, binding = 0) writeonly restrict uniform image2D output_img;
+layout(binding = 1) uniform sampler2D g_DepthTex;
+
+layout(binding = 2) uniform PerFrame{
+    mat4 invViewProj;
+    vec4 CamPos;
+    vec4 Lightdir;
+    vec2 ScreenSize;
+    uint SphereCount;
+    uint BoxCount;
+};
+
+struct Sphere{
+    vec3 P;
+    float R;
+};
+
+struct Box {
+	vec3 B;
+    float padd;
+	vec3 P;
+    float padd2;
+};
+
+#define MAX_PRIM 128
+layout(binding = 3) buffer Primitives{
+    Sphere g_Spheres[MAX_PRIM];
+    Box g_Boxes[MAX_PRIM];
+    vec4 g_Colors[MAX_PRIM];
+};
+
+#include "lighting.glsl"
+#include "hg_sdf.glsl"
+
+float near = 0.1;
+float far = 1000.0;
+int MaxIt = 256;
+
+vec2 opUnion(vec2 p1, vec2 p2){
+    return p1.x < p2.x ? p1 : p2;
+}
+
+vec2 map(vec3 p){
+    vec2 d = vec2(far, 0);
+    pMod2(p.xz, vec2(250.0));
+    for(uint s = 0; s < SphereCount; ++s){
+        Sphere sp = g_Spheres[s];
+        d = opUnion(d, vec2(fSphere(p - sp.P, sp.R),s));
+    }
+    for(uint b = 0; b < BoxCount; ++b){
+        Box bo = g_Boxes[b];
+        d = opUnion(d, vec2(fBox(p - bo.P, bo.B), SphereCount + b));
+    }
+    return d;
+}
+
+vec2 CastRay(vec3 ro, vec3 rd){
+    float t = near;
+    float m = 0;
+    for(int i = 0; i < MaxIt; i++){
+        float precis = 0.0001*t;
+        vec2 res = map(ro + rd * t);
+        if(res.x < precis || t > far) break;
+        t += res.x;
+        m = res.y;
+    }
+    return vec2(t,m);
+}
+
+vec3 CalcNormal( vec3 pos ){
+    vec2 e = vec2(1.0,-1.0)*0.5773*0.0005;
+    return normalize( 
+                    e.xyy*map( pos + e.xyy ).x +
+                    e.yyx*map( pos + e.yyx ).x +
+                    e.yxy*map( pos + e.yxy ).x +
+                    e.xxx*map( pos + e.xxx ).x );
+}
+
+vec3 getFloorTexture(vec3 p) {
+	vec2 m = mod(p.xz, 100.0f) - vec2(50.0f);
+	return m.x * m.y > 0.0f ? vec3(0.1f) : vec3(1.0f);
+}
+
+float RaytraceFloor(vec3 ro, vec3 rd, vec3 n, vec3 o) {
+	return dot(o - ro, n) / dot(rd, n);
+}
+
+void main() {
+    ivec2 screenPos = ivec2(gl_GlobalInvocationID.xy);
+    if(screenPos.x > ScreenSize.x || screenPos.y > ScreenSize.y)
+        return;
+    vec2 uv = screenPos / ScreenSize;
+    vec2 hcs = ((vec2(screenPos) + vec2(0.5)) * 2) / ScreenSize - vec2(1);
+
+    vec4 posH =  (invViewProj * vec4(hcs.x, hcs.y, 0.0, 1.0));
+    vec3 ro = posH.xyz / posH.w;
+    vec3 rd = normalize(ro - CamPos.xyz);
+    vec2 tm = CastRay(ro, rd);
+    //calc posw and normal
+    vec3 posw = (ro + rd * tm.x );    
+
+    float d = texture(g_DepthTex, vec2(screenPos)).r;
+    d = near / (far - d * (far - near)); //linearize the depth buffer
+    if( d >= (tm.x - near) / (far - near) && tm.x < far * 0.9){
+        const vec3 toCam = normalize(CamPos.xyz - posw);
+        vec3 normal = CalcNormal(posw);
+
+        float r = 0.6;
+        float m = 0.0;
+        vec3 color = g_Colors[uint(tm.y)].rgb;
+
+        vec3 litColor = CalcDirLight(-normalize(Lightdir.xyz), color, normal, toCam, r, m);
+        litColor += CalcIBLLight( normal, toCam, color, r, m);
+        imageStore(output_img, screenPos, vec4(litColor,1));
+    }
+}

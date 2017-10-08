@@ -31,6 +31,8 @@ void FileBuffer::Open(const char* filename, const char* ledgerName, size_t initi
 
 	m_Size = initialSize;
 	m_Open = true;
+	m_LedgerFilename = ledgerName;
+	m_Filename = filename;
 }
 
 void FileBuffer::Close() {
@@ -65,8 +67,7 @@ size_t FileBuffer::Write(size_t size, void* data, const std::string& filename) {
 		newFile.Offset = m_FilePtr + m_Ptr;
 		newFile.Hash = hash;
 		m_Files[hash] = newFile;
-	}
-	else {
+	} else {
 		m_Files[hash].Size += size;
 	}
 
@@ -77,12 +78,19 @@ size_t FileBuffer::Write(size_t size, void* data, const std::string& filename) {
 }
 
 void FileBuffer::Flush() {
-	//write out files
-	fwrite(m_Buffer, sizeof(unsigned char), m_Ptr, m_File);
-	for (auto& f : m_Files) {
-		fwrite(&f.second, sizeof(LedgerEntry), 1, m_LedgerFile);
+	if (m_Open) {
+		//write out files
+		fwrite(m_Buffer, sizeof(unsigned char), m_Ptr, m_File);
+		for (auto& f : m_Files) {
+			fwrite(&f.second, sizeof(LedgerEntry), 1, m_LedgerFile);
+		}
+		m_Files.clear();
+		//this will update the files on disk
+		fflush(m_File);
+		fflush(m_LedgerFile);
+
+		m_FilePtr += m_Ptr; //add on the amount we have written now so we can track it in the ledger
+		m_Ptr = 0; //turn back writehead
+		m_Files.clear();
 	}
-	m_FilePtr += m_Ptr; //add on the amount we have written now so we can track it in the ledger
-	m_Ptr = 0; //turn back writehead
-	m_Files.clear();
 }
