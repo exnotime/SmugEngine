@@ -4,6 +4,7 @@
 #include "TextureLoader.h"
 #include "ModelLoader.h"
 #include "ShaderLoader.h"
+#include <Utility/Hash.h>
 #define SAFE_DELETE(x) if(x) delete x
 
 AssetLoader::AssetLoader() {
@@ -56,10 +57,13 @@ bool IsShader(const std::string& ext) {
 }
 
 ResourceHandle AssetLoader::LoadAsset(const char* filename) {
+	ResourceHash hash = HashString(filename);
 
-	if (m_ResourceCache.find(filename) != m_ResourceCache.end()) {
-		return m_ResourceCache.find(filename)->second;
+	if (m_ResourceCache.find(hash) != m_ResourceCache.end()) {
+		return m_ResourceCache.find(hash)->second;
 	}
+
+	m_StringPool.AddToPool(hash, filename);
 
 	std::string file(filename);
 	std::string extention = file.substr(file.find_last_of('.') + 1);
@@ -70,7 +74,7 @@ ResourceHandle AssetLoader::LoadAsset(const char* filename) {
 		if (!error) {
 			ResourceHandle handle = m_Allocator.AllocTexture(texInfo, m_Allocator.TextureData, filename);
 			handle |= (RT_TEXTURE << RESOURCE_INDEX_SHIFT);
-			m_ResourceCache[filename] = handle;
+			m_ResourceCache[hash] = handle;
 			//clean up
 			SAFE_DELETE(texInfo.Data);
 			return handle;
@@ -90,7 +94,7 @@ ResourceHandle AssetLoader::LoadAsset(const char* filename) {
 			SAFE_DELETE(modelInfo.Meshes);
 
 			handle |= (RT_MODEL << RESOURCE_INDEX_SHIFT);
-			m_ResourceCache[filename] = handle;
+			m_ResourceCache[hash] = handle;
 			return handle;
 		}
 	} else if (IsShader(extention)) {
@@ -104,7 +108,7 @@ ResourceHandle AssetLoader::LoadAsset(const char* filename) {
 			}
 			free(shaderInfo.Shaders);
 			handle |= (RT_SHADER << RESOURCE_INDEX_SHIFT);
-			m_ResourceCache[filename] = handle;
+			m_ResourceCache[hash] = handle;
 			return handle;
 		}
 	}
@@ -115,4 +119,12 @@ ResourceHandle AssetLoader::LoadAsset(const char* filename) {
 
 void* AssetLoader::GetAsset(ResourceHandle handle, ResourceTypes type) {
 	return nullptr;
+}
+
+void AssetLoader::LoadStringPool(const char* filename) {
+	m_StringPool.DeSerialize(filename);
+}
+
+void AssetLoader::SaveStringPool(const char* filename) {
+	m_StringPool.Serialize(filename);
 }

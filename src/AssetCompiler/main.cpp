@@ -44,6 +44,12 @@ Options ParseOptions(const uint32_t argc, const char** argv) {
 		if (strcmp(argv[i], "-no-mid-flush") == 0 || strcmp(argv[i], "-nmf") == 0) {
 			opt.MidFlush = false;
 		}
+		if (strcmp(argv[i], "-stringpool") == 0 || strcmp(argv[i], "-sp") == 0) {
+			opt.ListStringPool = true;
+			opt.ListLedger = false;
+			opt.Compile = false;
+			opt.StringPool = argv[++i];
+		}
 	}
 
 	return opt;
@@ -102,7 +108,6 @@ ResourceHandle AllocModel(const ModelInfo& info, void* userData, const std::stri
 
 	return 0;
 }
-
 
 ResourceHandle AllocTexture(const TextureInfo& info, void* userData, const std::string& filename) {
 	FileBuffer* textureFile = (FileBuffer*)userData;
@@ -170,10 +175,12 @@ int main(const uint32_t argc, const char** argv) {
 		allocs.AllocShader = AllocShader;
 		allocs.ShaderData = (void*)&shaderFile;
 
-		g_AssetLoader.SetResourceAllocator(allocs);
+		auto& assetLoader = g_AssetLoader;
+
+		assetLoader.SetResourceAllocator(allocs);
 
 		for (auto& mf : modelFiles) {
-			g_AssetLoader.LoadAsset(mf.c_str());
+			assetLoader.LoadAsset(mf.c_str());
 			if (opts.Verbose) {
 				printf("Compiled Model %s\n", mf.c_str());
 			}
@@ -182,7 +189,7 @@ int main(const uint32_t argc, const char** argv) {
 			}
 		}
 		for (auto& tf : textureFiles) {
-			g_AssetLoader.LoadAsset(tf.c_str());
+			assetLoader.LoadAsset(tf.c_str());
 			if (opts.Verbose) {
 				printf("Compiled Texture %s\n", tf.c_str());
 			}
@@ -192,7 +199,7 @@ int main(const uint32_t argc, const char** argv) {
 		}
 
 		for (auto& sf : shaderFiles) {
-			g_AssetLoader.LoadAsset(sf.c_str());
+			assetLoader.LoadAsset(sf.c_str());
 			if (opts.Verbose) {
 				printf("Compiled Shader %s\n", sf.c_str());
 			}
@@ -204,6 +211,7 @@ int main(const uint32_t argc, const char** argv) {
 		modelFile.Close();
 		textureFile.Close();
 		shaderFile.Close();
+		assetLoader.SaveStringPool("Assets.strings");
 
 	} else if (opts.ListLedger) {
 		FILE* f = fopen(opts.Ledger.c_str(), "rb");
@@ -219,6 +227,11 @@ int main(const uint32_t argc, const char** argv) {
 		} else {
 			printf("Error opening Ledger %s\n", opts.Ledger.c_str());
 		}
+	}
+	else if (opts.ListStringPool) {
+		StringPool pool;
+		pool.DeSerialize(opts.StringPool);
+		pool.Print();
 	}
 
 	printf("\nPress any button to quit\n");

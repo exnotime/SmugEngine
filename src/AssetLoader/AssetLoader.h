@@ -2,6 +2,8 @@
 #include "AssetExport.h"
 #include "Resources.h"
 #include <unordered_map>
+#include "StringPool.h"
+
 
 enum ResourceTypes : uint64_t {
 	RT_TEXTURE = 0x1,
@@ -41,7 +43,8 @@ class ASSET_DLL AssetLoader {
 	ResourceHandle LoadAsset(const char* filename);
 	void* GetAsset(ResourceHandle handle, ResourceTypes type = RT_ALL_TYPES);
 	void UnloadAsset(ResourceHandle h);
-	void Clear();
+	void LoadStringPool(const char* filename);
+	void SaveStringPool(const char* filename);
 
 	static AssetLoader& GetInstance();
   private:
@@ -51,7 +54,8 @@ class ASSET_DLL AssetLoader {
 	TextureLoader* m_TexLoader;
 	ModelLoader* m_ModelLoader;
 	ShaderLoader* m_ShaderLoader;
-	std::unordered_map<std::string, ResourceHandle> m_ResourceCache;
+	std::unordered_map<uint32_t, ResourceHandle> m_ResourceCache;
+	StringPool m_StringPool;
 
 };
 
