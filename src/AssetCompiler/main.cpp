@@ -9,7 +9,7 @@
 using namespace std::experimental::filesystem::v1;
 #endif
 
-#include "Filebuffer.h"
+#include <Utility/Filebuffer.h>
 #include <AssetLoader/AssetLoader.h>
 
 struct Options {
@@ -75,143 +75,109 @@ void ScanDirForAssets(const std::string& dirName, const std::vector<std::string>
 	}
 }
 
-ResourceHandle AllocModel(const ModelInfo& info, void* userData, const std::string& filename) {
-	FileBuffer* modelFile = (FileBuffer*)userData;
-	//serialize model
-	size_t meshDataOffset = sizeof(ModelInfo) + info.MeshCount * sizeof(MeshInfo) + info.MaterialCount * sizeof(MaterialInfo);
-	std::vector<MeshInfo> meshes;
-	size_t offset = meshDataOffset;
-	for (uint32_t m = 0; m < info.MeshCount; ++m) {
-		MeshInfo mesh;
-		mesh = info.Meshes[m];
-		mesh.Vertices = (Vertex*)offset;
-		offset += sizeof(Vertex) * mesh.VertexCount;
-		mesh.Indices = (uint32_t*)offset;
-		offset += mesh.IndexCount * sizeof(uint32_t);
-		meshes.push_back(mesh);
-	}
-
-	ModelInfo model;
-	model = info;
-	model.Meshes = (MeshInfo*)sizeof(ModelInfo);
-	model.Materials =  (MaterialInfo*)(model.Meshes + sizeof(MaterialInfo) * info.MaterialCount);
-
-	
-
-	modelFile->Write(sizeof(ModelInfo), &model, filename);
-	modelFile->Write(sizeof(MeshInfo) * meshes.size(), meshes.data(), filename);
-	modelFile->Write(sizeof(MaterialInfo) * info.MaterialCount, info.Materials, filename);
-	for (uint32_t m = 0; m < info.MeshCount; ++m) {
-		 modelFile->Write(info.Meshes[m].VertexCount * sizeof(Vertex), info.Meshes[m].Vertices, filename);
-		 modelFile->Write(info.Meshes[m].IndexCount * sizeof(uint32_t), info.Meshes[m].Indices, filename);
-	}
-
-	return 0;
+void AllocatorResource(const void* data, void* userData, const std::string& filename, const RESOURCE_TYPE type) {
+	printf("Allocated Resource %s\n", filename.c_str());
 }
 
-ResourceHandle AllocTexture(const TextureInfo& info, void* userData, const std::string& filename) {
-	FileBuffer* textureFile = (FileBuffer*)userData;
-	//serialize texture
-	TextureInfo i = info;
-	i.Data = (void*)sizeof(TextureInfo);
-	textureFile->Write(sizeof(TextureInfo), &i, filename);
-	textureFile->Write(info.LinearSize, info.Data, filename);
-	return 0;
-}
-
-ResourceHandle AllocShader(const ShaderInfo& info, void* userData, const std::string& filename) {
-	FileBuffer* shaderFile = (FileBuffer*)userData;
-	//serialize shader
-	ShaderInfo si = info;
-	uint32_t offset = sizeof(ShaderInfo) + sizeof(ShaderByteCode) * si.ShaderCount;
-	std::vector<ShaderByteCode> byteCodes;
-	for (uint32_t i = 0; i < si.ShaderCount; ++i) {
-		ShaderByteCode bc = si.Shaders[i];
-		bc.ByteCode = (void*)offset;
-		offset += si.Shaders[i].ByteCodeSize;
-		bc.DependenciesHashes = (uint32_t*)offset;
-		offset += si.Shaders[i].DependencyCount * sizeof(uint32_t);
-		byteCodes.push_back(bc);
-	}
-
-	shaderFile->Write(sizeof(ShaderInfo), (void*)&si, filename);
-	shaderFile->Write(sizeof(ShaderByteCode) * byteCodes.size(), (void*)byteCodes.data(), filename);
-	for (uint32_t i = 0; i < info.ShaderCount; ++i) {
-		shaderFile->Write(info.Shaders[i].ByteCodeSize, (void*)info.Shaders[i].ByteCode, filename);
-		shaderFile->Write(sizeof(uint32_t) * info.Shaders[i].DependencyCount, (void*)info.Shaders[i].DependenciesHashes, filename);
-	}
-	return 0;
-}
+//ResourceHandle SerializeModel(const ModelInfo& info, void* userData, const std::string& filename) {
+//	FileBuffer* modelFile = (FileBuffer*)userData;
+//	//serialize model
+//	size_t meshDataOffset = sizeof(ModelInfo) + info.MeshCount * sizeof(MeshInfo) + info.MaterialCount * sizeof(MaterialInfo);
+//	std::vector<MeshInfo> meshes;
+//	size_t offset = meshDataOffset;
+//	for (uint32_t m = 0; m < info.MeshCount; ++m) {
+//		MeshInfo mesh;
+//		mesh = info.Meshes[m];
+//		mesh.Vertices = (Vertex*)offset;
+//		offset += sizeof(Vertex) * mesh.VertexCount;
+//		mesh.Indices = (uint32_t*)offset;
+//		offset += mesh.IndexCount * sizeof(uint32_t);
+//		meshes.push_back(mesh);
+//	}
+//
+//	ModelInfo model;
+//	model = info;
+//	model.Meshes = (MeshInfo*)sizeof(ModelInfo);
+//	model.Materials =  (MaterialInfo*)(model.Meshes + sizeof(MaterialInfo) * info.MaterialCount);
+//
+//	
+//
+//	modelFile->Write(sizeof(ModelInfo), &model, filename);
+//	modelFile->Write(sizeof(MeshInfo) * meshes.size(), meshes.data(), filename);
+//	modelFile->Write(sizeof(MaterialInfo) * info.MaterialCount, info.Materials, filename);
+//	for (uint32_t m = 0; m < info.MeshCount; ++m) {
+//		 modelFile->Write(info.Meshes[m].VertexCount * sizeof(Vertex), info.Meshes[m].Vertices, filename);
+//		 modelFile->Write(info.Meshes[m].IndexCount * sizeof(uint32_t), info.Meshes[m].Indices, filename);
+//	}
+//
+//	return 0;
+//}
+//
+//ResourceHandle SerializeTexture(const TextureInfo& info, void* userData, const std::string& filename) {
+//	FileBuffer* textureFile = (FileBuffer*)userData;
+//	//serialize texture
+//	TextureInfo i = info;
+//	i.Data = (void*)sizeof(TextureInfo);
+//	textureFile->Write(sizeof(TextureInfo), &i, filename);
+//	textureFile->Write(info.LinearSize, info.Data, filename);
+//	return 0;
+//}
+//
+//ResourceHandle SerializeShader(const ShaderInfo& info, void* userData, const std::string& filename) {
+//	FileBuffer* shaderFile = (FileBuffer*)userData;
+//	//serialize shader
+//	ShaderInfo si = info;
+//	uint32_t offset = sizeof(ShaderInfo) + sizeof(ShaderByteCode) * si.ShaderCount;
+//	std::vector<ShaderByteCode> byteCodes;
+//	for (uint32_t i = 0; i < si.ShaderCount; ++i) {
+//		ShaderByteCode bc = si.Shaders[i];
+//		bc.ByteCode = (void*)offset;
+//		offset += si.Shaders[i].ByteCodeSize;
+//		bc.DependenciesHashes = (uint32_t*)offset;
+//		offset += si.Shaders[i].DependencyCount * sizeof(uint32_t);
+//		byteCodes.push_back(bc);
+//	}
+//
+//	shaderFile->Write(sizeof(ShaderInfo), (void*)&si, filename);
+//	shaderFile->Write(sizeof(ShaderByteCode) * byteCodes.size(), (void*)byteCodes.data(), filename);
+//	for (uint32_t i = 0; i < info.ShaderCount; ++i) {
+//		shaderFile->Write(info.Shaders[i].ByteCodeSize, (void*)info.Shaders[i].ByteCode, filename);
+//		shaderFile->Write(sizeof(uint32_t) * info.Shaders[i].DependencyCount, (void*)info.Shaders[i].DependenciesHashes, filename);
+//	}
+//	return 0;
+//}
 
 int main(const uint32_t argc, const char** argv) {
 	Options opts = ParseOptions(argc, argv);
 
 	if (opts.Compile) {
+		std::vector<std::string> files;
+
 		std::string modelFolder = opts.AssetFolder + "/models";
-		std::vector<std::string> modelFiles;
-		ScanDirForAssets(modelFolder, { ".obj", ".dae" }, modelFiles);
+		ScanDirForAssets(modelFolder, { ".obj", ".dae" }, files);
 
 		std::string textureFolder = opts.AssetFolder + "/textures";
-		std::vector<std::string> textureFiles;
-		ScanDirForAssets(textureFolder, { ".dds" }, textureFiles);
+		ScanDirForAssets(textureFolder, { ".dds" }, files);
 
 		std::string shaderFolder = opts.AssetFolder + "/shaders";
-		std::vector<std::string> shaderFiles;
-		ScanDirForAssets(shaderFolder, { ".shader" }, shaderFiles);
-
-		FileBuffer modelFile;
-		FileBuffer textureFile;
-		FileBuffer shaderFile;
-
-		modelFile.Open((opts.DataFolder + "/Models.bank").c_str(), (opts.DataFolder + "/Models.ledger").c_str());
-		textureFile.Open((opts.DataFolder + "/Textures.bank").c_str(), (opts.DataFolder + "/Textures.ledger").c_str());
-		shaderFile.Open((opts.DataFolder + "/Shaders.bank").c_str(), (opts.DataFolder + "/Shaders.ledger").c_str());
+		ScanDirForAssets(shaderFolder, { ".shader" }, files);
 
 		ResourceAllocator allocs;
-		allocs.AllocModel = AllocModel;
-		allocs.ModelData = (void*)&modelFile;
-		allocs.AllocTexture = AllocTexture;
-		allocs.TextureData = (void*)&textureFile;
-		allocs.AllocShader = AllocShader;
-		allocs.ShaderData = (void*)&shaderFile;
-
+		allocs.AllocResource = AllocatorResource;
+		allocs.UserData = nullptr;
 		auto& assetLoader = g_AssetLoader;
 
 		assetLoader.SetResourceAllocator(allocs);
+		assetLoader.Init(opts.DataFolder.c_str(), true);
 
-		for (auto& mf : modelFiles) {
-			assetLoader.LoadAsset(mf.c_str());
+		for (auto& f : files) {
+			assetLoader.LoadAsset(f.c_str());
 			if (opts.Verbose) {
-				printf("Compiled Model %s\n", mf.c_str());
-			}
-			if (opts.MidFlush) {
-				modelFile.Flush();
+				printf("Compiled Shader %s\n", f.c_str());
 			}
 		}
-		for (auto& tf : textureFiles) {
-			assetLoader.LoadAsset(tf.c_str());
-			if (opts.Verbose) {
-				printf("Compiled Texture %s\n", tf.c_str());
-			}
-			if (opts.MidFlush) {
-				textureFile.Flush();
-			}
-		}
-
-		for (auto& sf : shaderFiles) {
-			assetLoader.LoadAsset(sf.c_str());
-			if (opts.Verbose) {
-				printf("Compiled Shader %s\n", sf.c_str());
-			}
-			if (opts.MidFlush) {
-				shaderFile.Flush();
-			}
-		}
-
-		modelFile.Close();
-		textureFile.Close();
-		shaderFile.Close();
 		assetLoader.SaveStringPool("Assets.strings");
+		assetLoader.Close();
 
 	} else if (opts.ListLedger) {
 		FILE* f = fopen(opts.Ledger.c_str(), "rb");
@@ -227,8 +193,7 @@ int main(const uint32_t argc, const char** argv) {
 		} else {
 			printf("Error opening Ledger %s\n", opts.Ledger.c_str());
 		}
-	}
-	else if (opts.ListStringPool) {
+	} else if (opts.ListStringPool) {
 		StringPool pool;
 		pool.DeSerialize(opts.StringPool);
 		pool.Print();

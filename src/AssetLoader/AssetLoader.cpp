@@ -8,16 +8,10 @@
 #define SAFE_DELETE(x) if(x) delete x
 
 AssetLoader::AssetLoader() {
-	m_TexLoader = new TextureLoader();
-	m_ModelLoader = new ModelLoader();
-	m_ShaderLoader = new ShaderLoader();
 	m_ResourceCache.reserve(1);
 }
 
 AssetLoader::~AssetLoader() {
-	SAFE_DELETE(m_TexLoader);
-	SAFE_DELETE(m_ModelLoader);
-	SAFE_DELETE(m_ShaderLoader);
 }
 
 AssetLoader& AssetLoader::GetInstance() {
@@ -29,31 +23,61 @@ void AssetLoader::SetResourceAllocator(ResourceAllocator allocator) {
 	m_Allocator = allocator;
 }
 
-bool IsTexture(const std::string& ext) {
-	const std::string textureTypes[] = { "dds", "ktx" };
-	for (auto& e : textureTypes) {
-		if (e == ext)
-			return true;
+void AssetLoader::Init(const char* dataFolder, bool isCompiler) {
+	m_IsCompiler = isCompiler;
+
+	if (!dataFolder) {
+		return;
 	}
-	return false;
+
+	//init loaders
+	ResourceLoader shaderLoader;
+	shaderLoader.buffer = new FileBuffer();
+	shaderLoader.loader = new ShaderLoader();
+	shaderLoader.LedgerFile = dataFolder + std::string("/Shaders.ledger");
+	shaderLoader.BankFile = dataFolder + std::string("/Shaders.bank");
+	m_Loaders.push_back(shaderLoader);
+
+	ResourceLoader textureLoader;
+	textureLoader.buffer = new FileBuffer();
+	textureLoader.loader = new TextureLoader();
+	textureLoader.LedgerFile = dataFolder + std::string("/Textures.ledger");
+	textureLoader.BankFile = dataFolder + std::string("/Textures.bank");
+	m_Loaders.push_back(textureLoader);
+
+	ResourceLoader modelLoader;
+	modelLoader.buffer = new FileBuffer();
+	modelLoader.loader = new ModelLoader();
+	modelLoader.LedgerFile = dataFolder + std::string("/Models.ledger");
+	modelLoader.BankFile = dataFolder + std::string("/Models.bank");
+	m_Loaders.push_back(modelLoader);
+
+	if (m_IsCompiler) {
+		for (auto& l : m_Loaders) {
+			l.buffer->OpenForWriting(l.BankFile.c_str(), l.LedgerFile.c_str());
+		}
+	} else {
+		for (auto& l : m_Loaders) {
+			l.buffer->OpenForReading(l.BankFile.c_str(), l.LedgerFile.c_str());
+		}
+	}
+	
 }
 
-bool IsModel(const std::string& ext) {
-	const std::string modelTypes[] = { "dae", "obj" };
-	for (auto& e : modelTypes) {
-		if (e == ext)
-			return true;
+void AssetLoader::Close() {
+
+	for (auto& l : m_Loaders) {
+		l.buffer->Close();
+		delete l.buffer;
+		delete l.loader;
 	}
-	return false;
 }
 
-bool IsShader(const std::string& ext) {
-	const std::string shaderTypes[] = { "shader" };
-	for (auto& e : shaderTypes) {
-		if (e == ext)
-			return true;
-	}
-	return false;
+ResourceHandle CreateHandle(uint32_t hash, RESOURCE_TYPE type) {
+	ResourceHandle h = type;
+	h << RESOURCE_HASH_SHIFT;
+	h |= hash;
+	return h;
 }
 
 ResourceHandle AssetLoader::LoadAsset(const char* filename) {
@@ -65,60 +89,43 @@ ResourceHandle AssetLoader::LoadAsset(const char* filename) {
 
 	m_StringPool.AddToPool(hash, filename);
 
-	std::string file(filename);
-	std::string extention = file.substr(file.find_last_of('.') + 1);
-	char* error = nullptr;
-	if (IsTexture(extention)) {
-		TextureInfo texInfo;
-		error = m_TexLoader->LoadTexture(file, texInfo);
-		if (!error) {
-			ResourceHandle handle = m_Allocator.AllocTexture(texInfo, m_Allocator.TextureData, filename);
-			handle |= (RT_TEXTURE << RESOURCE_INDEX_SHIFT);
-			m_ResourceCache[hash] = handle;
-			//clean up
-			SAFE_DELETE(texInfo.Data);
-			return handle;
-		}
-	} else if (IsModel(extention)) {
-		ModelInfo modelInfo;
-		error = m_ModelLoader->LoadModel(file, modelInfo);
-		if (!error) {
-			ResourceHandle handle = m_Allocator.AllocModel(modelInfo, m_Allocator.ModelData, filename);
-			//clean up model data
-			SAFE_DELETE(modelInfo.Materials);
+	const std::string file(filename);
+	const std::string extention = file.substr(file.find_last_of('.') + 1);
 
-			for (uint32_t i = 0; i < modelInfo.MeshCount; ++i) {
-				SAFE_DELETE(modelInfo.Meshes[i].Indices);
-				SAFE_DELETE(modelInfo.Meshes[i].Vertices);
-			}
-			SAFE_DELETE(modelInfo.Meshes);
+	for (auto& l : m_Loaders) {
+		if (l.loader->IsExtensionSupported(extention.c_str())) {
 
-			handle |= (RT_MODEL << RESOURCE_INDEX_SHIFT);
-			m_ResourceCache[hash] = handle;
-			return handle;
-		}
-	} else if (IsShader(extention)) {
-		ShaderInfo shaderInfo;
-		error = m_ShaderLoader->LoadShaders(file, shaderInfo);
-		if (!error) {
-			ResourceHandle handle = m_Allocator.AllocShader(shaderInfo, m_Allocator.ShaderData, filename);
-			for (uint32_t i = 0; i < shaderInfo.ShaderCount; ++i) {
-				free(shaderInfo.Shaders[i].ByteCode);
-				free(shaderInfo.Shaders[i].DependenciesHashes);
+			if (!m_IsCompiler) {
+				void* assetBuffer = l.buffer->LoadFile(hash);
+				if (assetBuffer) {
+					DeSerializedResult asset = l.loader->DeSerializeAsset(assetBuffer);
+					m_Allocator.AllocResource(asset.Data, m_Allocator.UserData, filename, asset.Type);
+					ResourceHandle h = CreateHandle(hash, asset.Type);
+					m_ResourceCache[hash] = h;
+					return h;
+				}
 			}
-			free(shaderInfo.Shaders);
-			handle |= (RT_SHADER << RESOURCE_INDEX_SHIFT);
-			m_ResourceCache[hash] = handle;
-			return handle;
+
+			LoadResult r = l.loader->LoadAsset(filename);
+
+			if (!r.Data && r.Error.length() > 0) {
+				printf("Error loading asset %s\n Error: %s\n", filename, r.Error.c_str());
+				return -1;
+			}
+
+			if (m_IsCompiler) {
+				l.loader->SerializeAsset(l.buffer, &r);
+				l.buffer->Flush();
+			}
+
+			ResourceHandle h = CreateHandle(hash, r.Type);
+			m_ResourceCache[hash] = h;
+			return h;
 		}
 	}
 
-	printf("Error loading asset %s\n Error: %s\n", filename, error);
+	printf("No loader for extention %s\n", extention.c_str());
 	return -1;
-}
-
-void* AssetLoader::GetAsset(ResourceHandle handle, ResourceTypes type) {
-	return nullptr;
 }
 
 void AssetLoader::LoadStringPool(const char* filename) {

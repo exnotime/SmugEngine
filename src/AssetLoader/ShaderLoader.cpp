@@ -3,6 +3,8 @@
 #include <shaderc/shaderc.h>
 #include <fstream>
 #include <Utility/Hash.h>
+#include <Utility/Memory.h>
+
 ShaderLoader::ShaderLoader() {}
 ShaderLoader::~ShaderLoader() {}
 
@@ -132,7 +134,7 @@ char* ShaderLoader::LoadShaders(const std::string& filename, ShaderInfo& info) {
 	}
 	catch (std::exception e) {
 		printf("json: %s\n", e.what());
-		return " json error";
+		return "json error";
 	}
 	fin.close();
 	//Find shaders
@@ -177,4 +179,85 @@ char* ShaderLoader::LoadShaders(const std::string& filename, ShaderInfo& info) {
 		return "No Shaders found in File";
 	}
 	return nullptr;
+}
+
+LoadResult ShaderLoader::LoadAsset(const char* filename) {
+	ShaderInfo* info = new ShaderInfo();
+	char* error = LoadShaders(filename, *info);
+	LoadResult res;
+	if (error) {
+		res.Error = error;
+	} else {
+		res.Hash = HashString(filename);
+		res.Data = info;
+		res.Type = RT_SHADER;
+	}
+	return res;
+}
+
+void ShaderLoader::UnloadAsset(void* asset) {
+	ShaderInfo* info = (ShaderInfo*)asset;
+	for (uint32_t i = 0; i < info->ShaderCount; ++i) {
+		free(info->Shaders[i].ByteCode);
+		free(info->Shaders[i].DependenciesHashes);
+	}
+	free(info->Shaders);
+	free(info);
+}
+
+void ShaderLoader::SerializeAsset(FileBuffer* buffer, LoadResult* asset)  {
+	//serialize shader
+	ShaderInfo& si = *(ShaderInfo*)asset->Data;
+	uint32_t offset = sizeof(uint32_t) + sizeof(ShaderByteCode) * si.ShaderCount;
+	std::vector<ShaderByteCode> byteCodes;
+	for (uint32_t i = 0; i < si.ShaderCount; ++i) {
+		ShaderByteCode bc = si.Shaders[i];
+		bc.ByteCode = (void*)offset;
+		offset += si.Shaders[i].ByteCodeSize;
+		bc.DependenciesHashes = (uint32_t*)offset;
+		offset += si.Shaders[i].DependencyCount * sizeof(uint32_t);
+		byteCodes.push_back(bc);
+	}
+
+	buffer->Write(sizeof(uint32_t), (void*)&si.ShaderCount, asset->Hash);
+	buffer->Write(sizeof(ShaderByteCode) * byteCodes.size(), (void*)byteCodes.data(), asset->Hash);
+
+	for (uint32_t i = 0; i < si.ShaderCount; ++i) {
+		buffer->Write(si.Shaders[i].ByteCodeSize, (void*)si.Shaders[i].ByteCode, asset->Hash);
+		buffer->Write(sizeof(uint32_t) * si.Shaders[i].DependencyCount, (void*)si.Shaders[i].DependenciesHashes, asset->Hash);
+	}
+}
+
+DeSerializedResult ShaderLoader::DeSerializeAsset(void* assetBuffer) {
+	ShaderInfo* source = (ShaderInfo*)assetBuffer;
+	ShaderInfo* dest = new ShaderInfo();
+
+	ShaderByteCode* destByteCode = (ShaderByteCode*)malloc(sizeof(ShaderByteCode) * source->ShaderCount);
+	ShaderByteCode* sourceByteCode = (ShaderByteCode*)PointerAdd(assetBuffer, sizeof(uint32_t));
+
+	memcpy(destByteCode, sourceByteCode, sizeof(ShaderByteCode) * source->ShaderCount);
+
+	for (uint32_t i = 0; i < source->ShaderCount; ++i) {
+		destByteCode[i].ByteCode = malloc(sourceByteCode[i].ByteCodeSize);
+		memcpy(destByteCode[i].ByteCode, PointerAdd(assetBuffer, (uint32_t)sourceByteCode[i].ByteCode), sourceByteCode[i].ByteCodeSize);
+
+		destByteCode[i].DependenciesHashes = (uint32_t*)malloc(sourceByteCode[i].DependencyCount * sizeof(uint32_t));
+		memcpy(destByteCode[i].DependenciesHashes, PointerAdd(assetBuffer,(uint32_t)sourceByteCode[i].DependenciesHashes), sourceByteCode[i].DependencyCount * sizeof(uint32_t));
+	}
+	dest->ShaderCount = source->ShaderCount;
+	dest->Shaders = destByteCode;
+
+	DeSerializedResult res;
+	res.Data = dest;
+	res.Type = RT_SHADER;
+	return res;
+}
+
+bool ShaderLoader::IsExtensionSupported(const char* extension) {
+	const char* extensions[] = { "shader" };
+	for (auto& ext : extensions) {
+		if (strcmp(ext, extension) == 0)
+			return true;
+	}
+	return false;
 }

@@ -2,46 +2,34 @@
 #include "AssetExport.h"
 #include "Resources.h"
 #include <unordered_map>
-#include "StringPool.h"
+#include <Utility/StringPool.h>
+#include <Utility/Filebuffer.h>
+#include "LoaderInterface.h"
 
-
-enum ResourceTypes : uint64_t {
-	RT_TEXTURE = 0x1,
-	RT_MODEL = 0x2,
-	RT_SHADER = 0x4,
-	RT_ANIMATION = 0x8,
-	RT_SKELETON = 0x10,
-	RT_SCRIPT = 0x20,
-	RT_LEVEL = 0x40,
-	RT_ALL_TYPES = 0xff
-};
-
-typedef ASSET_DLL ResourceHandle(*AllocateTexture)(const TextureInfo& info, void* userData, const std::string& filename);
-typedef ASSET_DLL ResourceHandle(*AllocateModel)(const ModelInfo& info, void* userData, const std::string& filename);
-typedef ASSET_DLL ResourceHandle(*AllocateShader)(const ShaderInfo& info, void* userData, const std::string& filename);
-
+typedef ASSET_DLL void(*AllocateAsset)(const void* data, void* userData, const std::string& filename, const RESOURCE_TYPE type);
 
 struct ASSET_DLL ResourceAllocator {
-	AllocateTexture AllocTexture;
-	void* TextureData = nullptr;
-	AllocateModel AllocModel;
-	void* ModelData = nullptr;
-	AllocateShader AllocShader;
-	void* ShaderData = nullptr;
+	AllocateAsset AllocResource;
+	void* UserData;
 };
 
 #define g_AssetLoader AssetLoader::GetInstance()
 
-class TextureLoader;
-class ModelLoader;
-class ShaderLoader;
+struct ResourceLoader {
+	FileBuffer* buffer;
+	LoaderInterface* loader;
+	std::string LedgerFile;
+	std::string BankFile;
+};
 
 class ASSET_DLL AssetLoader {
   public:
 	~AssetLoader();
+
+	void Init(const char* dataFolder, bool isCompiler);
+	void Close();
 	void SetResourceAllocator(ResourceAllocator allocator);
 	ResourceHandle LoadAsset(const char* filename);
-	void* GetAsset(ResourceHandle handle, ResourceTypes type = RT_ALL_TYPES);
 	void UnloadAsset(ResourceHandle h);
 	void LoadStringPool(const char* filename);
 	void SaveStringPool(const char* filename);
@@ -49,13 +37,10 @@ class ASSET_DLL AssetLoader {
 	static AssetLoader& GetInstance();
   private:
 	AssetLoader();
-
 	ResourceAllocator m_Allocator;
-	TextureLoader* m_TexLoader;
-	ModelLoader* m_ModelLoader;
-	ShaderLoader* m_ShaderLoader;
 	std::unordered_map<uint32_t, ResourceHandle> m_ResourceCache;
 	StringPool m_StringPool;
-
+	bool m_IsCompiler = false;
+	std::vector<ResourceLoader> m_Loaders;
 };
 

@@ -5,6 +5,8 @@
 #include <assimp/scene.h>
 #include <algorithm>
 #include "AssetLoader.h"
+#include <Utility/Hash.h>
+#include <Utility/Memory.h>
 
 ModelLoader::ModelLoader() {}
 ModelLoader::~ModelLoader() {}
@@ -102,4 +104,96 @@ char* ModelLoader::LoadModel(const std::string& filename, ModelInfo& model) {
 		return "Assimp error";
 	}
 	return nullptr;
+}
+
+LoadResult ModelLoader::LoadAsset(const char* filename) {
+	ModelInfo* info = new ModelInfo();
+	char* error = LoadModel(filename, *info);
+	LoadResult res;
+	if (error) {
+		res.Error = error;
+	}
+	else {
+		res.Hash = HashString(filename);
+		res.Data = info;
+		res.Type = RT_MODEL;
+	}
+	return res;
+}
+
+void ModelLoader::UnloadAsset(void* asset) {
+	ModelInfo* info = (ModelInfo*)asset;
+	for (uint32_t m = 0; m < info->MeshCount; ++m) {
+		free(info->Meshes[m].Vertices);
+		free(info->Meshes[m].Indices);
+	}
+	free(info->Materials);
+	free(info->Meshes);
+	free(info);
+}
+
+void ModelLoader::SerializeAsset(FileBuffer* buffer, LoadResult* asset) {
+	// Models are stored as:
+	// Header + mesh headers + materials + mesh data (vertices + indices)
+	ModelInfo* info = (ModelInfo*)asset->Data;
+	size_t meshDataOffset = sizeof(ModelInfo) + info->MeshCount * sizeof(MeshInfo) + info->MaterialCount * sizeof(MaterialInfo);
+	std::vector<MeshInfo> meshes;
+	size_t offset = meshDataOffset;
+	for (uint32_t m = 0; m < info->MeshCount; ++m) {
+		MeshInfo mesh;
+		mesh = info->Meshes[m];
+		mesh.Vertices = (Vertex*)offset;
+		offset += sizeof(Vertex) * mesh.VertexCount;
+		mesh.Indices = (uint32_t*)offset;
+		offset += mesh.IndexCount * sizeof(uint32_t);
+		meshes.push_back(mesh);
+	}
+	
+	ModelInfo* model = new ModelInfo();
+	*model = *info;
+	model->Meshes = (MeshInfo*)sizeof(ModelInfo);
+	model->Materials =  (MaterialInfo*)(model->Meshes + sizeof(MaterialInfo) * info->MaterialCount);
+		
+	buffer->Write(sizeof(ModelInfo), &model, asset->Hash);
+	buffer->Write(sizeof(MeshInfo) * meshes.size(), meshes.data(), asset->Hash);
+	buffer->Write(sizeof(MaterialInfo) * info->MaterialCount, info->Materials, asset->Hash);
+	for (uint32_t m = 0; m < info->MeshCount; ++m) {
+		buffer->Write(info->Meshes[m].VertexCount * sizeof(Vertex), info->Meshes[m].Vertices, asset->Hash);
+		buffer->Write(info->Meshes[m].IndexCount * sizeof(uint32_t), info->Meshes[m].Indices, asset->Hash);
+	}
+}
+
+DeSerializedResult ModelLoader::DeSerializeAsset(void* assetBuffer) {
+	ModelInfo* src = (ModelInfo*)assetBuffer;
+	ModelInfo* dst = new ModelInfo();
+	*dst = *src;
+	//copy materials
+	dst->Materials = (MaterialInfo*)malloc(src->MaterialCount * sizeof(MaterialInfo));
+	memcpy(dst->Materials, PointerAdd(src, (size_t)src->Materials), src->MaterialCount * sizeof(MaterialInfo));
+	//copy mesh headers
+	dst->Meshes = (MeshInfo*)malloc(src->MeshCount * sizeof(MeshInfo));
+	memcpy(dst->Meshes, PointerAdd(src, (size_t)src->Materials), src->MeshCount * sizeof(MeshInfo));
+	for (uint32_t i = 0; i < src->MeshCount; i++) {
+		//copy vertices
+		dst->Meshes[i].Vertices = (Vertex*)malloc( src->Meshes[i].VertexCount * sizeof(Vertex));
+		memcpy(dst->Meshes[i].Vertices, PointerAdd(src, (size_t)src->Meshes[i].Vertices), src->Meshes[i].VertexCount * sizeof(Vertex));
+		//copy indices
+		dst->Meshes[i].Indices = (uint32_t*)malloc(src->Meshes[i].IndexCount * sizeof(uint32_t));
+		memcpy(dst->Meshes[i].Indices, PointerAdd(src, (size_t)src->Meshes[i].Indices), src->Meshes[i].IndexCount * sizeof(uint32_t));
+		//TODO: Load needed textures as well
+	}
+	
+	DeSerializedResult res;
+	res.Data = dst;
+	res.Type = RT_MODEL;
+	return res;
+}
+
+bool ModelLoader::IsExtensionSupported(const char* extension) {
+	const char* extensions[] = { "obj", "dae" };
+	for (auto& ext : extensions) {
+		if (strcmp(ext, extension) == 0)
+			return true;
+	}
+	return false;
 }
