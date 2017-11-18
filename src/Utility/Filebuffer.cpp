@@ -122,6 +122,8 @@ void* FileBuffer::LoadFile(uint32_t hash) {
 	if (!m_File)
 		return nullptr;
 
+	printf("loading file %u, at offset %llu of size %llu", hash, e->second.Offset, e->second.Size);
+
 	fseek(m_File, e->second.Offset, SEEK_SET);
 	void* buffer = malloc(e->second.Size);
 	fread(buffer, sizeof(uint8_t), e->second.Size, m_File);

@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <unordered_map>
 #include <glm/glm.hpp>
 #include <AssetLoader/AssetLoader.h>
 
@@ -52,12 +53,12 @@ class ResourceHandler {
 
 	const Model& GetModel(ResourceHandle handle);
 
-	ResourceHandle AllocateModel(const ModelInfo& model);
-	ResourceHandle AllocateTexture(const TextureInfo& tex);
+	void AllocateModel(const ModelInfo& model, ResourceHandle handle);
+	void AllocateTexture(const TextureInfo& tex, ResourceHandle handle);
   private:
 	vk::Device* m_Device;
-	std::vector<Model> m_Models;
-	std::vector<VkTexture> m_Textures;
+	std::unordered_map<ResourceHandle, Model> m_Models;
+	std::unordered_map<ResourceHandle, VkTexture> m_Textures;
 
 	VkTexture m_DefaultAlbedo;
 	VkTexture m_DefaultNormal;

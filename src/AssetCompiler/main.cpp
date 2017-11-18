@@ -55,6 +55,21 @@ Options ParseOptions(const uint32_t argc, const char** argv) {
 	return opt;
 }
 
+void SanitizeFilePath(std::string& fp) {
+
+	auto Replace = [&]( std::string from, std::string to) {
+		size_t p = fp.find(from);
+		while (p != std::string::npos) {
+			fp.replace(p, from.length(), to);
+			p = fp.find(from);
+		}
+	};
+
+	Replace(".\\", ""); //replace .\\ 
+	Replace("\\", "/"); // replace single backslash
+	
+}
+
 void ScanDirForAssets(const std::string& dirName, const std::vector<std::string>& fileExtentions, std::vector<std::string>& filesOut) {
 
 	auto dirit = directory_iterator(dirName);
@@ -69,83 +84,21 @@ void ScanDirForAssets(const std::string& dirName, const std::vector<std::string>
 	for (auto& p : files) {
 		for (auto& ext : fileExtentions) {
 			if (p.extension() == ext) {
-				filesOut.push_back(p.string());
+				std::string s = p.string();
+				SanitizeFilePath(s);
+				filesOut.push_back(s);
 			}
 		}
 	}
 }
 
 void AllocatorResource(const void* data, void* userData, const std::string& filename, const RESOURCE_TYPE type) {
+	if (type == RT_MODEL) {
+		ModelInfo* info = (ModelInfo*)data;
+		int i = 0;
+	}
 	printf("Allocated Resource %s\n", filename.c_str());
 }
-
-//ResourceHandle SerializeModel(const ModelInfo& info, void* userData, const std::string& filename) {
-//	FileBuffer* modelFile = (FileBuffer*)userData;
-//	//serialize model
-//	size_t meshDataOffset = sizeof(ModelInfo) + info.MeshCount * sizeof(MeshInfo) + info.MaterialCount * sizeof(MaterialInfo);
-//	std::vector<MeshInfo> meshes;
-//	size_t offset = meshDataOffset;
-//	for (uint32_t m = 0; m < info.MeshCount; ++m) {
-//		MeshInfo mesh;
-//		mesh = info.Meshes[m];
-//		mesh.Vertices = (Vertex*)offset;
-//		offset += sizeof(Vertex) * mesh.VertexCount;
-//		mesh.Indices = (uint32_t*)offset;
-//		offset += mesh.IndexCount * sizeof(uint32_t);
-//		meshes.push_back(mesh);
-//	}
-//
-//	ModelInfo model;
-//	model = info;
-//	model.Meshes = (MeshInfo*)sizeof(ModelInfo);
-//	model.Materials =  (MaterialInfo*)(model.Meshes + sizeof(MaterialInfo) * info.MaterialCount);
-//
-//	
-//
-//	modelFile->Write(sizeof(ModelInfo), &model, filename);
-//	modelFile->Write(sizeof(MeshInfo) * meshes.size(), meshes.data(), filename);
-//	modelFile->Write(sizeof(MaterialInfo) * info.MaterialCount, info.Materials, filename);
-//	for (uint32_t m = 0; m < info.MeshCount; ++m) {
-//		 modelFile->Write(info.Meshes[m].VertexCount * sizeof(Vertex), info.Meshes[m].Vertices, filename);
-//		 modelFile->Write(info.Meshes[m].IndexCount * sizeof(uint32_t), info.Meshes[m].Indices, filename);
-//	}
-//
-//	return 0;
-//}
-//
-//ResourceHandle SerializeTexture(const TextureInfo& info, void* userData, const std::string& filename) {
-//	FileBuffer* textureFile = (FileBuffer*)userData;
-//	//serialize texture
-//	TextureInfo i = info;
-//	i.Data = (void*)sizeof(TextureInfo);
-//	textureFile->Write(sizeof(TextureInfo), &i, filename);
-//	textureFile->Write(info.LinearSize, info.Data, filename);
-//	return 0;
-//}
-//
-//ResourceHandle SerializeShader(const ShaderInfo& info, void* userData, const std::string& filename) {
-//	FileBuffer* shaderFile = (FileBuffer*)userData;
-//	//serialize shader
-//	ShaderInfo si = info;
-//	uint32_t offset = sizeof(ShaderInfo) + sizeof(ShaderByteCode) * si.ShaderCount;
-//	std::vector<ShaderByteCode> byteCodes;
-//	for (uint32_t i = 0; i < si.ShaderCount; ++i) {
-//		ShaderByteCode bc = si.Shaders[i];
-//		bc.ByteCode = (void*)offset;
-//		offset += si.Shaders[i].ByteCodeSize;
-//		bc.DependenciesHashes = (uint32_t*)offset;
-//		offset += si.Shaders[i].DependencyCount * sizeof(uint32_t);
-//		byteCodes.push_back(bc);
-//	}
-//
-//	shaderFile->Write(sizeof(ShaderInfo), (void*)&si, filename);
-//	shaderFile->Write(sizeof(ShaderByteCode) * byteCodes.size(), (void*)byteCodes.data(), filename);
-//	for (uint32_t i = 0; i < info.ShaderCount; ++i) {
-//		shaderFile->Write(info.Shaders[i].ByteCodeSize, (void*)info.Shaders[i].ByteCode, filename);
-//		shaderFile->Write(sizeof(uint32_t) * info.Shaders[i].DependencyCount, (void*)info.Shaders[i].DependenciesHashes, filename);
-//	}
-//	return 0;
-//}
 
 int main(const uint32_t argc, const char** argv) {
 	Options opts = ParseOptions(argc, argv);

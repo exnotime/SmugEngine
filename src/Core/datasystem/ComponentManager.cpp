@@ -1,4 +1,6 @@
 #include "ComponentManager.h"
+#include <intrin.h>
+
 ComponentManager::ComponentManager() {
 
 }

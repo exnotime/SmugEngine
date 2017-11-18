@@ -3,7 +3,7 @@
 #include <Utility/Filebuffer.h>
 struct LoadResult {
 	std::string Error = "Unknown";
-	void* Data;
+	void* Data = nullptr;
 	uint32_t Hash;
 	RESOURCE_TYPE Type;
 };

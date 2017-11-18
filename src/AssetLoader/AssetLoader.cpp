@@ -75,7 +75,7 @@ void AssetLoader::Close() {
 
 ResourceHandle CreateHandle(uint32_t hash, RESOURCE_TYPE type) {
 	ResourceHandle h = type;
-	h << RESOURCE_HASH_SHIFT;
+	h = h << RESOURCE_HASH_SHIFT;
 	h |= hash;
 	return h;
 }
@@ -117,7 +117,7 @@ ResourceHandle AssetLoader::LoadAsset(const char* filename) {
 				l.loader->SerializeAsset(l.buffer, &r);
 				l.buffer->Flush();
 			}
-
+			m_Allocator.AllocResource(r.Data, m_Allocator.UserData, filename, r.Type);
 			ResourceHandle h = CreateHandle(hash, r.Type);
 			m_ResourceCache[hash] = h;
 			return h;

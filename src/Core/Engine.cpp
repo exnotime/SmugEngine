@@ -56,6 +56,8 @@ void Engine::Init() {
 	glfwSetScrollCallback(m_Window->GetWindow(), ScrollCallback);
 	g_Input.SetCursorMode(m_Window->GetWindow(), GLFW_CURSOR_DISABLED);
 
+	g_AssetLoader.Init("data", false);
+
 	//set up graphics engine
 	globals::g_Gfx = new GraphicsEngine();
 	HWND hWnd = glfwGetWin32Window(m_Window->GetWindow());
@@ -112,19 +114,12 @@ void Engine::Run() {
 		if (g_Input.IsKeyDown(GLFW_KEY_ESCAPE)) {
 			break;
 		}
-		printf("---NewFrame---\n");
 		m_ProfilerTimer->Reset();
 		globals::g_Gfx->PrintStats();
 		m_MainSubSystemSet->UpdateSubSystems(m_GlobalTimer->Tick());
-		printf("SubsystemUpdate: %f ms\n", m_ProfilerTimer->Reset() * 1000.0f);
 		globals::g_Physics->Update(1.0f / 60.0f);
-		printf("Physics: %f ms\n", m_ProfilerTimer->Reset() * 1000.0f);
 		globals::g_Gfx->Render();
-		printf("Graphics Render: %f ms\n", m_ProfilerTimer->Reset() * 1000.0f);
 		globals::g_Gfx->Swap();
-		printf("Graphics Swap: %f ms\n", m_ProfilerTimer->Reset() * 1000.0f);
-
-		printf("---EndFrame---\n");
 		g_Input.Update();
 		glfwPollEvents();
 	}

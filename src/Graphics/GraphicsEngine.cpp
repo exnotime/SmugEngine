@@ -238,14 +238,14 @@ void GraphicsEngine::CreateSwapChain(VkSurfaceKHR surface) {
 
 	//hdr offscreen framebuffer
 	std::vector<vk::Format> fboFormats = {
-		vk::Format::eA2B10G10R10UnormPack32,
-		vk::Format::eD24UnormS8Uint
+		vk::Format::eR16G16B16A16Unorm
+		, vk::Format::eD24UnormS8Uint
 	};
 	std::vector<vk::ImageUsageFlags> usages = {
 		vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled,
 		vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled
 	};
-	m_FrameBuffer.Init(VK_DEVICE, VK_PHYS_DEVICE, m_ScreenSize, fboFormats, usages);
+	m_FrameBuffer.Init(VK_DEVICE, VK_PHYS_DEVICE, m_ScreenSize * 2.0f, fboFormats, usages);
 }
 
 void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
@@ -359,9 +359,9 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	descBufferInfo.range = VK_WHOLE_SIZE;
 	descWrites[c++].pBufferInfo = &descBufferInfo;
 	//ibl tex
-	m_IBLTex.Init("assets/ibl.dds", m_TextureMemory, VK_DEVICE);
-	m_SkyRad.Init("assets/skybox_rad.dds", m_TextureMemory, VK_DEVICE);
-	m_SkyIrr.Init("assets/skybox_irr.dds", m_TextureMemory, VK_DEVICE);
+	m_IBLTex.Init("assets/textures/ibl.dds", m_TextureMemory, VK_DEVICE);
+	m_SkyRad.Init("assets/textures/skybox_rad.dds", m_TextureMemory, VK_DEVICE);
+	m_SkyIrr.Init("assets/textures/skybox_irr.dds", m_TextureMemory, VK_DEVICE);
 	vk::DescriptorImageInfo imageInfo[3];
 	imageInfo[0] = m_IBLTex.GetDescriptorInfo();
 	imageInfo[1] = m_SkyRad.GetDescriptorInfo();
@@ -392,6 +392,7 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 		bufferInfos[q].range = VK_WHOLE_SIZE;
 		descWrites[c + q].pBufferInfo = &bufferInfos[q];
 	}
+
 	descWrites[c + 2].descriptorCount = 1;
 	descWrites[c + 2].descriptorType = vk::DescriptorType::eStorageBuffer;
 	descWrites[c + 2].dstArrayElement = 0;
@@ -403,9 +404,9 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	bufferInfos[2].range = VK_WHOLE_SIZE;
 	descWrites[c + 2].pBufferInfo = &bufferInfos[2];
 
-	VK_DEVICE.updateDescriptorSets(4 + BUFFER_COUNT, descWrites, 0, nullptr);
+	VK_DEVICE.updateDescriptorSets(c + BUFFER_COUNT + 1, descWrites, 0, nullptr);
 
-	m_SkyBox.Init(VK_DEVICE, VK_PHYS_DEVICE, "assets/skybox_rad.dds", m_Viewport, m_FrameBuffer.GetRenderPass(), m_MSState);
+	m_SkyBox.Init(VK_DEVICE, VK_PHYS_DEVICE, "assets/textures/skybox_rad.dds", m_Viewport, m_FrameBuffer.GetRenderPass(), m_MSState);
 
 	MemoryBudget memBudget;
 	memBudget.GeometryBudget = 64 * MEGA_BYTE;

@@ -37,7 +37,7 @@ solution "Tephra"
 		kind "ConsoleApp"
 		files { "src/Core/**", "src/Imgui/**"}
 		includedirs { "include", "src" }
-		links {  "Graphics", "AssetLoader", "Physics", "glfw3", "vulkan-1" }
+		links {  "Graphics", "AssetLoader", "Physics", "glfw3", "vulkan-1", "Utility" }
         configuration { "Debug" }
                 links { "angelscript64d", "as_integrationD", "shaderc_combinedD" }
         configuration { "Release" }
@@ -52,7 +52,7 @@ solution "Tephra"
     	files { "src/Graphics/**", "src/Imgui/**"}
     	includedirs { "include", "src" }
     	kind "StaticLib"
-    	links { "vulkan-1", "AssetLoader", "glfw3"}
+    	links { "vulkan-1", "AssetLoader", "glfw3", "Utility"}
     	configuration { "Debug" }
                 links { "shaderc_combinedD" }
         configuration { "Release" }
@@ -66,8 +66,12 @@ solution "Tephra"
     	language("C++")
     	files { "src/Assetloader/**"}
     	includedirs { "include", "src" }
-        links { "assimp" }
-    	kind "SharedLib"
+        kind "SharedLib"
+        links { "assimp", "Utility" }
+        configuration { "Debug" }
+                links { "angelscript64d", "as_integrationD", "shaderc_combinedD" }
+        configuration { "Release" }
+                links { "angelscript64", "as_integration", "shaderc_combined" }
 
     project "Physics"
         targetname "Physics"
@@ -82,4 +86,15 @@ solution "Tephra"
             links { "PhysX3DEBUG_x64", "PhysX3CommonDEBUG_x64.lib", "PxFoundationDEBUG_x64", "PhysX3ExtensionsDEBUG", "PxPvdSDKDEBUG_x64"}
         configuration { "Release" }
             links { "PhysX3CHECKED_x64", "PhysX3CommonCHECKED_x64.lib", "PxFoundationCHECKED_x64", "PhysX3ExtensionsCHECKED"}
+
+    project "Utility"
+        targetname "Utility"
+        defines {}
+        debugdir ""
+        location (location_path)
+        language("C++")
+        files { "src/Utility/**"}
+    	includedirs { "include", "src" }
+        links { }
+    	kind "StaticLib"
         

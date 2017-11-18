@@ -1,5 +1,7 @@
 #include "ResourceHandler.h"
 #include <AssetLoader/AssetLoader.h>
+#include <Utility/Hash.h>
+
 #define SAFE_DELETE(x) if(x) delete x
 
 ResourceHandler::ResourceHandler() {
@@ -9,12 +11,23 @@ ResourceHandler::~ResourceHandler() {
 	Clear();
 }
 
-ResourceHandle AllocModel(const ModelInfo& model, void* userData, const std::string& filename) {
-	return ((ResourceHandler*)userData)->AllocateModel(model);
+ResourceHandle CreateHandle(const std::string name, RESOURCE_TYPE type) {
+	ResourceHandle h = type;
+	h = (h << RESOURCE_HASH_SHIFT);
+	h |= HashString(name);
+	return h;
 }
 
-ResourceHandle AllocTexture(const TextureInfo& tex, void* userData, const std::string& filename) {
-	return ((ResourceHandler*)userData)->AllocateTexture(tex);
+void AllocateAssetCallback(const void* data, void* userData, const std::string& filename, const RESOURCE_TYPE type) {
+	printf("Allocating asset %s\n", filename.c_str());
+	if (type == RESOURCE_TYPE::RT_TEXTURE) {
+		TextureInfo* info = (TextureInfo*)data;
+		((ResourceHandler*)userData)->AllocateTexture(*info, CreateHandle(filename, type));
+	}
+	if (type == RESOURCE_TYPE::RT_MODEL) {
+		ModelInfo* info = (ModelInfo*)data;
+		((ResourceHandler*)userData)->AllocateModel(*info, CreateHandle(filename, type));
+	}
 }
 
 void ResourceHandler::Init(vk::Device* device, const vk::PhysicalDevice& physDev, MemoryBudget budget) {
@@ -27,12 +40,9 @@ void ResourceHandler::Init(vk::Device* device, const vk::PhysicalDevice& physDev
 	m_IndexMemory.Init(*device, physDev, budget.GeometryBudget, budget.GeometryBudget);
 	m_MaterialMemory.Init(*device, physDev, budget.MaterialBudget, budget.MaterialBudget);
 
-
 	ResourceAllocator allocator;
-	allocator.AllocModel = AllocModel;
-	allocator.AllocTexture = AllocTexture;
-	allocator.ModelData = this;
-	allocator.TextureData = this;
+	allocator.AllocResource = &AllocateAssetCallback;
+	allocator.UserData = this;
 	g_AssetLoader.SetResourceAllocator(allocator);
 	//descriptor pool
 	vk::DescriptorPoolCreateInfo poolInfo;
@@ -92,10 +102,10 @@ void ResourceHandler::Init(vk::Device* device, const vk::PhysicalDevice& physDev
 }
 
 const Model& ResourceHandler::GetModel(ResourceHandle handle) {
-	return m_Models[(handle << 32) >> 32];
+	return m_Models[handle];
 }
 
-ResourceHandle ResourceHandler::AllocateModel(const ModelInfo& model) {
+void ResourceHandler::AllocateModel(const ModelInfo& model, ResourceHandle handle) {
 	Model internalModel;
 	std::vector<glm::vec3> positions;
 	std::vector<glm::vec3> normals;
@@ -129,6 +139,8 @@ ResourceHandle ResourceHandler::AllocateModel(const ModelInfo& model) {
 		allocInfo.pSetLayouts = &m_MaterialLayout;
 		internalModel.Meshes[m].Material = m_Device->allocateDescriptorSets(allocInfo)[0];
 
+		//load materials
+
 		//create material
 		vk::WriteDescriptorSet materialWrite;
 		materialWrite.descriptorCount = MATERIAL_SIZE;
@@ -139,30 +151,34 @@ ResourceHandle ResourceHandler::AllocateModel(const ModelInfo& model) {
 		vk::DescriptorImageInfo imageInfo[MATERIAL_SIZE];
 		VkTexture albedo, normalTex, roughness, metal;
 		//albedo
-		if (model.Materials[mesh.Material].Albedo.Data) {
-			albedo.Init(model.Materials[mesh.Material].Albedo, m_MaterialMemory, *m_Device);
-			imageInfo[0] = albedo.GetDescriptorInfo();
+		if (model.Materials[mesh.Material].Albedo != RESOURCE_INVALID) {
+			auto& t = m_Textures.find(model.Materials[mesh.Material].Albedo);
+			if (t != m_Textures.end())
+				imageInfo[0] = t->second.GetDescriptorInfo();
 		} else {
 			imageInfo[0] = m_DefaultAlbedo.GetDescriptorInfo();
 		}
 		//normal
-		if (model.Materials[mesh.Material].Normal.Data) {
-			normalTex.Init(model.Materials[mesh.Material].Normal, m_MaterialMemory, *m_Device);
-			imageInfo[1] = normalTex.GetDescriptorInfo();
+		if (model.Materials[mesh.Material].Normal != RESOURCE_INVALID) {
+			auto& t = m_Textures.find(model.Materials[mesh.Material].Normal);
+			if(t != m_Textures.end())
+				imageInfo[1] = t->second.GetDescriptorInfo();
 		} else {
 			imageInfo[1] = m_DefaultNormal.GetDescriptorInfo();
 		}
 		//roughness
-		if (model.Materials[mesh.Material].Roughness.Data) {
-			roughness.Init(model.Materials[mesh.Material].Roughness, m_MaterialMemory, *m_Device);
-			imageInfo[2] = roughness.GetDescriptorInfo();
+		if (model.Materials[mesh.Material].Roughness != RESOURCE_INVALID) {
+			auto& t = m_Textures.find(model.Materials[mesh.Material].Roughness);
+			if (t != m_Textures.end())
+				imageInfo[2] = t->second.GetDescriptorInfo();
 		} else {
 			imageInfo[2] = m_DefaultRoughness.GetDescriptorInfo();
 		}
 		//metal
-		if (model.Materials[mesh.Material].Metal.Data) {
-			metal.Init(model.Materials[mesh.Material].Metal, m_MaterialMemory, *m_Device);
-			imageInfo[3] = metal.GetDescriptorInfo();
+		if (model.Materials[mesh.Material].Metal != RESOURCE_INVALID) {
+			auto& t = m_Textures.find(model.Materials[mesh.Material].Metal);
+			if (t != m_Textures.end())
+				imageInfo[3] = t->second.GetDescriptorInfo();
 		} else {
 			imageInfo[3] = m_DefaultMetal.GetDescriptorInfo();
 		}
@@ -185,12 +201,13 @@ ResourceHandle ResourceHandler::AllocateModel(const ModelInfo& model) {
 	internalModel.VertexBuffers[TEXCOORD] = m_VertexMemory[TEXCOORD].AllocateBuffer(
 	        texcoords.size() * sizeof(glm::vec2), flags, texcoords.data());
 
-	m_Models.push_back(internalModel);
-	return m_Models.size() - 1;
+	m_Models[handle] = internalModel;
 }
 
-ResourceHandle ResourceHandler::AllocateTexture(const TextureInfo& tex) {
-	return 0;
+void ResourceHandler::AllocateTexture(const TextureInfo& tex, ResourceHandle handle) {
+	VkTexture texture;
+	texture.Init(tex, m_MaterialMemory, *m_Device);
+	m_Textures[handle] = texture;
 }
 
 void ResourceHandler::ScheduleTransfer(VulkanCommandBuffer& cmdBuffer) {
@@ -204,6 +221,6 @@ void ResourceHandler::ScheduleTransfer(VulkanCommandBuffer& cmdBuffer) {
 
 void ResourceHandler::Clear() {
 	for (auto& m : m_Models) {
-		SAFE_DELETE(m.Meshes);
+		SAFE_DELETE(m.second.Meshes);
 	}
 }

@@ -112,11 +112,14 @@ LoadResult ModelLoader::LoadAsset(const char* filename) {
 	LoadResult res;
 	if (error) {
 		res.Error = error;
+		res.Data = nullptr;
+		res.Type = RT_MODEL;
 	}
 	else {
 		res.Hash = HashString(filename);
 		res.Data = info;
 		res.Type = RT_MODEL;
+		res.Error = "";
 	}
 	return res;
 }
@@ -152,9 +155,9 @@ void ModelLoader::SerializeAsset(FileBuffer* buffer, LoadResult* asset) {
 	ModelInfo* model = new ModelInfo();
 	*model = *info;
 	model->Meshes = (MeshInfo*)sizeof(ModelInfo);
-	model->Materials =  (MaterialInfo*)(model->Meshes + sizeof(MaterialInfo) * info->MaterialCount);
+	model->Materials = (MaterialInfo*)(model->Meshes + sizeof(MaterialInfo) * info->MaterialCount);
 		
-	buffer->Write(sizeof(ModelInfo), &model, asset->Hash);
+	buffer->Write(sizeof(ModelInfo), model, asset->Hash);
 	buffer->Write(sizeof(MeshInfo) * meshes.size(), meshes.data(), asset->Hash);
 	buffer->Write(sizeof(MaterialInfo) * info->MaterialCount, info->Materials, asset->Hash);
 	for (uint32_t m = 0; m < info->MeshCount; ++m) {
@@ -172,15 +175,25 @@ DeSerializedResult ModelLoader::DeSerializeAsset(void* assetBuffer) {
 	memcpy(dst->Materials, PointerAdd(src, (size_t)src->Materials), src->MaterialCount * sizeof(MaterialInfo));
 	//copy mesh headers
 	dst->Meshes = (MeshInfo*)malloc(src->MeshCount * sizeof(MeshInfo));
-	memcpy(dst->Meshes, PointerAdd(src, (size_t)src->Materials), src->MeshCount * sizeof(MeshInfo));
+	memcpy(dst->Meshes, PointerAdd(src, (size_t)src->Meshes), src->MeshCount * sizeof(MeshInfo));
 	for (uint32_t i = 0; i < src->MeshCount; i++) {
 		//copy vertices
-		dst->Meshes[i].Vertices = (Vertex*)malloc( src->Meshes[i].VertexCount * sizeof(Vertex));
-		memcpy(dst->Meshes[i].Vertices, PointerAdd(src, (size_t)src->Meshes[i].Vertices), src->Meshes[i].VertexCount * sizeof(Vertex));
+		size_t vertexOffset = (size_t)dst->Meshes[i].Vertices;
+		dst->Meshes[i].Vertices = (Vertex*)malloc( dst->Meshes[i].VertexCount * sizeof(Vertex));
+		memcpy(dst->Meshes[i].Vertices, PointerAdd(src, vertexOffset), dst->Meshes[i].VertexCount * sizeof(Vertex));
 		//copy indices
-		dst->Meshes[i].Indices = (uint32_t*)malloc(src->Meshes[i].IndexCount * sizeof(uint32_t));
-		memcpy(dst->Meshes[i].Indices, PointerAdd(src, (size_t)src->Meshes[i].Indices), src->Meshes[i].IndexCount * sizeof(uint32_t));
-		//TODO: Load needed textures as well
+		size_t indexOffset = (size_t)dst->Meshes[i].Indices;
+		dst->Meshes[i].Indices = (uint32_t*)malloc(dst->Meshes[i].IndexCount * sizeof(uint32_t));
+		memcpy(dst->Meshes[i].Indices, PointerAdd(src, indexOffset), dst->Meshes[i].IndexCount * sizeof(uint32_t));
+	}
+
+	//TODO: Load needed textures as well
+	//for now load default material
+	for (uint32_t i = 0; i < dst->MaterialCount; i++) {
+		dst->Materials[i].Albedo = RESOURCE_INVALID;
+		dst->Materials[i].Metal = RESOURCE_INVALID;
+		dst->Materials[i].Normal = RESOURCE_INVALID;
+		dst->Materials[i].Roughness = RESOURCE_INVALID;
 	}
 	
 	DeSerializedResult res;

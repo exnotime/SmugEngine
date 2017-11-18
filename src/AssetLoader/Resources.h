@@ -6,7 +6,9 @@
 
 #define RESOURCE_TYPE_MASK 0x00000000ffffffff
 #define RESOURCE_HASH_SHIFT 32
-typedef uint64_t ResourceHandle; //first 32 bits say type, second 32 bits say resource index
+#define RESOURCE_INVALID -1
+typedef uint64_t ResourceHandle; //first 32 bits say type, second 32 bits say resource hash
+
 
 enum RESOURCE_TYPE : uint32_t {
 	RT_TEXTURE = 0x1,
@@ -14,9 +16,7 @@ enum RESOURCE_TYPE : uint32_t {
 	RT_SHADER = 0x4,
 	RT_ANIMATION = 0x8,
 	RT_SKELETON = 0x10,
-	RT_SCRIPT = 0x20,
-	RT_LEVEL = 0x40,
-	RT_ALL_TYPES = 0xff
+	RT_SCRIPT = 0x20
 };
 
 struct ASSET_DLL TextureInfo {
@@ -31,10 +31,10 @@ struct ASSET_DLL TextureInfo {
 };
 
 struct ASSET_DLL MaterialInfo {
-	ResourceHandle Albedo;
-	ResourceHandle Normal;
-	ResourceHandle Roughness;
-	ResourceHandle Metal;
+	ResourceHandle Albedo = RESOURCE_INVALID;
+	ResourceHandle Normal = RESOURCE_INVALID;
+	ResourceHandle Roughness = RESOURCE_INVALID;
+	ResourceHandle Metal = RESOURCE_INVALID;
 };
 
 struct ASSET_DLL Vertex {
