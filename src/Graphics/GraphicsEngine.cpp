@@ -147,9 +147,9 @@ void GraphicsEngine::CreateSwapChain(VkSurfaceKHR surface) {
 	vk::SurfaceFormatKHR format = formats[0];
 	//find out if we support srgb format
 	for (auto& f : formats) {
-		if (f.format == vk::Format::eB8G8R8A8Srgb) {
+		if (f.format == vk::Format::eB8G8R8A8Unorm) {
 			format = f;
-			m_VKSwapChain.SRGB = true;
+			//m_VKSwapChain.SRGB = true;
 		}
 	}
 
@@ -482,7 +482,7 @@ void GraphicsEngine::Render() {
 	}
 	//Transfer new frame data to GPU
 	{
-		CameraData cd = rq.GetCameras()[0];
+		const CameraData& cd = rq.GetCameras()[0];
 
 		PerFrameBuffer uniformBuffer;
 		uniformBuffer.ViewProj = cd.ProjView;

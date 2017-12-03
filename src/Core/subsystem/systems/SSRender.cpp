@@ -84,7 +84,11 @@ void SSRender::Update(const double deltaTime) {
 		}
 	}
 	ImGui::Begin("Timing");
-	ImGui::Text("SSRender: %f ms", m_Timer.Reset() * 1000.0f);
+	float t = m_Timer.Reset() * 1000.0;
+	ImGui::Text("SSRender: %f ms", t);
+	static std::vector<float> vals;
+	vals.push_back(t);
+	ImGui::PlotLines("SSRender Graph", vals.data(), 60, vals.size() - 60);
 	ImGui::End();
 }
 

@@ -12,35 +12,25 @@ ComponentManager::~ComponentManager() {
 	}
 }
 
-uint32_t fast_log2(uint32_t t) {
-	unsigned long bit_index = 0;
-	if (_BitScanReverse(&bit_index, t)) {
-		return bit_index;
-	}
-	return 0;
-}
-
-void ComponentManager::AddComponentType(uint maxCount, uint size, uint componentID, const char* name) {
+void ComponentManager::AddComponentType(uint32_t maxCount, uint32_t size, uint64_t componentID, const char* name) {
 	CreateComponentBuffer(maxCount, size, componentID, name);
 }
 
-void ComponentManager::CreateComponent(const void* comp, Entity& ent, uint type) {
+void ComponentManager::CreateComponent(const void* comp, Entity& ent, uint64_t type) {
 	uint32_t i = fast_log2(type);
 	if (i < m_Buffers.size()) {
-		uint index = m_Buffers[i].AddComponent(comp);
-		ent.ComponentBitfield = ent.ComponentBitfield | type;
-		ent.Components[i] = index;
+		uint32_t componentIndex = m_Buffers[i].AddComponent(comp);
+		AddComponentToEntity(ent, type, componentIndex);
 	} else {
 		printf("trying to create component without initializing a buffer\n");
 	}
 }
 
-void ComponentManager::RemoveComponent(Entity& ent, uint type) {
+void ComponentManager::RemoveComponent(Entity& ent, uint64_t type) {
 	uint32_t i = fast_log2(type);
 	if (i < m_Buffers.size()) {
-		m_Buffers[i].RemoveComponent(ent.Components[i]);
-		ent.Components[i] = 0;
-		ent.ComponentBitfield &= ~type;
+		m_Buffers[i].RemoveComponent(GetEntityComponentIndex(ent, type));
+		RemoveComponentfromEntity(ent, type);
 	} else {
 		printf("trying to remove component without initializing a buffer\n");
 	}
@@ -54,10 +44,9 @@ void ComponentManager::RemoveComponents(Entity& ent) {
 		}
 		compFlag = compFlag << 1;
 	}
-
 }
 
-int ComponentManager::GetBuffer(void** outBuffer, uint type) {
+int ComponentManager::GetBuffer(void** outBuffer, uint64_t type) {
 	uint32_t i = fast_log2(type);
 	if (i < m_Buffers.size()) {
 		*outBuffer = (void*)m_Buffers[i].GetComponentList();
@@ -69,10 +58,10 @@ int ComponentManager::GetBuffer(void** outBuffer, uint type) {
 	}
 }
 
-void* ComponentManager::GetComponent(const Entity& ent, uint type) {
+void* ComponentManager::GetComponent(const Entity& ent, uint64_t type) {
 	uint32_t i = fast_log2(type);
 	if (i < m_Buffers.size()) {
-		void* comp = m_Buffers[i].GetComponent(ent.Components[i]);
+		void* comp = m_Buffers[i].GetComponent(GetEntityComponentIndex(ent, type));
 		return comp;
 	} else {
 		printf("Error getting component\n");
@@ -80,7 +69,7 @@ void* ComponentManager::GetComponent(const Entity& ent, uint type) {
 	}
 }
 
-void ComponentManager::CreateComponentBuffer(uint count, uint componentSize, uint id, std::string name) {
+void ComponentManager::CreateComponentBuffer(uint32_t count, uint32_t componentSize, uint64_t id, std::string name) {
 	ComponentBuffer buffer;
 	buffer.CreateBuffer(count, componentSize, name);
 	uint32_t bit_index = fast_log2(id);

@@ -3,8 +3,6 @@
 #include <assert.h>
 #include <deque>
 #include <string>
-typedef  unsigned char Byte;
-typedef  uint32_t uint;
 
 class ComponentBuffer {
   public:
@@ -15,18 +13,18 @@ class ComponentBuffer {
 
 	}
 
-	void CreateBuffer(uint count, uint size, std::string name) {
-		m_Buffer = (Byte*)malloc(count * size);
+	void CreateBuffer(uint32_t count, uint32_t size, std::string name) {
+		m_Buffer = (uint8_t*)malloc(count * size);
 		assert(m_Buffer != nullptr);
 		memset(m_Buffer, 0, count * size);
 		m_Size = count;
 		m_ComponentSize = size;
 		m_Name = name;
 	}
-	void ResizeBuffer(uint newSize) {
-		m_Buffer = (Byte*)realloc(m_Buffer, newSize);
+	void ResizeBuffer(uint32_t newSize) {
+		m_Buffer = (uint8_t*)realloc(m_Buffer, newSize);
 		assert(m_Buffer != nullptr);
-		memset((Byte*)(m_Buffer) + (m_Size * m_ComponentSize), 0, m_Size * m_ComponentSize);
+		memset((uint8_t*)(m_Buffer) + (m_Size * m_ComponentSize), 0, m_Size * m_ComponentSize);
 		m_Size *= 2;
 	}
 
@@ -34,11 +32,11 @@ class ComponentBuffer {
 		if (m_Buffer) free(m_Buffer);
 	}
 	//makes a copy of the content at component
-	uint AddComponent(const void* component) {
+	uint32_t AddComponent(const void* component) {
 		if (m_End == m_Size)
 			ResizeBuffer(m_ComponentSize * m_Size * 2);
 		//find an index, if there is a hole get that instead of end
-		uint index;
+		uint32_t index;
 		if(!m_Holes.empty()) {
 			index = m_Holes.front();
 			m_Holes.pop_front();
@@ -52,17 +50,17 @@ class ComponentBuffer {
 		return index;
 	}
 
-	void RemoveComponent(uint index) {
+	void RemoveComponent(uint32_t index) {
 		if (index >= m_End)
 			return;
 		//reset memory
-		memset((Byte*)m_Buffer + index * m_ComponentSize, 0, m_ComponentSize);
+		memset((uint8_t*)m_Buffer + index * m_ComponentSize, 0, m_ComponentSize);
 		//add to holes queue
 		m_Holes.push_front(index);
 		m_Count--;
 	}
 
-	void* GetComponent(uint index) {
+	void* GetComponent(uint32_t index) {
 		if (index >= m_Size)
 			return nullptr;
 		for(auto& hole : m_Holes) {
@@ -76,7 +74,7 @@ class ComponentBuffer {
 		return m_Buffer;
 	}
 
-	uint GetListSize() {
+	uint32_t GetListSize() {
 		return m_Count;
 	}
 	std::string& GetName() {
@@ -84,11 +82,11 @@ class ComponentBuffer {
 	}
 
   private:
-	uint m_Size = 0; //sizeof memory allocated
-	uint m_End = 0; //end of current list
-	uint m_Count = 0; //number of alive components
-	uint m_ComponentSize = 0; //size of component in bytes
+	uint32_t m_Size = 0; //sizeof memory allocated
+	uint32_t m_End = 0; //end of current list
+	uint32_t m_Count = 0; //number of alive components
+	uint32_t m_ComponentSize = 0; //size of component in bytes
 	void* m_Buffer = nullptr;
-	std::deque<uint> m_Holes;
+	std::deque<uint32_t> m_Holes;
 	std::string m_Name;
 };

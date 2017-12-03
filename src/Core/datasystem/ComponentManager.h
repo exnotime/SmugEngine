@@ -6,14 +6,14 @@ class ComponentManager {
   public:
 	ComponentManager();
 	~ComponentManager();
-	void AddComponentType(uint maxCount, uint size, uint componentID, const char* name = "");
-	void CreateComponent(const void* comp, Entity& ent, uint type);
-	void RemoveComponent(Entity& ent, uint type);
+	void AddComponentType(uint32_t maxCount, uint32_t size, uint64_t componentID, const char* name = "");
+	void CreateComponent(const void* comp, Entity& ent, uint64_t type);
+	void RemoveComponent(Entity& ent, uint64_t type);
 	void RemoveComponents(Entity& ent);
-	int GetBuffer(void** outBuffer, uint type);
-	void* GetComponent(const Entity& ent, uint type);
+	int GetBuffer(void** outBuffer, uint64_t type);
+	void* GetComponent(const Entity& ent, uint64_t type);
   private:
-	void CreateComponentBuffer(uint count, uint componentSize, uint id, std::string name);
+	void CreateComponentBuffer(uint32_t count, uint32_t componentSize, uint64_t id, std::string name);
 
 	std::vector<ComponentBuffer>	m_Buffers;
 	int								m_ComponentTypeCount;
