@@ -16,7 +16,7 @@ void SkyBox::Init(const vk::Device& device, const vk::PhysicalDevice& physDev, c
 	m_Pipeline.SetDefaultMulitSampleState(mss);
 	m_Pipeline.LoadPipelineFromFile(device, "shader/Skybox.json", vp, rp);
 	//allocate memory
-	m_Memory.Init(device, physDev, 64 * MEGA_BYTE, 64 * MEGA_BYTE);
+	m_Memory.Init(device, physDev, 256 * MEGA_BYTE, 256 * MEGA_BYTE);
 	m_Texture.Init(filename, m_Memory, device);
 	//load model
 	par_shapes_mesh* mesh = par_shapes_create_cube();

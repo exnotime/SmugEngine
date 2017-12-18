@@ -794,13 +794,20 @@ void VkPipeline::LoadPipelineFromFile(const vk::Device& device, const std::strin
 	scissor.offset = vk::Offset2D(0, 0);
 	viewportState.pScissors = &scissor;
 
+	std::vector<vk::DynamicState> dynamicStates;
+	dynamicStates.push_back(vk::DynamicState::eViewport);
+	vk::PipelineDynamicStateCreateInfo dynamicStateCreateInfo;
+	dynamicStateCreateInfo.dynamicStateCount = dynamicStates.size();
+	dynamicStateCreateInfo.pDynamicStates = dynamicStates.data();
+	
+
 	//put everything together
 	vk::GraphicsPipelineCreateInfo pipelineCreateInfo;
 	pipelineCreateInfo.layout = m_PipelineLayout;
 	pipelineCreateInfo.pColorBlendState = &blendStateInfo;
 	pipelineCreateInfo.pDepthStencilState = &depthStencilState;
 	pipelineCreateInfo.pTessellationState = (tesselationstate == nullptr) ? tesselationstate : nullptr;
-	pipelineCreateInfo.pDynamicState = nullptr;
+	pipelineCreateInfo.pDynamicState = nullptr;//&dynamicStateCreateInfo;
 	pipelineCreateInfo.pInputAssemblyState = &inputAssemblyInfo;
 	pipelineCreateInfo.pMultisampleState = (multisampleStateInfo == nullptr) ? &m_DefaultMultiSampleState : multisampleStateInfo;
 	pipelineCreateInfo.pRasterizationState = &rasterInfo;

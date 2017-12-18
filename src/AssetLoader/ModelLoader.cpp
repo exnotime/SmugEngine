@@ -151,12 +151,45 @@ void ModelLoader::SerializeAsset(FileBuffer* buffer, LoadResult* asset) {
 		offset += mesh.IndexCount * sizeof(uint32_t);
 		meshes.push_back(mesh);
 	}
+	for (uint32_t m = 0; m < info->MaterialCount; ++m) {
+		std::string albedo = g_AssetLoader.GetFilenameFromCache(info->Materials[m].Albedo);
+		if (!albedo.empty()) {
+			info->Materials[m].Albedo = HashString(albedo);
+		} else {
+			info->Materials[m].Albedo = RESOURCE_INVALID;
+		}
+
+		std::string normal = g_AssetLoader.GetFilenameFromCache(info->Materials[m].Normal);
+		if (!normal.empty()) {
+			info->Materials[m].Normal = HashString(normal);
+		}
+		else {
+			info->Materials[m].Normal = RESOURCE_INVALID;
+		}
+
+		std::string metal = g_AssetLoader.GetFilenameFromCache(info->Materials[m].Metal);
+		if (!metal.empty()) {
+			info->Materials[m].Metal = HashString(metal);
+		}
+		else {
+			info->Materials[m].Metal = RESOURCE_INVALID;
+		}
+
+		std::string roughness = g_AssetLoader.GetFilenameFromCache(info->Materials[m].Roughness);
+		if (!albedo.empty()) {
+			info->Materials[m].Roughness = HashString(roughness);
+		}
+		else {
+			info->Materials[m].Roughness = RESOURCE_INVALID;
+		}
+	}
 	
 	ModelInfo* model = new ModelInfo();
 	*model = *info;
 	model->Meshes = (MeshInfo*)sizeof(ModelInfo);
-	model->Materials = (MaterialInfo*)(model->Meshes + sizeof(MaterialInfo) * info->MaterialCount);
-		
+	size_t meshSize = sizeof(MeshInfo);
+	model->Materials = (MaterialInfo*)((uint8_t*)model->Meshes + sizeof(MeshInfo) * info->MeshCount);
+	
 	buffer->Write(sizeof(ModelInfo), model, asset->Hash);
 	buffer->Write(sizeof(MeshInfo) * meshes.size(), meshes.data(), asset->Hash);
 	buffer->Write(sizeof(MaterialInfo) * info->MaterialCount, info->Materials, asset->Hash);
@@ -187,13 +220,11 @@ DeSerializedResult ModelLoader::DeSerializeAsset(void* assetBuffer) {
 		memcpy(dst->Meshes[i].Indices, PointerAdd(src, indexOffset), dst->Meshes[i].IndexCount * sizeof(uint32_t));
 	}
 
-	//TODO: Load needed textures as well
-	//for now load default material
-	for (uint32_t i = 0; i < dst->MaterialCount; i++) {
-		dst->Materials[i].Albedo = RESOURCE_INVALID;
-		dst->Materials[i].Metal = RESOURCE_INVALID;
-		dst->Materials[i].Normal = RESOURCE_INVALID;
-		dst->Materials[i].Roughness = RESOURCE_INVALID;
+	for (uint32_t i = 0; i < src->MaterialCount; i++) {
+		dst->Materials[i].Albedo = g_AssetLoader.LoadAsset(dst->Materials[i].Albedo);
+		dst->Materials[i].Metal = g_AssetLoader.LoadAsset(dst->Materials[i].Metal);
+		dst->Materials[i].Normal = g_AssetLoader.LoadAsset(dst->Materials[i].Normal);
+		dst->Materials[i].Roughness = g_AssetLoader.LoadAsset(dst->Materials[i].Roughness);
 	}
 	
 	DeSerializedResult res;

@@ -87,12 +87,11 @@ void FileBuffer::Flush() {
 		}
 		m_Files.clear();
 		//this will update the files on disk
-		fflush(m_File);
-		fflush(m_LedgerFile);
+		if(m_File) fflush(m_File);
+		if (m_LedgerFile) fflush(m_LedgerFile);
 
 		m_FilePtr += m_Ptr; //add on the amount we have written now so we can track it in the ledger
 		m_Ptr = 0; //turn back writehead
-		m_Files.clear();
 	}
 }
 
@@ -101,7 +100,7 @@ void FileBuffer::OpenForReading(const char* filename, const char* ledgerFile) {
 	FILE* f = fopen(ledgerFile, "rb");
 	if (f) {
 		LedgerEntry entry;
-		while (fread(&entry, sizeof(LedgerEntry), 1, f) == 1) {
+		while (fread(&entry, sizeof(LedgerEntry), 1, f)) {
 			if (feof(f))
 				break;
 			m_Files.insert({ entry.Hash, entry });

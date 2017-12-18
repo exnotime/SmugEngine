@@ -75,9 +75,10 @@ void StringPool::DeSerialize(const std::string& filename) {
 
 }
 
-const std::string& StringPool::GetString(uint32_t hash) {
-	if (m_Strings.find(hash) != m_Strings.end())
-		return m_Strings[hash];
+std::string StringPool::GetString(uint32_t hash) const {
+	auto& s = m_Strings.find(hash);
+	if (s != m_Strings.end())
+		return s->second;
 	else 
 		return "";
 }

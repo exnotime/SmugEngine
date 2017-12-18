@@ -30,9 +30,11 @@ class ASSET_DLL AssetLoader {
 	void Close();
 	void SetResourceAllocator(ResourceAllocator allocator);
 	ResourceHandle LoadAsset(const char* filename);
+	ResourceHandle LoadAsset(uint32_t hash);
 	void UnloadAsset(ResourceHandle h);
 	void LoadStringPool(const char* filename);
 	void SaveStringPool(const char* filename);
+	std::string GetFilenameFromCache(ResourceHandle handle);
 
 	static AssetLoader& GetInstance();
   private:
@@ -42,5 +44,7 @@ class ASSET_DLL AssetLoader {
 	StringPool m_StringPool;
 	bool m_IsCompiler = false;
 	std::vector<ResourceLoader> m_Loaders;
+	//compiler extra
+	std::unordered_map< ResourceHandle, std::string> m_FilenameCache;
 };
 

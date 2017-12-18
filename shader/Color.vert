@@ -15,6 +15,7 @@ layout (set = 0, binding = 0) uniform g_PerFrame {
     mat4 ViewProj;
     vec4 CamPos;
     vec4 LightDir;
+    vec4 Material;
 };
 
 struct PerObject{

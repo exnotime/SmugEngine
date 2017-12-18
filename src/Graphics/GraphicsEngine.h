@@ -32,6 +32,7 @@ struct PerFrameBuffer {
 	glm::mat4 ViewProj;
 	glm::vec4 CameraPos;
 	glm::vec4 LightDir;
+	glm::vec4 Material;
 };
 
 struct PerFrameStatistics {

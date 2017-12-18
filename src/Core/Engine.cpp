@@ -45,7 +45,7 @@ void Engine::Init() {
 	ws.HighDPI = false;
 	ws.OpenGL = true;
 	ws.Title = "Tephra";
-	ws.Vsync = true;
+	ws.Vsync = false;
 	ws.BorderLess = false;
 	m_Window->Initialize(ws);
 
@@ -57,6 +57,7 @@ void Engine::Init() {
 	g_Input.SetCursorMode(m_Window->GetWindow(), GLFW_CURSOR_DISABLED);
 
 	g_AssetLoader.Init("data", false);
+	g_AssetLoader.LoadStringPool("Assets.strings");
 
 	//set up graphics engine
 	globals::g_Gfx = new GraphicsEngine();

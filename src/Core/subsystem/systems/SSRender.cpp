@@ -19,12 +19,11 @@ SSRender::~SSRender() {
 }
 
 void SSRender::Startup() {
-	//spheres
-	const int c = 5;
+	const int c = 4;
 	const float d = 16;
 	const float s = 6;
 	ModelComponent mc;
-	mc.ModelHandle = g_AssetLoader.LoadAsset("assets/models/suzzanne/suzzanne.obj");
+	mc.ModelHandle = g_AssetLoader.LoadAsset("assets/models/sphere/sphere.obj");
 	//RenderQueue* rq = globals::g_Gfx->GetStaticQueue();
 	for (int z = -c; z < c; z++) {
 		for (int y = -c; y < c; y++) {
@@ -37,7 +36,7 @@ void SSRender::Startup() {
 				tc.Scale = glm::vec3(s);
 				tc.Orientation = glm::angleAxis(glm::pi<float>(), glm::vec3(0, 0, -1));
 				globals::g_Components->CreateComponent(&tc, e, tc.Flag);
-				mc.Tint = glm::vec4(abs(x) / float(c), 1.0f - (abs(y) / float(c)), 0.0f, 1.0f);
+				mc.Tint = glm::vec4(1.0f);
 				globals::g_Components->CreateComponent(&mc, e, mc.Flag);
 
 				tc.Transform = glm::toMat4(tc.Orientation);
@@ -63,6 +62,11 @@ void SSRender::Update(const double deltaTime) {
 	auto& entities = g_EntityManager.GetEntityList();
 	uint32_t entityCount = entities.size();
 
+	static glm::vec4 tint = glm::vec4(1.0f);
+	ImGui::Begin("Scene");
+	ImGui::ColorEdit4("Global Color", &tint[0], false);
+	ImGui::End();
+
 	for (uint32_t e = 0; e < entityCount; ++e) {
 		auto& entity = entities[e];
 		if ((entity.ComponentBitfield & flag) == flag) {
@@ -80,15 +84,12 @@ void SSRender::Update(const double deltaTime) {
 			tc->Transform[1][1] *= tc->Scale.y;
 			tc->Transform[2][2] *= tc->Scale.z;
 
-			rq->AddModel(mc->ModelHandle, tc->Transform, mc->Tint);
+			rq->AddModel(mc->ModelHandle, tc->Transform, tint);
 		}
 	}
 	ImGui::Begin("Timing");
 	float t = m_Timer.Reset() * 1000.0;
 	ImGui::Text("SSRender: %f ms", t);
-	static std::vector<float> vals;
-	vals.push_back(t);
-	ImGui::PlotLines("SSRender Graph", vals.data(), 60, vals.size() - 60);
 	ImGui::End();
 }
 

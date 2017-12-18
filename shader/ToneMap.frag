@@ -21,5 +21,9 @@ void main(){
 	// if(TexCoord.x > 0.5)
 	// 	outColor.rgb = Uncharted2Tonemap(outColor.rgb);
 	// else
-		outColor.rgb  = outColor.rgb  / (outColor.rgb  + vec3(1.0));
+	float bright = 1.0;
+	float exposure = 1.0 / 1.6;
+	float Y = dot(vec4(0.30, 0.59, 0.11, 0.0), outColor);
+    float YD = exposure * (exposure / bright + 1.0) / (exposure + 1.0);
+	outColor *= YD;
 }

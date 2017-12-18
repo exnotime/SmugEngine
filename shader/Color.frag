@@ -9,9 +9,10 @@ layout (location = 5) in vec3 ColorOut;
 layout(location = 0) out vec4 outColor;
 
 layout (set = 0, binding = 0) uniform WVP{
-    mat4 wvp;
+    mat4 view_proj;
     vec4 CamPos;
     vec4 LightDir;
+    vec4 Material;
 };
 #include "lighting.glsl"
 
@@ -34,7 +35,12 @@ void main(){
     vec3 toCam = normalize(CamPos.xyz - PosW);
     vec3 texColor = pow(texture(g_Material[0], TexCoordOut).rgb, vec3(GAMMA)) * ColorOut;
     vec3 mat = pow(texture(g_Material[2], TexCoordOut).rgb, vec3(GAMMA));
-    
+
+    mat.r *= mat.r;
+    mat.r = saturate(mat.r * Material.r);
+
+    mat.g = Material.g;
+
     vec3 lightColor = CalcDirLight(-lightDir, texColor, normal, toCam, mat.r, mat.g) * mat.b;
     vec3 ibl = CalcIBLLight( normal, toCam, texColor, mat.r, mat.g) * mat.b;
     outColor = saturate(vec4(lightColor + ibl, 1));

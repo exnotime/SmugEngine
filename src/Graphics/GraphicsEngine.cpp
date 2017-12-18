@@ -4,9 +4,13 @@
 #include <vulkan/vulkan.h>
 #include "Vertex.h"
 #include "Core/Timer.h"
+
+#define USE_DEBUG_LAYER 0
+
 GraphicsEngine::GraphicsEngine() {
 
 }
+
 GraphicsEngine::~GraphicsEngine() {
 #ifdef USE_IMGUI
 	ImGui_ImplGlfwVulkan_Shutdown();
@@ -68,7 +72,7 @@ void GraphicsEngine::CreateContext() {
 	instInfo.ppEnabledLayerNames = &layers[0];
 	m_VKContext.Instance = vk::createInstance(instInfo);
 
-#ifdef _DEBUG
+#if  defined(_DEBUG) && USE_DEBUG_LAYER
 	/* Load VK_EXT_debug_report entry points in debug builds */
 	PFN_vkCreateDebugReportCallbackEXT vkCreateDebugReportCallbackEXT =
 	    reinterpret_cast<PFN_vkCreateDebugReportCallbackEXT>
@@ -360,8 +364,8 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	descWrites[c++].pBufferInfo = &descBufferInfo;
 	//ibl tex
 	m_IBLTex.Init("assets/textures/ibl.dds", m_TextureMemory, VK_DEVICE);
-	m_SkyRad.Init("assets/textures/skybox_rad.dds", m_TextureMemory, VK_DEVICE);
-	m_SkyIrr.Init("assets/textures/skybox_irr.dds", m_TextureMemory, VK_DEVICE);
+	m_SkyRad.Init("assets/textures/yokohama3_spec.dds", m_TextureMemory, VK_DEVICE);
+	m_SkyIrr.Init("assets/textures/yokohama3_irr.dds", m_TextureMemory, VK_DEVICE);
 	vk::DescriptorImageInfo imageInfo[3];
 	imageInfo[0] = m_IBLTex.GetDescriptorInfo();
 	imageInfo[1] = m_SkyRad.GetDescriptorInfo();
@@ -406,7 +410,7 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 
 	VK_DEVICE.updateDescriptorSets(c + BUFFER_COUNT + 1, descWrites, 0, nullptr);
 
-	m_SkyBox.Init(VK_DEVICE, VK_PHYS_DEVICE, "assets/textures/skybox_rad.dds", m_Viewport, m_FrameBuffer.GetRenderPass(), m_MSState);
+	m_SkyBox.Init(VK_DEVICE, VK_PHYS_DEVICE, "assets/textures/yokohama3.dds", m_Viewport, m_FrameBuffer.GetRenderPass(), m_MSState);
 
 	MemoryBudget memBudget;
 	memBudget.GeometryBudget = 64 * MEGA_BYTE;
@@ -471,8 +475,8 @@ void GraphicsEngine::RenderModels(RenderQueue& rq, VulkanCommandBuffer& cmdBuffe
 
 void GraphicsEngine::Render() {
 
-	Timer t;
-	ImGui::Begin("Timing");
+	
+	
 	RenderQueue& rq = m_RenderQueues[VK_FRAME_INDEX];
 	//reset stats
 	{
@@ -487,9 +491,17 @@ void GraphicsEngine::Render() {
 		PerFrameBuffer uniformBuffer;
 		uniformBuffer.ViewProj = cd.ProjView;
 		uniformBuffer.CameraPos = glm::vec4(cd.Position, 1);
-		static glm::vec3 LightDir = glm::vec3(0.1f, -1.0f, -0.5f);
-		uniformBuffer.LightDir = glm::normalize(glm::vec4(LightDir, 1.0f));
-
+		static glm::vec3 lightDir = glm::vec3(0.1f, -1.0f, -0.5f);
+		static float globalRoughness = 1.0f;
+		static bool metallic = false;
+		ImGui::Begin("Scene");
+		ImGui::DragFloat3("Lighting direction", &lightDir[0], 0.001f, -1.0f, 1.0f);
+		ImGui::SliderFloat("Global Roughness", &globalRoughness,0, 1.0f);
+		ImGui::Checkbox("Metal", &metallic);
+		ImGui::End();
+		uniformBuffer.LightDir = glm::normalize(glm::vec4(lightDir, 1.0f));
+		uniformBuffer.Material.x = globalRoughness;
+		uniformBuffer.Material.y = metallic ? 1.0f : 0.0f;
 		m_BufferMemory.UpdateBuffer(m_PerFrameBuffer, sizeof(PerFrameBuffer), (void*)(&uniformBuffer));
 		rq.ScheduleTransfer(m_BufferMemory);
 
@@ -503,7 +515,9 @@ void GraphicsEngine::Render() {
 
 		m_vkQueue.Submit(cmdBuffer, nullptr, m_TransferComplete, nullptr);
 	}
-	ImGui::Text("Render: Transfer data: %f ms", t.Reset() * 1000.0f);
+
+	Timer t;
+	ImGui::Begin("Timing");
 	//render pass
 	{
 		auto& cmdBuffer = m_CmdBufferFactory.GetNextBuffer();
@@ -528,21 +542,24 @@ void GraphicsEngine::Render() {
 		renderPassInfo.pClearValues = clearValues;
 		renderPassInfo.renderArea = { 0, 0, (uint32_t)m_FrameBuffer.GetSize().x, (uint32_t)m_FrameBuffer.GetSize().y };
 		cmdBuffer.beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
-
+		ImGui::Text("Render: Setup frame: %f ms", t.Reset() * 1000.0f);
 		//skybox
 		m_SkyBox.Render(cmdBuffer);
-		
+		ImGui::Text("Render: Render Skybox: %f ms", t.Reset() * 1000.0f);
 		//render here
 		cmdBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipeline());
 		cmdBuffer.setViewport(0, 1, &m_Viewport);
 
 		RenderModels(m_StaticRenderQueue, cmdBuffer);
+		ImGui::Text("Render: Render static queue: %f ms", t.Reset() * 1000.0f);
 		RenderModels(rq, cmdBuffer);
+		ImGui::Text("Render: Render dynamic queue: %f ms", t.Reset() * 1000.0f);
 
 		cmdBuffer.endRenderPass();
 
 		m_CmdBufferFactory.EndBuffer(cmdBuffer);
 		m_vkQueue.Submit({ cmdBuffer }, { m_TransferComplete, m_ImageAquiredSemaphore }, { m_RenderCompleteSemaphore }, nullptr);
+		ImGui::Text("Render: submit: %f ms", t.Reset() * 1000.0f);
 	}
 	
 	ImGui::Text("Render: Models: %f ms", t.Reset() * 1000.0f);

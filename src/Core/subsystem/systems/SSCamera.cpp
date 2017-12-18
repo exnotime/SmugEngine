@@ -37,19 +37,26 @@ void SSCamera::Startup() {
 	cc.Cam.SetPosition(tc.Position);
 	globals::g_Components->CreateComponent(&cc, e, CameraComponent::Flag);
 
+	m_Cache = new EntityCache();
+	m_Cache->ComponentBitMask = e.ComponentBitfield;
+	m_Cache->Entities.push_back(e.UID);
+
 }
 
 void SSCamera::Update(const double deltaTime) {
 	using namespace glm;
 	int flag = CameraComponent::Flag | TransformComponent::Flag;
-	for (auto& e : g_EntityManager.GetEntityList()) {
-		if ((e.ComponentBitfield & flag) == flag) {
+	auto& entityManager = g_EntityManager;
+	if (!entityManager.IsCacheDirty(*m_Cache)) {
+		uint32_t size = m_Cache->Entities.size();
+		for (uint32_t i = 0; i < size; ++i) {
+			Entity& e = entityManager.GetEntity(m_Cache->Entities[i]);
 			CameraComponent* cc = (CameraComponent*)globals::g_Components->GetComponent(e, CameraComponent::Flag);
 			TransformComponent* tc = (TransformComponent*)globals::g_Components->GetComponent(e, TransformComponent::Flag);
 
 			glm::vec3 velocity = glm::vec3(0.0f);
 			double speed = CAMERA_SPEED * deltaTime;
-			if(g_Input.IsKeyDown(GLFW_KEY_LEFT_SHIFT)) {
+			if (g_Input.IsKeyDown(GLFW_KEY_LEFT_SHIFT)) {
 				speed *= SPRINT_FACTOR;
 			}
 
@@ -80,10 +87,9 @@ void SSCamera::Update(const double deltaTime) {
 			globals::g_Gfx->GetRenderQueue()->AddCamera(cc->Cam.GetData());
 		}
 	}
-
-
 }
 
 void SSCamera::Shutdown() {
+	delete m_Cache;
 }
 

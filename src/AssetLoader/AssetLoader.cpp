@@ -65,7 +65,6 @@ void AssetLoader::Init(const char* dataFolder, bool isCompiler) {
 }
 
 void AssetLoader::Close() {
-
 	for (auto& l : m_Loaders) {
 		l.buffer->Close();
 		delete l.buffer;
@@ -94,12 +93,12 @@ ResourceHandle AssetLoader::LoadAsset(const char* filename) {
 
 	for (auto& l : m_Loaders) {
 		if (l.loader->IsExtensionSupported(extention.c_str())) {
-
 			if (!m_IsCompiler) {
 				void* assetBuffer = l.buffer->LoadFile(hash);
 				if (assetBuffer) {
 					DeSerializedResult asset = l.loader->DeSerializeAsset(assetBuffer);
 					m_Allocator.AllocResource(asset.Data, m_Allocator.UserData, filename, asset.Type);
+					l.loader->UnloadAsset(asset.Data);
 					ResourceHandle h = CreateHandle(hash, asset.Type);
 					m_ResourceCache[hash] = h;
 					return h;
@@ -114,18 +113,36 @@ ResourceHandle AssetLoader::LoadAsset(const char* filename) {
 			}
 
 			if (m_IsCompiler) {
+				
 				l.loader->SerializeAsset(l.buffer, &r);
 				l.buffer->Flush();
 			}
 			m_Allocator.AllocResource(r.Data, m_Allocator.UserData, filename, r.Type);
 			ResourceHandle h = CreateHandle(hash, r.Type);
 			m_ResourceCache[hash] = h;
+			m_FilenameCache[h] = std::string(filename);
 			return h;
 		}
 	}
 
 	printf("No loader for extention %s\n", extention.c_str());
 	return -1;
+}
+
+ResourceHandle AssetLoader::LoadAsset(uint32_t hash) {
+	std::string name = m_StringPool.GetString(hash);
+	if (!name.empty()) {
+		return LoadAsset(name.c_str());
+	}
+	return RESOURCE_INVALID;
+}
+
+std::string AssetLoader::GetFilenameFromCache(ResourceHandle handle) {
+	auto& f = m_FilenameCache.find(handle);
+	if (f != m_FilenameCache.end()) {
+		return f->second;
+	}
+	return "";
 }
 
 void AssetLoader::LoadStringPool(const char* filename) {
