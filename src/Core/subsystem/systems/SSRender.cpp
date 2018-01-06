@@ -25,11 +25,12 @@ void SSRender::Startup() {
 	ModelComponent mc;
 	mc.ModelHandle = g_AssetLoader.LoadAsset("assets/models/sphere/sphere.obj");
 	//RenderQueue* rq = globals::g_Gfx->GetStaticQueue();
+
 	for (int z = -c; z < c; z++) {
 		for (int y = -c; y < c; y++) {
 			for (int x = -c; x < c; x++) {
 
-				Entity& e = g_EntityManager.CreateEntity();
+				Entity& e = globals::g_EntityManager->CreateEntity();
 
 				TransformComponent tc;
 				tc.Position = glm::vec3(x, y, z) * d;
@@ -59,7 +60,7 @@ void SSRender::Update(const double deltaTime) {
 	int flag = ModelComponent::Flag | TransformComponent::Flag;
 	RenderQueue* rq = globals::g_Gfx->GetRenderQueue();
 	//models
-	auto& entities = g_EntityManager.GetEntityList();
+	auto& entities = globals::g_EntityManager->GetEntityList();
 	uint32_t entityCount = entities.size();
 
 	static glm::vec4 tint = glm::vec4(1.0f);

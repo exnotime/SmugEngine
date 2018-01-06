@@ -2,7 +2,6 @@
 #include <vulkan/vulkan.hpp>
 #include <glm/glm.hpp>
 #include <vector>
-#include "VkMemory.h"
 #include "VulkanContext.h"
 class FrameBuffer {
 public:
@@ -46,9 +45,9 @@ public:
 	
 private:
 	glm::vec2 m_FrameBufferSize;
-	VkMemory m_Memory;
 	vk::Framebuffer m_FrameBuffers[BUFFER_COUNT];
 	vk::RenderPass m_RenderPass;
+	vk::DeviceMemory m_Memory;
 	std::vector<vk::Image> m_Images;
 	std::vector<vk::ImageView> m_ImageViews;
 	std::vector<vk::Format> m_Formats;

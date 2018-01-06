@@ -3,8 +3,7 @@
 #include <unordered_map>
 #include <glm/glm.hpp>
 #include <AssetLoader/AssetLoader.h>
-
-#include "VkMemory.h"
+#include "VkMemoryAllocator.h"
 #include "VulkanContext.h"
 #include "Texture.h"
 
@@ -32,8 +31,8 @@ struct Mesh {
 
 struct Model {
 	unsigned IndexCount;
-	VkAlloc IndexBuffer;
-	VkAlloc VertexBuffers[NUM_VERTEX_CHANNELS];
+	VkBufferHandle IndexBuffer;
+	VkBufferHandle VertexBuffers[NUM_VERTEX_CHANNELS];
 	unsigned MeshCount;
 	Mesh* Meshes;
 };
@@ -47,7 +46,7 @@ class ResourceHandler {
   public:
 	ResourceHandler();
 	~ResourceHandler();
-	void Init(vk::Device* device, const vk::PhysicalDevice& physDev, MemoryBudget budget);
+	void Init(vk::Device* device, const vk::PhysicalDevice& physDev, MemoryBudget budget, VkMemoryAllocator& deviceAlloc);
 	void ScheduleTransfer(VulkanCommandBuffer& cmdBuffer);
 	void Clear();
 
@@ -57,6 +56,8 @@ class ResourceHandler {
 	void AllocateTexture(const TextureInfo& tex, ResourceHandle handle);
   private:
 	vk::Device* m_Device;
+	VkMemoryAllocator* m_DeviceAllocator;
+
 	std::unordered_map<ResourceHandle, Model> m_Models;
 	std::unordered_map<ResourceHandle, VkTexture> m_Textures;
 
@@ -64,10 +65,6 @@ class ResourceHandler {
 	VkTexture m_DefaultNormal;
 	VkTexture m_DefaultRoughness;
 	VkTexture m_DefaultMetal;
-
-	VkMemory m_VertexMemory[NUM_VERTEX_CHANNELS];
-	VkMemory m_IndexMemory;
-	VkMemory m_MaterialMemory;
 
 	vk::DescriptorPool m_DescPool;
 	vk::DescriptorSetLayout m_MaterialLayout;

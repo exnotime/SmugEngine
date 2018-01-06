@@ -8,7 +8,7 @@ VkMemory::~VkMemory() {
 
 }
 
-void VkMemory::Init(const vk::Device& device, const vk::PhysicalDevice& physDev, uint64_t deviceSize, uint64_t stageSize) {
+void VkMemory::Init(const vk::Device& device, const vk::PhysicalDevice& physDev, uint64_t deviceSize, uint64_t stageSize, uint32_t memTypeBits) {
 	m_MemProps = physDev.getMemoryProperties();
 	m_Device = device;
 
@@ -23,15 +23,15 @@ void VkMemory::Init(const vk::Device& device, const vk::PhysicalDevice& physDev,
 	vk::MemoryRequirements memReq = device.getBufferMemoryRequirements(m_DeviceBuffer);
 
 	vk::MemoryPropertyFlagBits deviceMemFlags = vk::MemoryPropertyFlagBits::eDeviceLocal;
-
+	if (memTypeBits != 0)
+		memReq.memoryTypeBits = memTypeBits;
 	for (uint32_t i = 0; i < m_MemProps.memoryTypeCount; i++) {
-		if ((m_MemProps.memoryTypes[i].propertyFlags & deviceMemFlags) == deviceMemFlags &&
-		        memReq.memoryTypeBits & (1 << i)) {
+		if ((m_MemProps.memoryTypes[i].propertyFlags & deviceMemFlags) == deviceMemFlags && memReq.memoryTypeBits & (1 << i)) {
 			vk::MemoryAllocateInfo allocInfo;
-			allocInfo.allocationSize = deviceSize;
+			allocInfo.allocationSize = memReq.size;
 			allocInfo.memoryTypeIndex = i;
 			m_DevMem = device.allocateMemory(allocInfo);
-			m_DeviceSize = deviceSize;
+			m_DeviceSize = memReq.size;
 			break;
 		}
 	}

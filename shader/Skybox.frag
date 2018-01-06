@@ -1,6 +1,6 @@
 #version 430 core
-in vec3 Pos;
-out vec4 Color;
+layout(location = 0) in vec3 Pos;
+layout(location = 0) out vec4 Color;
 layout(binding = 1) uniform samplerCube g_Tex;
 
 #define MOD3 vec3(443.8975,397.2973, 491.1871)

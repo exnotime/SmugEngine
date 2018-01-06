@@ -1,6 +1,6 @@
 #include "ShaderLoader.h"
 #include <json.hpp>
-#include <shaderc/shaderc.h>
+#include <shader_ccompiler/shaderc.h>
 #include <fstream>
 #include <Utility/Hash.h>
 #include <Utility/Memory.h>
@@ -142,7 +142,7 @@ char* ShaderLoader::LoadShaders(const std::string& filename, ShaderInfo& info) {
 		json shaders = root["Shaders"];
 		std::vector<ShaderByteCode*> byte_codes;
 		std::string shader_types[] = { "Vertex", "Fragment", "Geometry", "Evaluation", "Control", "Compute" };
-		for (int i = 0; i <= COMPUTE; ++i) {
+		for (int i = 0; i < COMPUTE + 1; ++i) {
 			if (shaders.find(shader_types[i]) != shaders.end()) {
 				json shader = shaders[shader_types[i]];
 				std::string entry;

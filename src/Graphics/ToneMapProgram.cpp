@@ -59,9 +59,10 @@ void ToneMapProgram::Init(vk::Device& device, const glm::vec2& screenSize, Frame
 	device.updateDescriptorSets(BUFFER_COUNT, writeSet, 0, nullptr);
 }
 
-void ToneMapProgram::Render(VulkanCommandBuffer& cmdBuffer, uint32_t frameIndex) {
+void ToneMapProgram::Render(VulkanCommandBuffer& cmdBuffer, vk::Viewport viewport, uint32_t frameIndex) {
 	cmdBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipeline());
 	cmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipelineLayout(), 0, m_DescSet[frameIndex], nullptr);
+	cmdBuffer.setViewport(0, 1, &viewport);
 	//no need for a vertex buffer
 	cmdBuffer.draw(3, 1, 0, 0);
 }

@@ -1,6 +1,6 @@
 #version 430 core
-in vec3 PosL;
-out vec3 Pos;
+layout(location = 0) in vec3 PosL;
+layout(location = 0) out vec3 Pos;
 
 layout(binding = 0) uniform PerFrameBuffer{
         mat4 g_ProjView;

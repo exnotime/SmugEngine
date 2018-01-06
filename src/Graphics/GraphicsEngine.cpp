@@ -4,7 +4,6 @@
 #include <vulkan/vulkan.h>
 #include "Vertex.h"
 #include "Core/Timer.h"
-
 #define USE_DEBUG_LAYER 0
 
 GraphicsEngine::GraphicsEngine() {
@@ -249,7 +248,7 @@ void GraphicsEngine::CreateSwapChain(VkSurfaceKHR surface) {
 		vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled,
 		vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled
 	};
-	m_FrameBuffer.Init(VK_DEVICE, VK_PHYS_DEVICE, m_ScreenSize * 2.0f, fboFormats, usages);
+	m_FrameBuffer.Init(VK_DEVICE, VK_PHYS_DEVICE, m_ScreenSize, fboFormats, usages);
 }
 
 void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
@@ -264,11 +263,7 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	m_VSync = vsync;
 	m_ScreenSize = windowSize;
 
-	//Allocate memory on gpu
-	uint64_t fboSize = (uint64_t)(m_ScreenSize.x * m_ScreenSize.y * 4 * (2 * BUFFER_COUNT)); //size of rgba and depth + stencil
-	fboSize += 64 * MEGA_BYTE; //3 * 256 * 256 * 6 + mipchain // cubemaps
-	m_TextureMemory.Init(VK_DEVICE, VK_PHYS_DEVICE, fboSize);
-	m_BufferMemory.Init(VK_DEVICE, VK_PHYS_DEVICE, BUFFER_COUNT * 8 * MEGA_BYTE, 4 * MEGA_BYTE);
+	m_DeviceAllocator.Init(VK_DEVICE, VK_PHYS_DEVICE);
 
 	CreateSwapChain(m_VKSwapChain.Surface);
 
@@ -276,7 +271,6 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	m_ImageAquiredSemaphore = VK_DEVICE.createSemaphore(semaphoreInfo);
 	m_TransferComplete = VK_DEVICE.createSemaphore(semaphoreInfo);
 	m_RenderCompleteSemaphore = VK_DEVICE.createSemaphore(semaphoreInfo);
-
 	m_ImguiComplete = VK_DEVICE.createSemaphore(semaphoreInfo);
 
 	vk::FenceCreateInfo fenceInfo;
@@ -292,17 +286,19 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	m_Viewport.maxDepth = 1.0f;
 	m_Viewport.x = 0;
 	m_Viewport.y = 0;
+	m_Scissor.extent = { (uint32_t)windowSize.x, (uint32_t)windowSize.y };
+	m_Scissor.offset = { 0,0 };
 	//load pipelines
 	m_Pipeline.SetDefaultVertexState(Geometry::GetVertexState());
 
 	m_Pipeline.LoadPipelineFromFile(VK_DEVICE, "shader/filled.json", m_Viewport, m_FrameBuffer.GetRenderPass());
 
-	m_PerFrameBuffer = m_BufferMemory.AllocateBuffer(sizeof(PerFrameBuffer), vk::BufferUsageFlagBits::eUniformBuffer, nullptr);
+	m_PerFrameBuffer = m_DeviceAllocator.AllocateBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(PerFrameBuffer), nullptr);
 
 	for (int q = 0; q < BUFFER_COUNT; ++q) {
-		m_RenderQueues[q].Init(m_BufferMemory);
+		m_RenderQueues[q].Init(m_DeviceAllocator);
 	}
-	m_StaticRenderQueue.Init(m_BufferMemory);
+	m_StaticRenderQueue.Init(m_DeviceAllocator);
 
 	vk::DescriptorPoolCreateInfo descPoolInfo;
 	descPoolInfo.maxSets = 16 * 1000;
@@ -358,14 +354,14 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	descWrites[c].dstBinding = 0;
 	descWrites[c].dstSet = m_PerFrameSet;
 	vk::DescriptorBufferInfo descBufferInfo;
-	descBufferInfo.buffer = m_PerFrameBuffer.BufferHandle;
+	descBufferInfo.buffer = m_PerFrameBuffer.buffer;
 	descBufferInfo.offset = 0;
 	descBufferInfo.range = VK_WHOLE_SIZE;
 	descWrites[c++].pBufferInfo = &descBufferInfo;
 	//ibl tex
-	m_IBLTex.Init("assets/textures/ibl.dds", m_TextureMemory, VK_DEVICE);
-	m_SkyRad.Init("assets/textures/yokohama3_spec.dds", m_TextureMemory, VK_DEVICE);
-	m_SkyIrr.Init("assets/textures/yokohama3_irr.dds", m_TextureMemory, VK_DEVICE);
+	m_IBLTex.Init("assets/textures/ibl.dds", &m_DeviceAllocator, VK_DEVICE);
+	m_SkyRad.Init("assets/textures/skybox_rad.dds", &m_DeviceAllocator, VK_DEVICE);
+	m_SkyIrr.Init("assets/textures/skybox_irr.dds", &m_DeviceAllocator, VK_DEVICE);
 	vk::DescriptorImageInfo imageInfo[3];
 	imageInfo[0] = m_IBLTex.GetDescriptorInfo();
 	imageInfo[1] = m_SkyRad.GetDescriptorInfo();
@@ -391,7 +387,7 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 		descWrites[c + q].dstBinding = 0;
 		descWrites[c + q].dstSet = m_RenderQueues[q].GetDescriptorSet();
 
-		bufferInfos[q].buffer = m_RenderQueues[q].GetUniformBuffer().BufferHandle;
+		bufferInfos[q].buffer = m_RenderQueues[q].GetUniformBuffer().buffer;
 		bufferInfos[q].offset = 0;
 		bufferInfos[q].range = VK_WHOLE_SIZE;
 		descWrites[c + q].pBufferInfo = &bufferInfos[q];
@@ -403,19 +399,19 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	descWrites[c + 2].dstBinding = 0;
 	descWrites[c + 2].dstSet = m_StaticRenderQueue.GetDescriptorSet();
 
-	bufferInfos[2].buffer = m_StaticRenderQueue.GetUniformBuffer().BufferHandle;
+	bufferInfos[2].buffer = m_StaticRenderQueue.GetUniformBuffer().buffer;
 	bufferInfos[2].offset = 0;
 	bufferInfos[2].range = VK_WHOLE_SIZE;
 	descWrites[c + 2].pBufferInfo = &bufferInfos[2];
 
 	VK_DEVICE.updateDescriptorSets(c + BUFFER_COUNT + 1, descWrites, 0, nullptr);
 
-	m_SkyBox.Init(VK_DEVICE, VK_PHYS_DEVICE, "assets/textures/yokohama3.dds", m_Viewport, m_FrameBuffer.GetRenderPass(), m_MSState);
+	m_SkyBox.Init(VK_DEVICE, VK_PHYS_DEVICE, "assets/textures/skybox.dds", m_Viewport, m_FrameBuffer.GetRenderPass(), m_DeviceAllocator);
 
 	MemoryBudget memBudget;
-	memBudget.GeometryBudget = 64 * MEGA_BYTE;
-	memBudget.MaterialBudget = 512 * MEGA_BYTE;
-	m_Resources.Init(&VK_DEVICE, VK_PHYS_DEVICE, memBudget);
+	memBudget.GeometryBudget = 0;
+	memBudget.MaterialBudget = 0;
+	m_Resources.Init(&VK_DEVICE, VK_PHYS_DEVICE, memBudget, m_DeviceAllocator);
 	//prepare initial transfer
 	auto& cmdBuffer = m_CmdBufferFactory.GetNextBuffer();
 	cmdBuffer.Begin(nullptr, nullptr);
@@ -428,9 +424,7 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	}
 	
 	cmdBuffer.PushPipelineBarrier();
-
-	m_BufferMemory.ScheduleTransfers(cmdBuffer);
-	m_TextureMemory.ScheduleTransfers(cmdBuffer);
+	m_DeviceAllocator.ScheduleTransfers(cmdBuffer);
 	m_CmdBufferFactory.EndBuffer(cmdBuffer);
 
 	m_vkQueue.Submit(cmdBuffer);
@@ -443,40 +437,53 @@ void GraphicsEngine::RenderModels(RenderQueue& rq, VulkanCommandBuffer& cmdBuffe
 	}
 	vk::DescriptorSet sets[] = { m_PerFrameSet, m_IBLDescSet, rq.GetDescriptorSet() };
 	cmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipelineLayout(), 0, _countof(sets), sets, 0, nullptr);
-
+	Timer t;
+	float bindVBO = 0;
+	float pushConstants = 0;
+	float bindDescriptors = 0;
+	float drawMesh = 0;
 	uint32_t uniformOffset = 0;
-	for (auto& m : rq.GetModels()) {
-		m_Stats.ModelCount++;
-		const Model& model = m_Resources.GetModel(m);
+	auto& models = rq.GetModels();
+	for (auto& m : models) {
+		uint32_t instanceCount = m.second.Count;
+		m_Stats.ModelCount += instanceCount;
+		
+		const Model& model = m_Resources.GetModel(m.first);
+		t.Reset();
+		const vk::Buffer vertexBuffers[4] = { model.VertexBuffers[0].buffer, model.VertexBuffers[1].buffer,
+			model.VertexBuffers[2].buffer, model.VertexBuffers[3].buffer };
 
-		const vk::Buffer vertexBuffers[] = { model.VertexBuffers[0].BufferHandle, model.VertexBuffers[1].BufferHandle,
-			model.VertexBuffers[2].BufferHandle, model.VertexBuffers[3].BufferHandle };
-
-		const vk::DeviceSize offsets[] = { 0,0,0,0 };
+		const vk::DeviceSize offsets[4] = { 0,0,0,0 };
 		cmdBuffer.bindVertexBuffers(0, 4, vertexBuffers, offsets);
-
-		cmdBuffer.bindIndexBuffer(model.IndexBuffer.BufferHandle, 0, vk::IndexType::eUint16);
+		cmdBuffer.bindIndexBuffer(model.IndexBuffer.buffer, 0, vk::IndexType::eUint16);
+		bindVBO += t.Reset() * 1000.0f;
 		cmdBuffer.pushConstants(m_Pipeline.GetPipelineLayout(), vk::ShaderStageFlagBits::eAll, 0, sizeof(unsigned), &uniformOffset);
-
+		pushConstants += t.Reset() * 1000.0f;
 		vk::DescriptorSet mat;
-		for (uint32_t m = 0; m < model.MeshCount; ++m) {
-			m_Stats.MeshCount++;
-			Mesh& mesh = model.Meshes[m];
+		for (uint32_t meshIt = 0; meshIt < model.MeshCount; ++meshIt) {
+			m_Stats.MeshCount += instanceCount;
+			t.Reset();
+			Mesh& mesh = model.Meshes[meshIt];
 			if (mat != mesh.Material) {
 				mat = mesh.Material;
 				cmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipelineLayout(), 3, 1, &mesh.Material, 0, nullptr);
 			}
-			m_Stats.TriangleCount += mesh.IndexCount / 3;
-			cmdBuffer.drawIndexed(mesh.IndexCount, 1, mesh.IndexOffset, 0, 0);
+			bindDescriptors += t.Reset() * 1000.0f;
+			m_Stats.TriangleCount += (mesh.IndexCount / 3) * instanceCount;
+			cmdBuffer.drawIndexed(mesh.IndexCount, m.second.Count, mesh.IndexOffset, 0, 0);
+			drawMesh += t.Reset() * 1000.0f;
 		}
 		uniformOffset++;
 	}
+
+	ImGui::Text("RenderModels: Bind VBO: %f ms", bindVBO);
+	ImGui::Text("RenderModels: Push Constants: %f ms", pushConstants);
+	ImGui::Text("RenderModels: Bind Descriptor sets: %f ms", bindDescriptors);
+	ImGui::Text("RenderModels: Draw Mesh: %f ms", drawMesh);
+
 }
 
 void GraphicsEngine::Render() {
-
-	
-	
 	RenderQueue& rq = m_RenderQueues[VK_FRAME_INDEX];
 	//reset stats
 	{
@@ -502,15 +509,16 @@ void GraphicsEngine::Render() {
 		uniformBuffer.LightDir = glm::normalize(glm::vec4(lightDir, 1.0f));
 		uniformBuffer.Material.x = globalRoughness;
 		uniformBuffer.Material.y = metallic ? 1.0f : 0.0f;
-		m_BufferMemory.UpdateBuffer(m_PerFrameBuffer, sizeof(PerFrameBuffer), (void*)(&uniformBuffer));
-		rq.ScheduleTransfer(m_BufferMemory);
+
+		m_DeviceAllocator.UpdateBuffer(m_PerFrameBuffer, sizeof(PerFrameBuffer), &uniformBuffer);
+		rq.ScheduleTransfer(m_DeviceAllocator);
 
 		m_CmdBufferFactory.Reset(VK_DEVICE, VK_FRAME_INDEX);
 
 		auto& cmdBuffer = m_CmdBufferFactory.GetNextBuffer();
 		cmdBuffer.Begin(nullptr, nullptr);
-		m_BufferMemory.ScheduleTransfers(cmdBuffer);
-		m_SkyBox.PrepareUniformBuffer(cmdBuffer, cd.ProjView, glm::translate(cd.Position));
+		m_DeviceAllocator.ScheduleTransfers(cmdBuffer);
+		m_SkyBox.PrepareUniformBuffer(cmdBuffer, m_DeviceAllocator, cd.ProjView, glm::translate(cd.Position));
 		m_CmdBufferFactory.EndBuffer(cmdBuffer);
 
 		m_vkQueue.Submit(cmdBuffer, nullptr, m_TransferComplete, nullptr);
@@ -528,7 +536,7 @@ void GraphicsEngine::Render() {
 		vk::RenderPassBeginInfo renderPassInfo;
 		renderPassInfo.framebuffer = m_FrameBuffer.GetFrameBuffer(VK_FRAME_INDEX);
 		renderPassInfo.renderPass = m_FrameBuffer.GetRenderPass();
-		glm::vec4 color = glm::vec4(100.0f / 255, 149.0f / 255, 237.0f / 255, 1);
+		glm::vec4 color = glm::vec4(255.0f / 255, 149.0f / 255, 237.0f / 255, 1);
 		vk::ClearColorValue clearColor;
 		clearColor.float32[0] = color.r;
 		clearColor.float32[1] = color.g;
@@ -542,13 +550,14 @@ void GraphicsEngine::Render() {
 		renderPassInfo.pClearValues = clearValues;
 		renderPassInfo.renderArea = { 0, 0, (uint32_t)m_FrameBuffer.GetSize().x, (uint32_t)m_FrameBuffer.GetSize().y };
 		cmdBuffer.beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
+		cmdBuffer.setViewport(0, 1, &m_Viewport);
+		cmdBuffer.setScissor(0, 1, &m_Scissor);
 		ImGui::Text("Render: Setup frame: %f ms", t.Reset() * 1000.0f);
 		//skybox
 		m_SkyBox.Render(cmdBuffer);
 		ImGui::Text("Render: Render Skybox: %f ms", t.Reset() * 1000.0f);
 		//render here
 		cmdBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipeline());
-		cmdBuffer.setViewport(0, 1, &m_Viewport);
 
 		RenderModels(m_StaticRenderQueue, cmdBuffer);
 		ImGui::Text("Render: Render static queue: %f ms", t.Reset() * 1000.0f);
@@ -579,7 +588,7 @@ void GraphicsEngine::Render() {
 		rpBeginInfo.renderArea.extent.width = (uint32_t)m_ScreenSize.x;
 		rpBeginInfo.renderArea.extent.height = (uint32_t)m_ScreenSize.y;
 		vk::ClearColorValue cc;
-		cc.float32[0] = 0.0f; cc.float32[1] = 1.0f; cc.float32[2] = 1.0f; cc.float32[3] = 1.0f;
+		cc.float32[0] = 0.5f; cc.float32[1] = 0.5f; cc.float32[2] = 1.0f; cc.float32[3] = 1.0f;
 		vk::ClearValue cv = { cc };
 		rpBeginInfo.pClearValues = &cv;
 
@@ -587,8 +596,9 @@ void GraphicsEngine::Render() {
 		cmdBuffer.PushPipelineBarrier();
 		cmdBuffer.beginRenderPass(rpBeginInfo, vk::SubpassContents::eInline);
 		cmdBuffer.setViewport(0, 1, &m_Viewport);
+		cmdBuffer.setScissor(0, 1, &m_Scissor);
 		//transfer from fbo to back buffer
-		m_ToneMapping.Render(cmdBuffer, VK_FRAME_INDEX);
+		m_ToneMapping.Render(cmdBuffer, m_Viewport, VK_FRAME_INDEX);
 		//render imgui on top
 		ImGui_ImplGlfwVulkan_Render(cmdBuffer);
 		cmdBuffer.endRenderPass();
@@ -630,7 +640,7 @@ void GraphicsEngine::TransferToGPU() {
 	cmdBuffer.Begin(nullptr, nullptr);
 	m_Resources.ScheduleTransfer(cmdBuffer);
 	m_CmdBufferFactory.EndBuffer(cmdBuffer);
-	m_StaticRenderQueue.ScheduleTransfer(m_BufferMemory);
+	m_StaticRenderQueue.ScheduleTransfer(m_DeviceAllocator);
 	m_vkQueue.Submit(cmdBuffer);
 	VK_DEVICE.waitIdle();
 }

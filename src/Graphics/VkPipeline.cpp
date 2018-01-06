@@ -787,27 +787,24 @@ void VkPipeline::LoadPipelineFromFile(const vk::Device& device, const std::strin
 	//viewport state
 	vk::PipelineViewportStateCreateInfo viewportState;
 	viewportState.viewportCount = 1;
-	viewportState.pViewports = &vp;
+	viewportState.pViewports = nullptr;
 	viewportState.scissorCount = 1;
-	vk::Rect2D scissor;
-	scissor.extent = vk::Extent2D((uint32_t)vp.width, (uint32_t)vp.height);
-	scissor.offset = vk::Offset2D(0, 0);
-	viewportState.pScissors = &scissor;
+	viewportState.pScissors = nullptr;
 
 	std::vector<vk::DynamicState> dynamicStates;
 	dynamicStates.push_back(vk::DynamicState::eViewport);
+	dynamicStates.push_back(vk::DynamicState::eScissor);
 	vk::PipelineDynamicStateCreateInfo dynamicStateCreateInfo;
 	dynamicStateCreateInfo.dynamicStateCount = dynamicStates.size();
 	dynamicStateCreateInfo.pDynamicStates = dynamicStates.data();
 	
-
 	//put everything together
 	vk::GraphicsPipelineCreateInfo pipelineCreateInfo;
 	pipelineCreateInfo.layout = m_PipelineLayout;
 	pipelineCreateInfo.pColorBlendState = &blendStateInfo;
 	pipelineCreateInfo.pDepthStencilState = &depthStencilState;
 	pipelineCreateInfo.pTessellationState = (tesselationstate == nullptr) ? tesselationstate : nullptr;
-	pipelineCreateInfo.pDynamicState = nullptr;//&dynamicStateCreateInfo;
+	pipelineCreateInfo.pDynamicState = &dynamicStateCreateInfo;
 	pipelineCreateInfo.pInputAssemblyState = &inputAssemblyInfo;
 	pipelineCreateInfo.pMultisampleState = (multisampleStateInfo == nullptr) ? &m_DefaultMultiSampleState : multisampleStateInfo;
 	pipelineCreateInfo.pRasterizationState = &rasterInfo;

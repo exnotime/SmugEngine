@@ -6,10 +6,9 @@ RenderQueue::RenderQueue() {
 RenderQueue::~RenderQueue() {
 }
 
-void RenderQueue::Init(VkMemory& memory) {
+void RenderQueue::Init(VkMemoryAllocator& memory) {
 	//allocate gpu memory for shader inputs
-	vk::BufferUsageFlags flags = vk::BufferUsageFlagBits::eStorageBuffer;
-	m_VkBuffer = memory.AllocateBuffer(4 * MEGA_BYTE, flags, nullptr);
+	m_Buffer = memory.AllocateBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, 4 * 1024 * 1024, nullptr);
 
 	m_Cameras.reserve(10);
 	m_Models.reserve(10000);
@@ -27,11 +26,23 @@ void RenderQueue::AddCamera(const CameraData & cd) {
 }
 
 void RenderQueue::AddModel(ResourceHandle model, const glm::mat4& transform, const glm::vec4& tint) {
-	m_Models.push_back(model);
-	m_Inputs.push_back({transform, tint});
+	auto& m = m_Models.find(model);
+	if (m == m_Models.end()) {
+		m_Models[model] = ModelInstance();
+		m_Models[model].Count = 0;
+	}
+	m_Models[model].Count++;
+	m_Models[model].Inputs.push_back({ transform, tint });
 }
 
-void RenderQueue::ScheduleTransfer(VkMemory& memory) {
-	if(m_Inputs.size() > 0)
-	memory.UpdateBuffer(m_VkBuffer, m_Inputs.size() * sizeof(ShaderInput), m_Inputs.data());
+void RenderQueue::ScheduleTransfer(VkMemoryAllocator& memory) {
+	for (auto& mi : m_Models) {
+		m_Inputs.insert(m_Inputs.begin(), mi.second.Inputs.begin(), mi.second.Inputs.end());
+	}
+
+	if (m_Inputs.size() > 0) {
+		memory.UpdateBuffer(m_Buffer, m_Inputs.size() * sizeof(ShaderInput), m_Inputs.data());
+		m_Inputs.clear();
+	}
+		
 }

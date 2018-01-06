@@ -30,20 +30,14 @@ void AllocateAssetCallback(const void* data, void* userData, const std::string& 
 	}
 }
 
-void ResourceHandler::Init(vk::Device* device, const vk::PhysicalDevice& physDev, MemoryBudget budget) {
-	//split up geometry budget on different channels
-	size_t vertexMemory = budget.GeometryBudget / 6;
-	for (int c = 0; c < NUM_VERTEX_CHANNELS; ++c) {
-		m_VertexMemory[c].Init(*device, physDev, vertexMemory, vertexMemory);
-		budget.GeometryBudget -= vertexMemory;
-	}
-	m_IndexMemory.Init(*device, physDev, budget.GeometryBudget, budget.GeometryBudget);
-	m_MaterialMemory.Init(*device, physDev, budget.MaterialBudget, budget.MaterialBudget);
+void ResourceHandler::Init(vk::Device* device, const vk::PhysicalDevice& physDev, MemoryBudget budget, VkMemoryAllocator& deviceAlloc) {
+	m_DeviceAllocator = &deviceAlloc;
 
 	ResourceAllocator allocator;
 	allocator.AllocResource = &AllocateAssetCallback;
 	allocator.UserData = this;
 	g_AssetLoader.SetResourceAllocator(allocator);
+
 	//descriptor pool
 	vk::DescriptorPoolCreateInfo poolInfo;
 	poolInfo.maxSets = MAX_MATERIALS;
@@ -81,21 +75,21 @@ void ResourceHandler::Init(vk::Device* device, const vk::PhysicalDevice& physDev
 	texInfo.LinearSize = 4;
 	texInfo.Data = malloc(4);
 	memset(texInfo.Data, 0xFFFFFFFF, 4); // RGBA = 1,1,1,1
-	m_DefaultAlbedo.Init(texInfo, m_MaterialMemory, *device);
+	m_DefaultAlbedo.Init(texInfo, m_DeviceAllocator, *device);
 	((uint8_t*)texInfo.Data)[0] = 128;
 	((uint8_t*)texInfo.Data)[1] = 128;
 	((uint8_t*)texInfo.Data)[2] = 255;
 	((uint8_t*)texInfo.Data)[3] = 255;
-	m_DefaultNormal.Init(texInfo, m_MaterialMemory, *device);
+	m_DefaultNormal.Init(texInfo, m_DeviceAllocator, *device);
 	((uint8_t*)texInfo.Data)[0] = 128; //roughness
 	((uint8_t*)texInfo.Data)[1] = 0; //metal
 	((uint8_t*)texInfo.Data)[2] = 255; // ao
 	((uint8_t*)texInfo.Data)[3] = 255; //unused
-	m_DefaultRoughness.Init(texInfo, m_MaterialMemory, *device);
+	m_DefaultRoughness.Init(texInfo, m_DeviceAllocator, *device);
 	texInfo.LinearSize = 1;
 	texInfo.Format = (uint32_t)vk::Format::eR8Unorm;
 	memset(texInfo.Data, 0x0, 1);
-	m_DefaultMetal.Init(texInfo, m_MaterialMemory, *device);
+	m_DefaultMetal.Init(texInfo, m_DeviceAllocator, *device);
 	free(texInfo.Data);
 
 	m_Device = device;
@@ -186,37 +180,29 @@ void ResourceHandler::AllocateModel(const ModelInfo& model, ResourceHandle handl
 		m_Device->updateDescriptorSets(materialWrite, nullptr);
 	}
 	//allocate buffers
-	vk::BufferUsageFlags flags = vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst;
-	internalModel.IndexBuffer = m_IndexMemory.AllocateBuffer(
-	                                sizeof(uint16_t) * indices.size(), flags, indices.data());
+	internalModel.IndexBuffer = m_DeviceAllocator->AllocateBuffer(VK_BUFFER_USAGE_INDEX_BUFFER_BIT, sizeof(uint16_t) * indices.size(), indices.data());
 	internalModel.IndexCount = (uint32_t)indices.size();
 
-	flags = vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst;
-	internalModel.VertexBuffers[POSITION] = m_VertexMemory[POSITION].AllocateBuffer(
-	        positions.size() * sizeof(glm::vec3), flags, positions.data());
-	internalModel.VertexBuffers[NORMAL] = m_VertexMemory[NORMAL].AllocateBuffer(
-	        normals.size() * sizeof(glm::vec3), flags, normals.data());
-	internalModel.VertexBuffers[TANGENT] = m_VertexMemory[TANGENT].AllocateBuffer(
-	        tangents.size() * sizeof(glm::vec3), flags, tangents.data());
-	internalModel.VertexBuffers[TEXCOORD] = m_VertexMemory[TEXCOORD].AllocateBuffer(
-	        texcoords.size() * sizeof(glm::vec2), flags, texcoords.data());
+	vk::BufferCreateInfo vertBufferCreateInfo[NUM_VERTEX_CHANNELS];
+	uint32_t sizes[] = { positions.size() * sizeof(glm::vec3), normals.size() * sizeof(glm::vec3),
+		tangents.size() * sizeof(glm::vec3), texcoords.size() * sizeof(glm::vec2) };
+	void* datas[] = { positions.data(), normals.data(), tangents.data(), texcoords.data() };
+
+	for (uint32_t i = 0; i < NUM_VERTEX_CHANNELS; ++i) {
+		internalModel.VertexBuffers[i] = m_DeviceAllocator->AllocateBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, sizes[i], datas[i]);
+	}
 
 	m_Models[handle] = internalModel;
 }
 
 void ResourceHandler::AllocateTexture(const TextureInfo& tex, ResourceHandle handle) {
 	VkTexture texture;
-	texture.Init(tex, m_MaterialMemory, *m_Device);
+	texture.Init(tex, m_DeviceAllocator, *m_Device);
 	m_Textures[handle] = texture;
 }
 
 void ResourceHandler::ScheduleTransfer(VulkanCommandBuffer& cmdBuffer) {
-	m_VertexMemory[POSITION].ScheduleTransfers(cmdBuffer);
-	m_VertexMemory[NORMAL].ScheduleTransfers(cmdBuffer);
-	m_VertexMemory[TANGENT].ScheduleTransfers(cmdBuffer);
-	m_VertexMemory[TEXCOORD].ScheduleTransfers(cmdBuffer);
-	m_IndexMemory.ScheduleTransfers(cmdBuffer);
-	m_MaterialMemory.ScheduleTransfers(cmdBuffer);
+	m_DeviceAllocator->ScheduleTransfers(cmdBuffer);
 }
 
 void ResourceHandler::Clear() {

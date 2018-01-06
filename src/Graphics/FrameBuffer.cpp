@@ -44,19 +44,37 @@ void FrameBuffer::Init(const vk::Device& device, const vk::PhysicalDevice& gpu, 
 			m_CurrentLayouts.push_back(vk::ImageLayout::eUndefined);
 		}
 	}
+
+	//init memory
 	uint32_t memSize = 0;
+	uint32_t memBits = 0;
 	for (auto image : m_Images) {
 		auto memReq = device.getImageMemoryRequirements(image);
+		memBits |= memReq.memoryTypeBits;
 		memSize = (memSize + (memReq.alignment - 1)) & ~(memReq.alignment - 1); //handle alignment spill
 		memSize += memReq.size;
 	}
+	vk::MemoryPropertyFlagBits deviceMemFlags = vk::MemoryPropertyFlagBits::eDeviceLocal;
+	auto& memProps = gpu.getMemoryProperties();
+	for (uint32_t i = 0; i < memProps.memoryTypeCount; i++) {
+		if ((memProps.memoryTypes[i].propertyFlags & deviceMemFlags) == deviceMemFlags && memBits & (1 << i)) {
+			vk::MemoryAllocateInfo allocInfo;
+			allocInfo.allocationSize = memSize;
+			allocInfo.memoryTypeIndex = i;
+			m_Memory = device.allocateMemory(allocInfo);
+			m_MemorySize = memSize;
+			break;
+		}
+	}
 
-	//init memory
-	m_Memory.Init(device, gpu, memSize, 0);
 	uint32_t image = 0;
+	uint64_t memOffset = 0;
 	for (int i = 0; i < BUFFER_COUNT; i++) {
 		for (auto& format : formats) {
-			m_Memory.AllocateImage(m_Images[image]);
+			auto memReq = device.getImageMemoryRequirements(m_Images[image]);
+			memOffset = (memOffset + (memReq.alignment - 1)) & ~(memReq.alignment - 1); //handle alignment
+			device.bindImageMemory(m_Images[image], m_Memory, memOffset);
+			memOffset += memReq.size;
 
 			vk::ImageViewCreateInfo imageViewInfo;
 			imageViewInfo.components = { vk::ComponentSwizzle::eR,vk::ComponentSwizzle::eG,vk::ComponentSwizzle::eB, vk::ComponentSwizzle::eA };

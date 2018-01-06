@@ -3,35 +3,31 @@
 #include <par_shapes.h>
 #include <glm/gtx/transform.hpp>
 
-
-
 SkyBox::SkyBox() {
 
 }
 SkyBox::~SkyBox() {
 }
 
-void SkyBox::Init(const vk::Device& device, const vk::PhysicalDevice& physDev, const std::string& filename,const vk::Viewport& vp, const vk::RenderPass& rp, const vk::PipelineMultisampleStateCreateInfo& mss) {
+void SkyBox::Init(const vk::Device& device, const vk::PhysicalDevice& physDev, const std::string& filename,const vk::Viewport& vp, const vk::RenderPass& rp, VkMemoryAllocator& allocator) {
 	//load pipestate
-	m_Pipeline.SetDefaultMulitSampleState(mss);
 	m_Pipeline.LoadPipelineFromFile(device, "shader/Skybox.json", vp, rp);
 	//allocate memory
-	m_Memory.Init(device, physDev, 256 * MEGA_BYTE, 256 * MEGA_BYTE);
-	m_Texture.Init(filename, m_Memory, device);
-	//load model
+	m_Texture.Init(filename,&allocator, device);
+	//generate model
 	par_shapes_mesh* mesh = par_shapes_create_cube();
 	par_shapes_scale(mesh, 2, 2, 2);
 	par_shapes_translate(mesh, -1, -1, -1);
 	std::vector<glm::vec3> vertices;
 	for (int i = 0; i < mesh->ntriangles * 3; i += 3) {
 		for (int k = 0; k < 3; k++) {
-			glm::vec3 p = glm::vec3(mesh->points[mesh->triangles[i + k] * 3],
-			                        mesh->points[mesh->triangles[i + k] * 3 + 1], mesh->points[mesh->triangles[i + k] * 3 + 2]);
+			glm::vec3 p = glm::vec3(mesh->points[mesh->triangles[i + k] * 3], mesh->points[mesh->triangles[i + k] * 3 + 1], mesh->points[mesh->triangles[i + k] * 3 + 2]);
 			vertices.push_back(p);
 		}
 	}
-	m_VBO = m_Memory.AllocateBuffer(sizeof(glm::vec3) * vertices.size(), vk::BufferUsageFlagBits::eVertexBuffer, vertices.data());
-	m_UBO = m_Memory.AllocateBuffer(sizeof(glm::mat4) * 2, vk::BufferUsageFlagBits::eUniformBuffer, nullptr);
+
+	m_VBO = allocator.AllocateBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, vertices.size() * sizeof(glm::vec3), vertices.data());
+	m_UBO = allocator.AllocateBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(glm::mat4) * 2, nullptr);
 
 	par_shapes_free_mesh(mesh);
 	vk::DescriptorPoolCreateInfo poolInfo;
@@ -58,7 +54,7 @@ void SkyBox::Init(const vk::Device& device, const vk::PhysicalDevice& physDev, c
 	writeDescs[0].dstBinding = 0;
 	writeDescs[0].dstSet = m_DescSet;
 	vk::DescriptorBufferInfo descBufferInfo;
-	descBufferInfo.buffer = m_UBO.BufferHandle;
+	descBufferInfo.buffer = m_UBO.buffer;
 	descBufferInfo.offset = 0;
 	descBufferInfo.range = VK_WHOLE_SIZE;
 	writeDescs[0].pBufferInfo = &descBufferInfo;
@@ -72,22 +68,22 @@ void SkyBox::Init(const vk::Device& device, const vk::PhysicalDevice& physDev, c
 	device.updateDescriptorSets(writeDescs, nullptr);
 }
 
-//TODO: add camera data
-void SkyBox::PrepareUniformBuffer(VulkanCommandBuffer cmdBuffer, glm::mat4 viewProj, glm::mat4 world) {
+void SkyBox::PrepareUniformBuffer(VulkanCommandBuffer cmdBuffer, VkMemoryAllocator& allocator, const glm::mat4& viewProj, const glm::mat4& world) {
 	struct perFrameBuffer {
 		glm::mat4 vp;
 		glm::mat4 w;
 	} pfb;
 	pfb.vp = viewProj;
 	pfb.w = world;
-	m_Memory.UpdateBuffer(m_UBO, sizeof(perFrameBuffer), &pfb);
-	m_Memory.ScheduleTransfers(cmdBuffer);
+	allocator.UpdateBuffer(m_UBO, sizeof(perFrameBuffer), &pfb);
+	allocator.ScheduleTransfers(cmdBuffer);
 }
 
 void SkyBox::Render(VulkanCommandBuffer cmdBuffer) {
 	cmdBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipeline());
 	vk::DeviceSize offset = 0;
-	cmdBuffer.bindVertexBuffers(0, 1, &m_VBO.BufferHandle, &offset);
+	vk::Buffer buf(m_VBO.buffer);//vulkan.hpp!!! why?!
+	cmdBuffer.bindVertexBuffers(0, 1, &buf, &offset);
 	cmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipelineLayout(), 0, 1, &m_DescSet, 0, nullptr);
 	cmdBuffer.draw(36, 1, 0, 0);
 }

@@ -33,12 +33,12 @@ layout (push_constant) uniform pc{
 } optionalInstanceName;
 
 void main(){
-    mat4 world = g_PerObjects[optionalInstanceName.index].World;
+    mat4 world = g_PerObjects[optionalInstanceName.index + gl_InstanceIndex].World;
     gl_Position = ViewProj * ( world * vec4(posL,1));
     PosW = (world * vec4(posL,1)).xyz;
     NormalW = (world * vec4(NormalL,0)).xyz;
     TangentW = (world * vec4(TangentL,0)).xyz;
     BiNormOut = cross(NormalW, TangentW);
     TexCoordOut = TexCoord;
-    ColorOut = g_PerObjects[optionalInstanceName.index].Color.rgb;
+    ColorOut = g_PerObjects[optionalInstanceName.index + gl_InstanceIndex].Color.rgb;
 }

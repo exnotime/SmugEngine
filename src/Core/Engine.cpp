@@ -38,10 +38,10 @@ void Engine::Init() {
 	//set up window
 	m_Window = new Window();
 	WindowSettings ws;
-	ws.X = 250;
-	ws.Y = 200;
-	ws.Width = 1920;
-	ws.Height = 1080;
+	ws.X = 100;
+	ws.Y = 100;
+	ws.Width = 1600;
+	ws.Height = 900;
 	ws.HighDPI = false;
 	ws.OpenGL = true;
 	ws.Title = "Tephra";
@@ -69,6 +69,9 @@ void Engine::Init() {
 	globals::g_Physics->Init();
 	g_ScriptEngine.Init();
 	if_asset::RegisterInterface();
+
+	//set up entity manager
+	globals::g_EntityManager = new EntityManager();
 
 	AngelScript::asIScriptModule* mod = g_ScriptEngine.CompileScriptToModule("script/LoadingTest.as");
 	g_ScriptEngine.ExecuteModule(mod, "void Load()");
@@ -115,7 +118,15 @@ void Engine::Run() {
 		if (g_Input.IsKeyDown(GLFW_KEY_ESCAPE)) {
 			break;
 		}
-		m_ProfilerTimer->Reset();
+
+		bool showMetrics = true;
+		if (g_Input.IsKeyPushed(GLFW_KEY_I)) {
+			showMetrics = !showMetrics;
+		}
+		if (showMetrics) {
+			ImGui::ShowMetricsWindow();
+		}
+
 		globals::g_Gfx->PrintStats();
 		m_MainSubSystemSet->UpdateSubSystems(m_GlobalTimer->Tick());
 		globals::g_Physics->Update(1.0f / 60.0f);

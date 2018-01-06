@@ -2,14 +2,13 @@
 #include "GraphicsExport.h"
 #include "VkPipeline.h"
 #include "VulkanContext.h"
-#include "VkMemory.h"
 #include "Texture.h"
 #include "SkyBox.h"
-#include "Raymarch.h"
 #include "RenderQueue.h"
 #include "ResourceHandler.h"
 #include "FrameBuffer.h"
 #include "ToneMapProgram.h"
+
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
@@ -72,19 +71,18 @@ class GFX_DLL GraphicsEngine {
 	vk::Semaphore m_RenderCompleteSemaphore;
 	vk::Fence m_Fence[BUFFER_COUNT];
 	vk::Viewport m_Viewport;
+	vk::Rect2D m_Scissor;
 
-	VkAlloc m_PerFrameBuffer;
+	VkBufferHandle m_PerFrameBuffer;
 	SkyBox m_SkyBox;
 	vk::DescriptorPool m_DescriptorPool;
 	vk::DescriptorSet m_PerFrameSet;
-	//ibl
+	//ibl TODO: MOVE SOMEWHERE ELSE
 	VkTexture m_IBLTex;
 	VkTexture m_SkyRad;
 	VkTexture m_SkyIrr;
 	vk::DescriptorSet m_IBLDescSet;
 	//uniform and FBO memory
-	VkMemory m_BufferMemory;
-	VkMemory m_TextureMemory;
 	FrameBuffer m_FrameBuffer;
 
 	bool m_VSync;
@@ -99,6 +97,10 @@ class GFX_DLL GraphicsEngine {
 	ResourceHandler m_Resources;
 
 	PerFrameStatistics m_Stats;
+	//Device Allocator
+	VkMemoryAllocator m_DeviceAllocator;
+
+
 #ifdef USE_IMGUI
   public:
 	ImGui_ImplGlfwVulkan_Init_Data GetImguiInit();

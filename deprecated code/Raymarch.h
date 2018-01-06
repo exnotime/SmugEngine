@@ -2,7 +2,6 @@
 #include "VulkanContext.h"
 #include "VkPipeline.h"
 #include "FrameBuffer.h"
-#include "VkMemory.h"
 #include "RenderQueue.h"
 
 class Raymarcher {

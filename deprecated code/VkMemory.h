@@ -28,7 +28,7 @@ class VkMemory {
 	VkMemory();
 	~VkMemory();
 
-	void Init(const vk::Device& device,const vk::PhysicalDevice& physDev, uint64_t deviceSize = DEFAULT_DEVICE_SIZE, uint64_t stageSize = DEFAULT_STAGING_SIZE);
+	void Init(const vk::Device& device, const vk::PhysicalDevice& physDev, uint64_t deviceSize = DEFAULT_DEVICE_SIZE, uint64_t stageSize = DEFAULT_STAGING_SIZE, uint32_t memTypeBits = 0);
 	VkAlloc AllocateBuffer(uint64_t size, vk::BufferUsageFlags usage, void* data = nullptr);
 	VkAlloc AllocateImage(vk::Image img, gli::texture2d* texture = nullptr, void* data = nullptr);
 	VkAlloc AllocateImage(vk::Image img, const TextureInfo& texInfo);
@@ -37,7 +37,7 @@ class VkMemory {
 	void Deallocate(VkAlloc& alloc);
 	void ScheduleTransfers(VulkanCommandBuffer& cmdBuffer);
 	void UpdateBuffer(VkAlloc buffer, uint64_t size, void* data);
-	void UpdateBuffer(VkAlloc buffer,uint64_t offset, uint64_t size, void* data);
+	void UpdateBuffer(VkAlloc buffer, uint64_t offset, uint64_t size, void* data);
   private:
 	struct TextureTransfer {
 		vk::Image Image;

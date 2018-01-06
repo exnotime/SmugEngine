@@ -1,7 +1,6 @@
 #pragma once
 #include "Entity.h"
 #include <vector>
-#define g_EntityManager EntityManager::GetInstance()
 
 struct EntityCache {
 	uint64_t ComponentBitMask;
@@ -10,8 +9,8 @@ struct EntityCache {
 
 class EntityManager {
   public:
+	 EntityManager();
 	~EntityManager();
-	static EntityManager& GetInstance();
 
 	Entity& CreateEntity();
 	Entity& GetEntity(uint32_t UID);
@@ -20,7 +19,7 @@ class EntityManager {
 	std::vector<Entity>& GetEntityList();
 	bool IsCacheDirty(const EntityCache& cache);
   private:
-	EntityManager();
+	
 	std::vector<Entity> m_Entities;
 	uint64_t m_Counter = 0;
 	uint64_t m_DirtyComponents = 0;

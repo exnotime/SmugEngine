@@ -4,11 +4,6 @@ EntityManager::EntityManager() {}
 
 EntityManager::~EntityManager() {}
 
-EntityManager& EntityManager::GetInstance() {
-	static EntityManager instance;
-	return instance;
-}
-
 Entity& EntityManager::CreateEntity() {
 	Entity e;
 	e.ComponentBitfield = 0;

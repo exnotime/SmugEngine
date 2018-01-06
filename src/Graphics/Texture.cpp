@@ -2,6 +2,9 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb-master/stb_image.h"
 #include <gli/gli.hpp>
+
+#include "vk_mem_alloc.h"
+
 VkTexture::VkTexture() {
 
 }
@@ -9,70 +12,66 @@ VkTexture::~VkTexture() {
 
 }
 
-void VkTexture::Init(const std::string& filename, VkMemory& memory, const vk::Device& device) {
+void VkTexture::Init(const std::string& filename, VkMemoryAllocator* allocator, const vk::Device& device) {
 	gli::texture texture(gli::load(filename));
-
+	//create image
+	VkImageCreateInfo imageInfo = {};
+	imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+	imageInfo.pNext = nullptr;
+	imageInfo.imageType = VK_IMAGE_TYPE_2D;
+	imageInfo.initialLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+	imageInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+	imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+	void* data = nullptr;
+	uint64_t dataSize = 0;
 	if (texture.target() == gli::TARGET_CUBE) {
 		gli::texture_cube cubeTex(texture);
-		vk::ImageCreateInfo imageInfo;
 		imageInfo.arrayLayers = (uint32_t)cubeTex.faces();
 		imageInfo.extent = vk::Extent3D(cubeTex[0].extent().x, cubeTex[0].extent().y, 1);
-		imageInfo.format = static_cast<vk::Format>(cubeTex.format());
-		imageInfo.imageType = vk::ImageType::e2D;
-		imageInfo.initialLayout = vk::ImageLayout::eUndefined;
+		imageInfo.format = static_cast<VkFormat>(cubeTex.format());
 		imageInfo.mipLevels = (uint32_t)cubeTex.levels();
-		imageInfo.samples = vk::SampleCountFlagBits::e1;
-		imageInfo.usage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst;
-		imageInfo.tiling = vk::ImageTiling::eOptimal;
-		m_Image = device.createImage(imageInfo);
-
-		memory.AllocateImageCube(m_Image, &cubeTex, cubeTex.data());
-
-		vk::ImageViewCreateInfo viewInfo;
-		viewInfo.components = { vk::ComponentSwizzle::eR,vk::ComponentSwizzle::eG,vk::ComponentSwizzle::eB,vk::ComponentSwizzle::eA };
-		viewInfo.format = imageInfo.format;
-		viewInfo.image = m_Image;
-		viewInfo.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
-		viewInfo.subresourceRange.baseArrayLayer = 0;
-		viewInfo.subresourceRange.baseMipLevel = 0;
-		viewInfo.subresourceRange.layerCount = (uint32_t)cubeTex.faces();
-		viewInfo.subresourceRange.levelCount = (uint32_t)cubeTex.levels();
-		viewInfo.viewType = vk::ImageViewType::eCube;
-
-		m_View = device.createImageView(viewInfo);
-
-	} else if(texture.target() == gli::TARGET_2D) {
+		imageInfo.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+		data = cubeTex.data();
+		dataSize = cubeTex.size();
+	} else if (texture.target() == gli::TARGET_2D) {
 		gli::texture2d tex2D(texture);
-
-		vk::ImageCreateInfo imageInfo;
 		imageInfo.arrayLayers = 1;
-		imageInfo.extent = vk::Extent3D(tex2D[0].extent().x, tex2D[0].extent().y, 1);
-		imageInfo.format = static_cast<vk::Format>(tex2D.format());
-		imageInfo.imageType = vk::ImageType::e2D;
-		imageInfo.initialLayout = vk::ImageLayout::eUndefined;
+		imageInfo.extent = vk::Extent3D(tex2D[0].extent().x, tex2D[0].extent().y, 1 );
+		imageInfo.format = static_cast<VkFormat>(tex2D.format());
 		imageInfo.mipLevels = (uint32_t)tex2D.levels();
-		imageInfo.samples = vk::SampleCountFlagBits::e1;
-		imageInfo.usage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst;
-		imageInfo.tiling = vk::ImageTiling::eOptimal;
-
-		uint32_t size = (uint32_t)tex2D.size();
-		m_Image = device.createImage(imageInfo);
-		memory.AllocateImage(m_Image, &tex2D, tex2D.data());
-
-		vk::ImageViewCreateInfo viewInfo;
-		viewInfo.components = { vk::ComponentSwizzle::eR,vk::ComponentSwizzle::eG,vk::ComponentSwizzle::eB,vk::ComponentSwizzle::eA };
-		viewInfo.format = imageInfo.format;
-		viewInfo.image = m_Image;
-		viewInfo.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
-		viewInfo.subresourceRange.baseArrayLayer = 0;
-		viewInfo.subresourceRange.baseMipLevel = 0;
-		viewInfo.subresourceRange.layerCount = 1;
-		viewInfo.subresourceRange.levelCount = (uint32_t)tex2D.levels();
-		viewInfo.viewType = vk::ImageViewType::e2D;
-
-		m_View = device.createImageView(viewInfo);
+		data = tex2D.data();
+		dataSize = tex2D.size();
+	}
+	else {
+		printf("Error unsupported image type\n");
+		return;
 	}
 
+	allocator->AllocateImage(&imageInfo, &m_Image, dataSize, data);
+	//create view
+	VkImageViewCreateInfo viewInfo = {};
+	viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+	viewInfo.pNext = nullptr;
+	viewInfo.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
+	viewInfo.format = imageInfo.format;
+	viewInfo.image = m_Image;
+	viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	viewInfo.subresourceRange.baseArrayLayer = 0;
+	viewInfo.subresourceRange.baseMipLevel = 0;
+	viewInfo.subresourceRange.layerCount = 1;
+
+	if (texture.target() == gli::TARGET_CUBE) {
+		viewInfo.subresourceRange.layerCount = imageInfo.arrayLayers;
+		viewInfo.subresourceRange.levelCount = imageInfo.mipLevels;
+		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
+	}
+	else if (texture.target() == gli::TARGET_2D) {
+		viewInfo.subresourceRange.levelCount = VK_IMAGE_VIEW_TYPE_2D;
+		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+	}
+	m_View = device.createImageView(viewInfo);
+	//create sampler
 	vk::SamplerCreateInfo sampInfo;
 	sampInfo.addressModeU = vk::SamplerAddressMode::eRepeat;
 	sampInfo.addressModeV = vk::SamplerAddressMode::eRepeat;
@@ -92,64 +91,46 @@ void VkTexture::Init(const std::string& filename, VkMemory& memory, const vk::De
 	m_Sampler = device.createSampler(sampInfo);
 }
 
-void VkTexture::Init(const TextureInfo& texInfo, VkMemory& memory, const vk::Device& device) {
+void VkTexture::Init(const TextureInfo& texInfo, VkMemoryAllocator* allocator, const vk::Device& device) {
+	//create image
+	VkImageCreateInfo imageInfo = {};
+	imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+	imageInfo.pNext = nullptr;
+	imageInfo.imageType = VK_IMAGE_TYPE_2D;
+	imageInfo.initialLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+	imageInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+	imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+	imageInfo.arrayLayers = texInfo.Layers;
+	imageInfo.extent = vk::Extent3D(texInfo.Width, texInfo.Height, 1);
+	imageInfo.format = (VkFormat)texInfo.Format;
+	imageInfo.mipLevels = texInfo.MipCount;
+
+	//allocate memory
+	allocator->AllocateImage(&imageInfo, &m_Image, texInfo.LinearSize, texInfo.Data);
+	//create view
+	VkImageViewCreateInfo viewInfo = {};
+	viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+	viewInfo.pNext = nullptr;
+	viewInfo.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
+	viewInfo.format = imageInfo.format;
+	viewInfo.image = m_Image;
+	viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	viewInfo.subresourceRange.baseArrayLayer = 0;
+	viewInfo.subresourceRange.baseMipLevel = 0;
+	viewInfo.subresourceRange.layerCount = 1;
+
 	if (texInfo.Layers == 6) {
-		vk::ImageCreateInfo imageInfo;
-		imageInfo.arrayLayers = texInfo.Layers;
-		imageInfo.extent = vk::Extent3D(texInfo.Width, texInfo.Height, 1);
-		imageInfo.format = static_cast<vk::Format>(texInfo.Format);
-		imageInfo.imageType = vk::ImageType::e2D;
-		imageInfo.initialLayout = vk::ImageLayout::eUndefined;
-		imageInfo.mipLevels = texInfo.MipCount;
-		imageInfo.samples = vk::SampleCountFlagBits::e1;
-		imageInfo.usage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst;
-		imageInfo.tiling = vk::ImageTiling::eOptimal;
-		m_Image = device.createImage(imageInfo);
-
-		memory.AllocateImageCube(m_Image, texInfo);
-
-		vk::ImageViewCreateInfo viewInfo;
-		viewInfo.components = { vk::ComponentSwizzle::eR,vk::ComponentSwizzle::eG,vk::ComponentSwizzle::eB,vk::ComponentSwizzle::eA };
-		viewInfo.format = imageInfo.format;
-		viewInfo.image = m_Image;
-		viewInfo.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
-		viewInfo.subresourceRange.baseArrayLayer = 0;
-		viewInfo.subresourceRange.baseMipLevel = 0;
-		viewInfo.subresourceRange.layerCount = texInfo.Layers;
-		viewInfo.subresourceRange.levelCount = texInfo.MipCount;
-		viewInfo.viewType = vk::ImageViewType::eCube;
-
-		m_View = device.createImageView(viewInfo);
-
-	} else if (texInfo.Layers == 1) { //2D texture
-		vk::ImageCreateInfo imageInfo;
-		imageInfo.arrayLayers = 1;
-		imageInfo.extent = vk::Extent3D(texInfo.Width, texInfo.Height, 1);
-		imageInfo.format = static_cast<vk::Format>(texInfo.Format);
-		imageInfo.imageType = vk::ImageType::e2D;
-		imageInfo.initialLayout = vk::ImageLayout::eUndefined;
-		imageInfo.mipLevels = texInfo.MipCount;
-		imageInfo.samples = vk::SampleCountFlagBits::e1;
-		imageInfo.usage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst;
-		imageInfo.tiling = vk::ImageTiling::eOptimal;
-
-		m_Image = device.createImage(imageInfo);
-		memory.AllocateImage(m_Image, texInfo);
-
-		vk::ImageViewCreateInfo viewInfo;
-		viewInfo.components = { vk::ComponentSwizzle::eR,vk::ComponentSwizzle::eG,vk::ComponentSwizzle::eB,vk::ComponentSwizzle::eA };
-		viewInfo.format = imageInfo.format;
-		viewInfo.image = m_Image;
-		viewInfo.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
-		viewInfo.subresourceRange.baseArrayLayer = 0;
-		viewInfo.subresourceRange.baseMipLevel = 0;
-		viewInfo.subresourceRange.layerCount = 1;
-		viewInfo.subresourceRange.levelCount = texInfo.MipCount;
-		viewInfo.viewType = vk::ImageViewType::e2D;
-
-		m_View = device.createImageView(viewInfo);
+		viewInfo.subresourceRange.layerCount = imageInfo.arrayLayers;
+		viewInfo.subresourceRange.levelCount = imageInfo.mipLevels;
+		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
 	}
-
+	else{
+		viewInfo.subresourceRange.levelCount = VK_IMAGE_VIEW_TYPE_2D;
+		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+	}
+	m_View = device.createImageView(viewInfo);
+	//create sampler
 	vk::SamplerCreateInfo sampInfo;
 	sampInfo.addressModeU = vk::SamplerAddressMode::eRepeat;
 	sampInfo.addressModeV = vk::SamplerAddressMode::eRepeat;
@@ -168,6 +149,7 @@ void VkTexture::Init(const TextureInfo& texInfo, VkMemory& memory, const vk::Dev
 	sampInfo.unnormalizedCoordinates = false;
 	m_Sampler = device.createSampler(sampInfo);
 }
+
 
 vk::DescriptorImageInfo VkTexture::GetDescriptorInfo() {
 	vk::DescriptorImageInfo info;

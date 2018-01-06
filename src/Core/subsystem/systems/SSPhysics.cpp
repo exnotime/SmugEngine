@@ -23,7 +23,8 @@ void SSPhysics::Update(const double deltaTime) {
 
 	//fetch results
 	int flag = TransformComponent::Flag | RigidBodyComponent::Flag;
-	for (auto& e : g_EntityManager.GetEntityList()) {
+	auto& entities = globals::g_EntityManager->GetEntityList();
+	for (auto& e : entities) {
 		if ((e.ComponentBitfield & flag) == flag) {
 			TransformComponent* tc = (TransformComponent*)globals::g_Components->GetComponent(e, TransformComponent::Flag);
 			RigidBodyComponent* rc = (RigidBodyComponent*)globals::g_Components->GetComponent(e, RigidBodyComponent::Flag);

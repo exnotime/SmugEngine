@@ -38,7 +38,7 @@ void main(){
 
     mat.r *= mat.r;
     mat.r = saturate(mat.r * Material.r);
-
+    mat.r = clamp( mat.r, 0.001, 0.999);
     mat.g = Material.g;
 
     vec3 lightColor = CalcDirLight(-lightDir, texColor, normal, toCam, mat.r, mat.g) * mat.b;
