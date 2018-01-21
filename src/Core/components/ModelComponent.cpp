@@ -1,2 +1,2 @@
 #include "ModelComponent.h"
-unsigned int ModelComponent::Flag = 1 << 1;
+unsigned int ModelComponent::Flag = 1 << 2;

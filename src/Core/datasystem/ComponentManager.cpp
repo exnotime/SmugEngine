@@ -52,7 +52,7 @@ int ComponentManager::GetBuffer(void** outBuffer, uint64_t type) {
 		*outBuffer = (void*)m_Buffers[i].GetComponentList();
 		return m_Buffers[i].GetListSize();
 	} else {
-		printf("No componentbuffer of such type: %d\n", type);
+		printf("No componentbuffer of such type: %llu\n", type);
 		*outBuffer = nullptr;
 		return -1;
 	}

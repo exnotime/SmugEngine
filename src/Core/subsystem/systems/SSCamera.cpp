@@ -3,6 +3,7 @@
 #include "Core/components/TransformComponent.h"
 #include "Core/components/ModelComponent.h"
 #include "Core/datasystem/ComponentManager.h"
+#include "Core/components/ScriptComponent.h"
 #include "Core/entity/EntityManager.h"
 #include "Core/Input.h"
 #include <Graphics/GraphicsEngine.h>
@@ -36,6 +37,10 @@ void SSCamera::Startup() {
 	CameraComponent cc;
 	cc.Cam.SetPosition(tc.Position);
 	globals::g_Components->CreateComponent(&cc, e, CameraComponent::Flag);
+
+	ScriptComponent sc;
+	CreateScriptComponent("script/DetectFunctionTest.as", sc);
+	globals::g_Components->CreateComponent(&sc, e, ScriptComponent::Flag);
 
 	m_Cache = new EntityCache();
 	m_Cache->ComponentBitMask = e.ComponentBitfield;

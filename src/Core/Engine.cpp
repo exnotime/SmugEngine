@@ -9,6 +9,7 @@
 #include "components/TransformComponent.h"
 #include "components/ModelComponent.h"
 #include "components/RigidBodyComponent.h"
+#include "components/ScriptComponent.h"
 #include "datasystem/ComponentManager.h"
 #include "subsystem/SubSystemSet.h"
 #include "subsystem/systems/SSCamera.h"
@@ -17,6 +18,8 @@
 #include "GlobalSystems.h"
 #include "Timer.h"
 #include "if_Assets.h"
+#include "entity/if_Entity.h"
+#include "components/if_Components.h"
 #include "script/ScriptEngine.h"
 #include <Imgui/imgui_impl_glfw_vulkan.h>
 
@@ -69,18 +72,17 @@ void Engine::Init() {
 	globals::g_Physics->Init();
 	g_ScriptEngine.Init();
 	if_asset::RegisterInterface();
-
+	if_entity::RegisterEntityInterface();
+	if_component::InitComponentInterface();
 	//set up entity manager
 	globals::g_EntityManager = new EntityManager();
-
-	AngelScript::asIScriptModule* mod = g_ScriptEngine.CompileScriptToModule("script/LoadingTest.as");
-	g_ScriptEngine.ExecuteModule(mod, "void Load()");
 
 	//create component buffers
 	globals::g_Components = new ComponentManager();
 	globals::g_Components->AddComponentType(100, sizeof(TransformComponent), TransformComponent::Flag, "TransformComponent");
 	globals::g_Components->AddComponentType(100, sizeof(ModelComponent), ModelComponent::Flag, "ModelComponent");
 	globals::g_Components->AddComponentType(100, sizeof(RigidBodyComponent), RigidBodyComponent::Flag, "RigidBodyComponent");
+	globals::g_Components->AddComponentType(100, sizeof(ScriptComponent), ScriptComponent::Flag, "ScriptComponent");
 	globals::g_Components->AddComponentType(3, sizeof(CameraComponent), CameraComponent::Flag, "CameraComponent");
 
 	m_MainSubSystemSet = new SubSystemSet();
@@ -93,6 +95,9 @@ void Engine::Init() {
 	m_GlobalTimer->Reset();
 
 	m_ProfilerTimer = new Timer();
+
+	AngelScript::asIScriptModule* mod = g_ScriptEngine.CompileScriptToModule("script/LoadingTest.as");
+	g_ScriptEngine.ExecuteModule(mod, "void Load()");
 
 	ImGui_ImplGlfwVulkan_Init_Data imguiData = globals::g_Gfx->GetImguiInit();
 	ImGui_ImplGlfwVulkan_Init(m_Window->GetWindow(), false, &imguiData);

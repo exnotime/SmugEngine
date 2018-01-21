@@ -437,50 +437,31 @@ void GraphicsEngine::RenderModels(RenderQueue& rq, VulkanCommandBuffer& cmdBuffe
 	}
 	vk::DescriptorSet sets[] = { m_PerFrameSet, m_IBLDescSet, rq.GetDescriptorSet() };
 	cmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipelineLayout(), 0, _countof(sets), sets, 0, nullptr);
-	Timer t;
-	float bindVBO = 0;
-	float pushConstants = 0;
-	float bindDescriptors = 0;
-	float drawMesh = 0;
-	uint32_t uniformOffset = 0;
 	auto& models = rq.GetModels();
 	for (auto& m : models) {
 		uint32_t instanceCount = m.second.Count;
 		m_Stats.ModelCount += instanceCount;
 		
 		const Model& model = m_Resources.GetModel(m.first);
-		t.Reset();
 		const vk::Buffer vertexBuffers[4] = { model.VertexBuffers[0].buffer, model.VertexBuffers[1].buffer,
 			model.VertexBuffers[2].buffer, model.VertexBuffers[3].buffer };
 
 		const vk::DeviceSize offsets[4] = { 0,0,0,0 };
 		cmdBuffer.bindVertexBuffers(0, 4, vertexBuffers, offsets);
 		cmdBuffer.bindIndexBuffer(model.IndexBuffer.buffer, 0, vk::IndexType::eUint16);
-		bindVBO += t.Reset() * 1000.0f;
-		cmdBuffer.pushConstants(m_Pipeline.GetPipelineLayout(), vk::ShaderStageFlagBits::eAll, 0, sizeof(unsigned), &uniformOffset);
-		pushConstants += t.Reset() * 1000.0f;
+		cmdBuffer.pushConstants(m_Pipeline.GetPipelineLayout(), vk::ShaderStageFlagBits::eAll, 0, sizeof(unsigned), &m.second.Offset);
 		vk::DescriptorSet mat;
 		for (uint32_t meshIt = 0; meshIt < model.MeshCount; ++meshIt) {
 			m_Stats.MeshCount += instanceCount;
-			t.Reset();
 			Mesh& mesh = model.Meshes[meshIt];
 			if (mat != mesh.Material) {
 				mat = mesh.Material;
 				cmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipelineLayout(), 3, 1, &mesh.Material, 0, nullptr);
 			}
-			bindDescriptors += t.Reset() * 1000.0f;
 			m_Stats.TriangleCount += (mesh.IndexCount / 3) * instanceCount;
-			cmdBuffer.drawIndexed(mesh.IndexCount, m.second.Count, mesh.IndexOffset, 0, 0);
-			drawMesh += t.Reset() * 1000.0f;
+			cmdBuffer.drawIndexed(mesh.IndexCount, instanceCount, mesh.IndexOffset, 0, 0);
 		}
-		uniformOffset++;
 	}
-
-	ImGui::Text("RenderModels: Bind VBO: %f ms", bindVBO);
-	ImGui::Text("RenderModels: Push Constants: %f ms", pushConstants);
-	ImGui::Text("RenderModels: Bind Descriptor sets: %f ms", bindDescriptors);
-	ImGui::Text("RenderModels: Draw Mesh: %f ms", drawMesh);
-
 }
 
 void GraphicsEngine::Render() {
@@ -523,9 +504,6 @@ void GraphicsEngine::Render() {
 
 		m_vkQueue.Submit(cmdBuffer, nullptr, m_TransferComplete, nullptr);
 	}
-
-	Timer t;
-	ImGui::Begin("Timing");
 	//render pass
 	{
 		auto& cmdBuffer = m_CmdBufferFactory.GetNextBuffer();
@@ -552,27 +530,19 @@ void GraphicsEngine::Render() {
 		cmdBuffer.beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
 		cmdBuffer.setViewport(0, 1, &m_Viewport);
 		cmdBuffer.setScissor(0, 1, &m_Scissor);
-		ImGui::Text("Render: Setup frame: %f ms", t.Reset() * 1000.0f);
 		//skybox
 		m_SkyBox.Render(cmdBuffer);
-		ImGui::Text("Render: Render Skybox: %f ms", t.Reset() * 1000.0f);
 		//render here
 		cmdBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipeline());
 
 		RenderModels(m_StaticRenderQueue, cmdBuffer);
-		ImGui::Text("Render: Render static queue: %f ms", t.Reset() * 1000.0f);
 		RenderModels(rq, cmdBuffer);
-		ImGui::Text("Render: Render dynamic queue: %f ms", t.Reset() * 1000.0f);
 
 		cmdBuffer.endRenderPass();
 
 		m_CmdBufferFactory.EndBuffer(cmdBuffer);
 		m_vkQueue.Submit({ cmdBuffer }, { m_TransferComplete, m_ImageAquiredSemaphore }, { m_RenderCompleteSemaphore }, nullptr);
-		ImGui::Text("Render: submit: %f ms", t.Reset() * 1000.0f);
 	}
-	
-	ImGui::Text("Render: Models: %f ms", t.Reset() * 1000.0f);
-	ImGui::End();
 	//Perform tonemapping and render Imgui
 	{
 		auto& cmdBuffer = m_CmdBufferFactory.GetNextBuffer();

@@ -2,9 +2,10 @@
 #include "scriptstdstring/scriptstdstring.h"
 #include "scriptbuilder/scriptbuilder.h"
 #include "scripthelper/scripthelper.h"
+#include "scriptmatrix.h"
 #include <angelscript-integration/angelscript-integration.h>
 #include <assert.h>
-
+#include <glm/glm.hpp>
 void MessageCallback(const AngelScript::asSMessageInfo *msg, void *param) {
 	const char *type = "ERR ";
 	if (msg->type == AngelScript::asMSGTYPE_WARNING)
@@ -16,6 +17,27 @@ void MessageCallback(const AngelScript::asSMessageInfo *msg, void *param) {
 
 void Print(const std::string& msg) {
 	printf("%s\n", msg.c_str());
+}
+
+void RegisterMatrixes(AngelScript::asIScriptEngine* engine) {
+	using namespace AngelScript;
+	engine->RegisterObjectType("mat4x4", sizeof(Mat4x4), asOBJ_VALUE | asGetTypeTraits<Mat4x4>());
+	engine->RegisterObjectBehaviour("mat4x4", asBEHAVE_CONSTRUCT, "void mat4x4()", asFUNCTION(ConstructMat4x4), asCALL_CDECL_OBJLAST);
+	engine->RegisterObjectBehaviour("mat4x4", asBEHAVE_DESTRUCT, "void mat4x4()", asFUNCTION(DestructMat4x4), asCALL_CDECL_OBJLAST);
+	engine->RegisterObjectMethod("mat4x4", "vec4 opMul(vec4) const", asMETHODPR(Mat4x4, operator*, (const glm::vec4&) const, glm::vec4), asCALL_THISCALL);
+	engine->RegisterObjectMethod("mat4x4", "vec4 opIndex(uint) const", asMETHODPR(Mat4x4, operator[], (const unsigned int), glm::vec4&), asCALL_THISCALL);
+
+	engine->RegisterObjectType("mat3x4", sizeof(Mat3x4), asOBJ_VALUE | asGetTypeTraits<Mat3x4>());
+	engine->RegisterObjectBehaviour("mat3x4", asBEHAVE_CONSTRUCT, "void mat3x4()", asFUNCTION(ConstructMat3x4), asCALL_CDECL_OBJLAST);
+	engine->RegisterObjectBehaviour("mat3x4", asBEHAVE_DESTRUCT, "void mat3x4()", asFUNCTION(DestructMat3x4), asCALL_CDECL_OBJLAST);
+	engine->RegisterObjectMethod("mat3x4", "vec4 opMul(vec4) const", asMETHODPR(Mat3x4, operator*, (const glm::vec4&) const, glm::vec4), asCALL_THISCALL);
+	engine->RegisterObjectMethod("mat3x4", "vec4 opIndex(uint) const", asMETHODPR(Mat3x4, operator[], (const unsigned int), glm::vec4&), asCALL_THISCALL);
+
+	engine->RegisterObjectType("mat3x3", sizeof(Mat3x3), asOBJ_VALUE | asGetTypeTraits<Mat3x3>());
+	engine->RegisterObjectBehaviour("mat3x3", asBEHAVE_CONSTRUCT, "void mat3x3()", asFUNCTION(ConstructMat3x3), asCALL_CDECL_OBJLAST);
+	engine->RegisterObjectBehaviour("mat3x3", asBEHAVE_DESTRUCT, "void mat3x3()", asFUNCTION(DestructMat3x3), asCALL_CDECL_OBJLAST);
+	engine->RegisterObjectMethod("mat3x3", "vec3 opMul(vec3) const", asMETHODPR(Mat3x3, operator*, (const glm::vec3&) const, glm::vec3), asCALL_THISCALL);
+	engine->RegisterObjectMethod("mat3x3", "vec3 opIndex(uint) const", asMETHODPR(Mat3x3, operator[], (const unsigned int), glm::vec3&), asCALL_THISCALL);
 }
 
 ScriptEngine::ScriptEngine() {
@@ -37,6 +59,8 @@ void ScriptEngine::Init() {
 	RegisterStdString(m_Engine);
 	m_Engine->RegisterGlobalFunction("void print(const string &in)", AngelScript::asFUNCTION(Print), AngelScript::asCALL_CDECL);
 	AngelScriptIntegration::init_glm(m_Engine, AngelScriptIntegration::GlmFlags::NO_SWIZZLE);
+	//glm integration has no matrix type
+	RegisterMatrixes(m_Engine);
 	m_Context = m_Engine->CreateContext();
 }
 

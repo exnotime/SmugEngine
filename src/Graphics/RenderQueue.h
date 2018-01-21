@@ -7,7 +7,7 @@
 #include "VkMemoryAllocator.h"
 #include <AssetLoader/Resources.h>
 #include <vector>
-#include <unordered_map>
+#include <map>
 #include <glm/glm.hpp>
 struct ShaderInput {
 	glm::mat4x4 Transform;
@@ -17,6 +17,7 @@ struct ShaderInput {
 struct ModelInstance {
 	std::vector<ShaderInput> Inputs;
 	uint32_t Count;
+	uint32_t Offset;
 };
 
 class GFX_DLL RenderQueue {
@@ -31,7 +32,7 @@ class GFX_DLL RenderQueue {
 
 	const std::vector<CameraData>& GetCameras() const { return m_Cameras; }
 	const std::vector<ShaderInput>& GetInputs() const { return m_Inputs; }
-	const std::unordered_map<ResourceHandle, ModelInstance>& GetModels() const { return m_Models; }
+	const std::map<ResourceHandle, ModelInstance>& GetModels() const { return m_Models; }
 
 	const VkBufferHandle& GetUniformBuffer() const { return m_Buffer; }
 	void SetDescSet(vk::DescriptorSet set) { m_DescSet = set; }
@@ -41,7 +42,7 @@ class GFX_DLL RenderQueue {
   private:
 	std::vector<CameraData> m_Cameras;
 	std::vector<ShaderInput> m_Inputs;
-	std::unordered_map<ResourceHandle, ModelInstance> m_Models;
+	std::map<ResourceHandle, ModelInstance> m_Models;
 	vk::DescriptorSet m_DescSet;
 	VkBufferHandle m_Buffer;
 };

@@ -11,8 +11,7 @@ void RenderQueue::Init(VkMemoryAllocator& memory) {
 	m_Buffer = memory.AllocateBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, 4 * 1024 * 1024, nullptr);
 
 	m_Cameras.reserve(10);
-	m_Models.reserve(10000);
-	m_Inputs.reserve(10000);
+	m_Inputs.reserve(1024);
 }
 
 void RenderQueue::Clear() {
@@ -37,7 +36,8 @@ void RenderQueue::AddModel(ResourceHandle model, const glm::mat4& transform, con
 
 void RenderQueue::ScheduleTransfer(VkMemoryAllocator& memory) {
 	for (auto& mi : m_Models) {
-		m_Inputs.insert(m_Inputs.begin(), mi.second.Inputs.begin(), mi.second.Inputs.end());
+		mi.second.Offset = m_Inputs.size();
+		m_Inputs.insert(m_Inputs.end(), mi.second.Inputs.begin(), mi.second.Inputs.end());
 	}
 
 	if (m_Inputs.size() > 0) {
