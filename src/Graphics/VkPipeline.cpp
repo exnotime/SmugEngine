@@ -4,7 +4,7 @@
 #include <json.hpp>
 #include "VkShader.h"
 using nlohmann::json;
-using Tephra::VkPipeline;
+using namespace smug;
 
 enum SHADER_TYPES {
 	VERTEX_SHADER,
@@ -795,7 +795,7 @@ void VkPipeline::LoadPipelineFromFile(const vk::Device& device, const std::strin
 	dynamicStates.push_back(vk::DynamicState::eViewport);
 	dynamicStates.push_back(vk::DynamicState::eScissor);
 	vk::PipelineDynamicStateCreateInfo dynamicStateCreateInfo;
-	dynamicStateCreateInfo.dynamicStateCount = dynamicStates.size();
+	dynamicStateCreateInfo.dynamicStateCount = (uint32_t)dynamicStates.size();
 	dynamicStateCreateInfo.pDynamicStates = dynamicStates.data();
 	
 	//put everything together

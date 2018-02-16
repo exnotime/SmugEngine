@@ -261,7 +261,7 @@ static void par_shapes__compute_welded_normals(par_shapes_mesh* m)
 {
     m->normals = PAR_MALLOC(float, m->npoints * 3);
     uint16_t* weldmap = PAR_MALLOC(uint16_t, m->npoints);
-    par_shapes_mesh* welded = par_shapes_weld(m, 0.01, weldmap);
+    par_shapes_mesh* welded = par_shapes_weld(m, 0.01f, weldmap);
     par_shapes_compute_normals(welded);
     float* pdst = m->normals;
     for (int i = 0; i < m->npoints; i++, pdst += 3) {
@@ -291,7 +291,7 @@ par_shapes_mesh* par_shapes_create_parametric_sphere(int slices, int stacks)
     }
     par_shapes_mesh* m = par_shapes_create_parametric(par_shapes__sphere,
         slices, stacks, 0);
-    par_shapes_remove_degenerate(m, 0.01);
+    par_shapes_remove_degenerate(m, 0.01f);
     return m;
 }
 
@@ -302,7 +302,7 @@ par_shapes_mesh* par_shapes_create_hemisphere(int slices, int stacks)
     }
     par_shapes_mesh* m = par_shapes_create_parametric(par_shapes__hemisphere,
         slices, stacks, 0);
-    par_shapes_remove_degenerate(m, 0.01);
+    par_shapes_remove_degenerate(m, 0.01f);
     return m;
 }
 
@@ -1400,7 +1400,7 @@ par_shapes_mesh* par_shapes_create_subdivided_sphere(int nsubd)
         mesh->triangles[i] = i;
     }
     par_shapes_mesh* tmp = mesh;
-    mesh = par_shapes_weld(mesh, 0.01, 0);
+    mesh = par_shapes_weld(mesh, 0.01f, 0);
     par_shapes_free_mesh(tmp);
     par_shapes_compute_normals(mesh);
     return mesh;

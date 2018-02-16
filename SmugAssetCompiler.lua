@@ -1,4 +1,4 @@
-solution "TephraAssetCompiler"
+solution "SmugAssetCompiler"
     configurations { "Debug", "Release" }
         flags{ "NoPCH" }
         local vulkan_dir = os.getenv("VULKAN_SDK");
@@ -26,8 +26,8 @@ solution "TephraAssetCompiler"
         targetdir ( "bin/" .. "/release" )
 
 
-	project "AssetCompiler"
-        targetname "TephraAssetCompiler"
+	project "SmugAssetCompiler"
+        targetname "SmugAssetCompiler"
 		debugdir ""
         defines { "AS_USE_NAMESPACE" }
 		location ( location_path )
@@ -41,7 +41,7 @@ solution "TephraAssetCompiler"
         configuration { "Release" }
                 links { "angelscript64", "as_integration", "shaderc_combined" }
 
-    project "AssetLoader"
+    project "SmugAssetLoader"
     	targetname "AssetLoader"
     	defines { "ASSET_EXPORT"}
     	debugdir ""
@@ -57,7 +57,7 @@ solution "TephraAssetCompiler"
                 links { "angelscript64", "as_integration", "shaderc_combined" }
     	
 
-    project "Utility"
+    project "SmugUtility"
         targetname "Utility"
         defines {}
         debugdir ""

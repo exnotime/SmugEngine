@@ -1,5 +1,7 @@
 #include "SubSystemSet.h"
 #include <algorithm>
+
+using namespace smug;
 SubSystemSet::SubSystemSet() {
 
 }

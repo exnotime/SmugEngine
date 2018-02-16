@@ -1,2 +1,2 @@
 #include "RigidBodyComponent.h"
-unsigned int RigidBodyComponent::Flag = 1 << 3;
+unsigned int smug::RigidBodyComponent::Flag = 1 << 3;

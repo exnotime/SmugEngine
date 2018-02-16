@@ -9,40 +9,43 @@
 #include <vector>
 #include <map>
 #include <glm/glm.hpp>
-struct ShaderInput {
-	glm::mat4x4 Transform;
-	glm::vec4 Color;
-};
+#include <Utility/Vector.h>
+namespace smug {
+	struct ShaderInput {
+		glm::mat4x4 Transform;
+		glm::vec4 Color;
+	};
 
-struct ModelInstance {
-	std::vector<ShaderInput> Inputs;
-	uint32_t Count;
-	uint32_t Offset;
-};
+	struct ModelInstance {
+		Vector<ShaderInput> Inputs;
+		uint32_t Count;
+		uint32_t Offset;
+	};
 
-class GFX_DLL RenderQueue {
-  public:
-	RenderQueue();
-	~RenderQueue();
-	void Init(VkMemoryAllocator& memory);
-	void Clear();
-	void AddCamera(const CameraData& cd);
-	void AddModel(ResourceHandle handle, const glm::mat4& transform, const glm::vec4& tint);
-	void ScheduleTransfer(VkMemoryAllocator& memory);
+	class GFX_DLL RenderQueue {
+	public:
+		RenderQueue();
+		~RenderQueue();
+		void Init(VkMemoryAllocator& memory);
+		void Clear();
+		void AddCamera(const CameraData& cd);
+		void AddModel(ResourceHandle handle, const glm::mat4& transform, const glm::vec4& tint);
+		void ScheduleTransfer(VkMemoryAllocator& memory);
 
-	const std::vector<CameraData>& GetCameras() const { return m_Cameras; }
-	const std::vector<ShaderInput>& GetInputs() const { return m_Inputs; }
-	const std::map<ResourceHandle, ModelInstance>& GetModels() const { return m_Models; }
+		const Vector<CameraData>& GetCameras() const { return m_Cameras; }
+		const Vector<ShaderInput>& GetInputs() const { return m_Inputs; }
+		const std::map<ResourceHandle, ModelInstance>& GetModels() const { return m_Models; }
 
-	const VkBufferHandle& GetUniformBuffer() const { return m_Buffer; }
-	void SetDescSet(vk::DescriptorSet set) { m_DescSet = set; }
-	vk::DescriptorSet GetDescriptorSet() const { return m_DescSet; }
+		const VkBufferHandle& GetUniformBuffer() const { return m_Buffer; }
+		void SetDescSet(vk::DescriptorSet set) { m_DescSet = set; }
+		vk::DescriptorSet GetDescriptorSet() const { return m_DescSet; }
 
 
-  private:
-	std::vector<CameraData> m_Cameras;
-	std::vector<ShaderInput> m_Inputs;
-	std::map<ResourceHandle, ModelInstance> m_Models;
-	vk::DescriptorSet m_DescSet;
-	VkBufferHandle m_Buffer;
-};
+	private:
+		Vector<CameraData> m_Cameras;
+		Vector<ShaderInput> m_Inputs;
+		std::map<ResourceHandle, ModelInstance> m_Models;
+		vk::DescriptorSet m_DescSet;
+		VkBufferHandle m_Buffer;
+	};
+}

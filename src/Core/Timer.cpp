@@ -1,5 +1,7 @@
 #include "Timer.h"
 #include <GLFW/glfw3.h>
+
+using namespace smug;
 Timer::Timer() {
 	m_Start = glfwGetTimerValue();
 	m_TimerFreq = glfwGetTimerFrequency();

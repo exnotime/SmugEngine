@@ -10,6 +10,7 @@
 #include "../../GlobalSystems.h"
 #include <Imgui/imgui.h>
 
+using namespace smug;
 SSRender::SSRender() {
 
 }
@@ -61,7 +62,7 @@ void SSRender::Update(const double deltaTime) {
 	RenderQueue* rq = globals::g_Gfx->GetRenderQueue();
 	//models
 	auto& entities = globals::g_EntityManager->GetEntityList();
-	uint32_t entityCount = entities.size();
+	uint32_t entityCount = (uint32_t)entities.size();
 
 	static glm::vec4 tint = glm::vec4(1.0f);
 	ImGui::Begin("Scene");
@@ -89,7 +90,7 @@ void SSRender::Update(const double deltaTime) {
 		}
 	}
 	ImGui::Begin("Timing");
-	float t = m_Timer.Reset() * 1000.0;
+	float t = m_Timer.Reset() * 1000.0f;
 	ImGui::Text("SSRender: %f ms", t);
 	ImGui::End();
 }

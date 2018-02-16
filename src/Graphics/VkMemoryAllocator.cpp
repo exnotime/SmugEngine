@@ -1,4 +1,5 @@
 #include "VkMemoryAllocator.h"
+using namespace smug;
 
 VkMemoryAllocator::VkMemoryAllocator() {
 
@@ -158,7 +159,7 @@ void VkMemoryAllocator::UpdateBuffer(VkBufferHandle& handle, uint64_t size, void
 }
 
 void VkMemoryAllocator::ScheduleTransfers(VulkanCommandBuffer& cmdBuffer) {
-	uint32_t imageCount = m_ImageCopies.size();
+	uint32_t imageCount = (uint32_t)m_ImageCopies.size();
 	if (imageCount > 0) {
 		for (uint32_t i = 0; i < imageCount; ++i) {
 			cmdBuffer.ImageBarrier(m_ImageCopies[i].dst, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
@@ -169,18 +170,29 @@ void VkMemoryAllocator::ScheduleTransfers(VulkanCommandBuffer& cmdBuffer) {
 			cmdBuffer.ImageBarrier(m_ImageCopies[i].dst, vk::ImageLayout::eTransferDstOptimal, (vk::ImageLayout)m_ImageCopies[i].finalLayout);
 		}
 		cmdBuffer.PushPipelineBarrier();
-		m_ImageCopies.clear();
+		//m_ImageCopies.clear();
 	}
 
-	uint32_t bufferCopies = m_BufferCopies.size();
+	uint32_t bufferCopies = (uint32_t)m_BufferCopies.size();
 	if (bufferCopies > 0) {
 		for (uint32_t i = 0; i < bufferCopies; ++i) {
 			std::vector<vk::BufferCopy> copy = { m_BufferCopies[i].copy };
 			cmdBuffer.copyBuffer(m_BufferCopies[i].src, m_BufferCopies[i].dst, copy);
 		}
-		m_BufferCopies.clear();
+		//m_BufferCopies.clear();
 	}
 	cmdBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTopOfPipe, vk::DependencyFlagBits::eByRegion, nullptr, nullptr, nullptr);
+}
+
+void VkMemoryAllocator::Clear() {
+	for (auto& buffer : m_BufferCopies) {
+		vmaDestroyBuffer(m_Allocator, buffer.src);
+	}
+	for (auto& buffer : m_ImageCopies) {
+		vmaDestroyBuffer(m_Allocator, buffer.src);
+	}
+	m_BufferCopies.clear();
+	m_ImageCopies.clear();
 }
 
 void VkMemoryAllocator::PrintStats() {

@@ -1,11 +1,12 @@
 #include "SSPhysics.h"
-#include "../../GlobalSystems.h"
-#include "Core/components/TransformComponent.h"
-#include "Core/components/ModelComponent.h"
-#include "Core/components/RigidBodyComponent.h"
-#include "Core/datasystem/ComponentManager.h"
-#include "Core/entity/EntityManager.h"
-#include <Core/Input.h>
+#include <Core/GlobalSystems.h>
+#include <Core/components/TransformComponent.h>
+#include <Core/components/ModelComponent.h>
+#include <Core/components/RigidBodyComponent.h>
+#include <Core/datasystem/ComponentManager.h>
+#include <Core/entity/EntityManager.h>
+
+using namespace smug;
 SSPhysics::SSPhysics() {
 
 }

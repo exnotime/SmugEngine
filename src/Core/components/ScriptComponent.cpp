@@ -1,2 +1,2 @@
 #include "ScriptComponent.h"
-unsigned int ScriptComponent::Flag = 1 << 4;
+unsigned int smug::ScriptComponent::Flag = 1 << 4;

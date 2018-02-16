@@ -3,6 +3,7 @@
 #include <functional> //std::hash
 #include <Utility/MurmurHash3.h>
 
+using namespace smug;
 FileBuffer::FileBuffer() {
 	m_Size = 0;
 	m_Ptr = 0;
@@ -123,7 +124,7 @@ void* FileBuffer::LoadFile(uint32_t hash) {
 
 	printf("loading file %u, at offset %llu of size %llu", hash, e->second.Offset, e->second.Size);
 
-	fseek(m_File, e->second.Offset, SEEK_SET);
+	fseek(m_File, (int)e->second.Offset, SEEK_SET);
 	void* buffer = malloc(e->second.Size);
 	fread(buffer, sizeof(uint8_t), e->second.Size, m_File);
 	fclose(m_File);

@@ -1,6 +1,7 @@
 #include "ComponentManager.h"
 #include <intrin.h>
 
+using namespace smug;
 ComponentManager::ComponentManager() {
 
 }

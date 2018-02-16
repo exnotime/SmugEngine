@@ -6,6 +6,9 @@
 #include <angelscript-integration/angelscript-integration.h>
 #include <assert.h>
 #include <glm/glm.hpp>
+
+
+using namespace smug;
 void MessageCallback(const AngelScript::asSMessageInfo *msg, void *param) {
 	const char *type = "ERR ";
 	if (msg->type == AngelScript::asMSGTYPE_WARNING)

@@ -6,7 +6,9 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-vk::ShaderModule Tephra::LoadShader(const vk::Device& device, const std::string& filename, SHADER_STAGE stage, const std::string& entryPoint, SHADER_LANGUAGE language) {
+using namespace smug;
+
+vk::ShaderModule smug::LoadShader(const vk::Device& device, const std::string& filename, SHADER_STAGE stage, const std::string& entryPoint, SHADER_LANGUAGE language) {
 	//read file ending and figure out shader type
 	size_t lastDot = filename.find_last_of('.');
 	std::string fileEnding = filename.substr(lastDot + 1);

@@ -14,59 +14,60 @@
 #define MATERIAL_SIZE 4
 #define MAX_MATERIALS 256
 
+namespace smug {
+	enum VertexChannels {
+		POSITION,
+		NORMAL,
+		TANGENT,
+		TEXCOORD,
+		NUM_VERTEX_CHANNELS
+	};
 
-enum VertexChannels {
-	POSITION,
-	NORMAL,
-	TANGENT,
-	TEXCOORD,
-	NUM_VERTEX_CHANNELS
-};
+	struct Mesh {
+		unsigned IndexCount;
+		unsigned IndexOffset;
+		vk::DescriptorSet Material;
+	};
 
-struct Mesh {
-	unsigned IndexCount;
-	unsigned IndexOffset;
-	vk::DescriptorSet Material;
-};
+	struct Model {
+		unsigned IndexCount;
+		VkBufferHandle IndexBuffer;
+		VkBufferHandle VertexBuffers[NUM_VERTEX_CHANNELS];
+		unsigned MeshCount;
+		Mesh* Meshes;
+	};
 
-struct Model {
-	unsigned IndexCount;
-	VkBufferHandle IndexBuffer;
-	VkBufferHandle VertexBuffers[NUM_VERTEX_CHANNELS];
-	unsigned MeshCount;
-	Mesh* Meshes;
-};
+	struct MemoryBudget {
+		size_t GeometryBudget;
+		size_t MaterialBudget;
+	};
 
-struct MemoryBudget {
-	size_t GeometryBudget;
-	size_t MaterialBudget;
-};
+	class ResourceHandler {
+	public:
+		ResourceHandler();
+		~ResourceHandler();
+		void Init(vk::Device* device, const vk::PhysicalDevice& physDev, MemoryBudget budget, VkMemoryAllocator& deviceAlloc);
+		void ScheduleTransfer(VulkanCommandBuffer& cmdBuffer);
+		void Clear();
 
-class ResourceHandler {
-  public:
-	ResourceHandler();
-	~ResourceHandler();
-	void Init(vk::Device* device, const vk::PhysicalDevice& physDev, MemoryBudget budget, VkMemoryAllocator& deviceAlloc);
-	void ScheduleTransfer(VulkanCommandBuffer& cmdBuffer);
-	void Clear();
+		const Model& GetModel(ResourceHandle handle);
 
-	const Model& GetModel(ResourceHandle handle);
+		void AllocateModel(const ModelInfo& model, ResourceHandle handle);
+		void AllocateTexture(const TextureInfo& tex, ResourceHandle handle);
+	private:
+		vk::Device* m_Device;
+		VkMemoryAllocator* m_DeviceAllocator;
 
-	void AllocateModel(const ModelInfo& model, ResourceHandle handle);
-	void AllocateTexture(const TextureInfo& tex, ResourceHandle handle);
-  private:
-	vk::Device* m_Device;
-	VkMemoryAllocator* m_DeviceAllocator;
+		std::unordered_map<ResourceHandle, Model> m_Models;
+		std::unordered_map<ResourceHandle, VkTexture> m_Textures;
 
-	std::unordered_map<ResourceHandle, Model> m_Models;
-	std::unordered_map<ResourceHandle, VkTexture> m_Textures;
+		VkTexture m_DefaultAlbedo;
+		VkTexture m_DefaultNormal;
+		VkTexture m_DefaultRoughness;
+		VkTexture m_DefaultMetal;
 
-	VkTexture m_DefaultAlbedo;
-	VkTexture m_DefaultNormal;
-	VkTexture m_DefaultRoughness;
-	VkTexture m_DefaultMetal;
-
-	vk::DescriptorPool m_DescPool;
-	vk::DescriptorSetLayout m_MaterialLayout;
-	vk::DescriptorSet m_DefaultMaterial;
-};
+		vk::DescriptorPool m_DescPool;
+		vk::DescriptorSetLayout m_MaterialLayout;
+		vk::DescriptorSet m_DefaultMaterial;
+	};
+}

@@ -1,6 +1,8 @@
 #include "StringPool.h"
 #include <stdio.h>
 #include <vector>
+
+using namespace smug;
 StringPool* g_StringPool = nullptr;
 
 void StringPool::AddToPool(uint32_t hash, std::string string) {
@@ -27,13 +29,13 @@ void StringPool::Serialize(const std::string& filename) {
 	for (auto& s : m_Strings) {
 		StringHeader h;
 		h.Hash = s.first;
-		h.Length = s.second.length() + 1;
-		h.Offset = offset;
+		h.Length = (uint32_t)s.second.length() + 1;
+		h.Offset = (uint32_t)offset;
 		offset += h.Length;
 		headers.push_back(h);
 		strings.push_back(s.second);
 	}
-	uint32_t count = headers.size();
+	uint32_t count = (uint32_t)headers.size();
 	fwrite(&count, sizeof(uint32_t), 1, fout);
 	fwrite(headers.data(), sizeof(StringHeader), headers.size(), fout);
 	for (auto& s : strings) {

@@ -4,6 +4,11 @@ layout(location = 0) out vec4 outColor;
 
 layout(binding = 0) uniform sampler2D InputTex;
 
+layout(binding = 1) uniform ToneMapUniformData {
+	float Bright;
+	float Exposure;
+};
+
 vec3 Uncharted2Tonemap(vec3 x)
 {
     float A = 0.15;
@@ -21,9 +26,7 @@ void main(){
 	// if(TexCoord.x > 0.5)
 	// 	outColor.rgb = Uncharted2Tonemap(outColor.rgb);
 	// else
-	float bright = 1.0;
-	float exposure = 1.0 / 1.6;
 	float Y = dot(vec4(0.30, 0.59, 0.11, 0.0), outColor);
-    float YD = exposure * (exposure / bright + 1.0) / (exposure + 1.0);
+    float YD = Exposure * (Exposure / Bright + 1.0) / (Exposure + 1.0);
 	outColor *= YD;
 }

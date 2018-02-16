@@ -20,7 +20,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <unordered_map>
 #include <vulkan/vulkan.hpp>
 
-namespace Tephra {
+namespace smug {
 class VkPipeline {
   public:
 	VkPipeline();

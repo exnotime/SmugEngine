@@ -5,6 +5,7 @@
 #include "Vertex.h"
 #include "Core/Timer.h"
 #define USE_DEBUG_LAYER 0
+using namespace smug;
 
 GraphicsEngine::GraphicsEngine() {
 
@@ -49,8 +50,8 @@ void GraphicsEngine::CreateContext() {
 	appInfo.engineVersion = 1;
 	appInfo.apiVersion = VK_API_VERSION_1_0;
 
-	std::vector<const char*> layers;
-	std::vector<const char*> extensions;
+	Vector<const char*> layers;
+	Vector<const char*> extensions;
 #ifdef _DEBUG
 	extensions.push_back("VK_EXT_debug_report");
 
@@ -104,38 +105,39 @@ void GraphicsEngine::CreateContext() {
 
 	m_vkQueue.Init(VK_PHYS_DEVICE, vk::QueueFlagBits::eGraphics);
 
-	std::vector<std::string> deviceExtensionStrings;
+	Vector<std::string> deviceExtensionStrings;
 	for (auto& extension : VK_PHYS_DEVICE.enumerateDeviceExtensionProperties()) {
 		deviceExtensionStrings.push_back(extension.extensionName);
 	}
-	std::vector<std::string> devicelayerStrings;
+	Vector<std::string> devicelayerStrings;
 	for (auto& layer : VK_PHYS_DEVICE.enumerateDeviceLayerProperties()) {
 		devicelayerStrings.push_back(layer.layerName);
 	}
 	std::vector<const char*> devicelayers;
 	std::vector<const char*> deviceExtensions;
-
-	for (auto& ext : deviceExtensionStrings) {
-		deviceExtensions.push_back(ext.c_str());
+	uint32_t devExtStringCount = deviceExtensionStrings.size();
+	for (uint32_t i = 0; i < devExtStringCount; ++i) {
+		deviceExtensions.push_back(deviceExtensionStrings[i].c_str());
 	}
-	for (auto& layer : devicelayerStrings) {
-		devicelayers.push_back(layer.c_str());
+	uint32_t devlayerStringCount = devicelayerStrings.size();
+	for (uint32_t i = 0; i < devlayerStringCount; ++i) {
+		devicelayers.push_back(devicelayerStrings[i].c_str());
 	}
 
 	vk::DeviceCreateInfo deviceInfo;
 	deviceInfo.queueCreateInfoCount = 1;
 	deviceInfo.pQueueCreateInfos = &m_vkQueue.GetInfo();
 	deviceInfo.enabledExtensionCount = (uint32_t)deviceExtensions.size();
-	deviceInfo.ppEnabledExtensionNames = &deviceExtensions[0];
+	deviceInfo.ppEnabledExtensionNames = deviceExtensions.data();
 	deviceInfo.enabledLayerCount = (uint32_t)devicelayers.size();
-	deviceInfo.ppEnabledLayerNames = &devicelayers[0];
+	deviceInfo.ppEnabledLayerNames = devicelayers.data();
 	deviceInfo.pEnabledFeatures = nullptr;
 	VK_DEVICE = VK_PHYS_DEVICE.createDevice(deviceInfo);
 	//get queues
 	*static_cast<vk::Queue*>(&m_vkQueue) = VK_DEVICE.getQueue(m_vkQueue.GetQueueIndex(), 0);
 
 	//set up command buffers
-	m_CmdBufferFactory.Init(VK_DEVICE, m_vkQueue.GetQueueIndex(), 32);
+	m_CmdBufferFactory.Init(VK_DEVICE, m_vkQueue.GetQueueIndex(), 8);
 }
 
 void GraphicsEngine::CreateSwapChain(VkSurfaceKHR surface) {
@@ -194,7 +196,7 @@ void GraphicsEngine::CreateSwapChain(VkSurfaceKHR surface) {
 	//renderpass
 	vk::RenderPassCreateInfo renderPassInfo;
 	renderPassInfo.dependencyCount = 0;
-	std::vector<vk::AttachmentDescription> attachments;
+	Vector<vk::AttachmentDescription> attachments;
 	vk::AttachmentDescription attachmentDesc;
 	attachmentDesc.format = format.format;
 	attachmentDesc.finalLayout = vk::ImageLayout::ePresentSrcKHR;
@@ -240,14 +242,12 @@ void GraphicsEngine::CreateSwapChain(VkSurfaceKHR surface) {
 	m_VKSwapChain.FrameBuffers[1] = VK_DEVICE.createFramebuffer(framebufferInfo);
 
 	//hdr offscreen framebuffer
-	std::vector<vk::Format> fboFormats = {
-		vk::Format::eR16G16B16A16Unorm
-		, vk::Format::eD24UnormS8Uint
-	};
-	std::vector<vk::ImageUsageFlags> usages = {
-		vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled,
-		vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled
-	};
+	Vector<vk::Format> fboFormats;
+	fboFormats.push_back(vk::Format::eR16G16B16A16Unorm);
+	fboFormats.push_back(vk::Format::eD24UnormS8Uint);
+	Vector<vk::ImageUsageFlags> usages;
+	usages.push_back(vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled);
+	usages.push_back(vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled);
 	m_FrameBuffer.Init(VK_DEVICE, VK_PHYS_DEVICE, m_ScreenSize, fboFormats, usages);
 }
 
@@ -317,7 +317,7 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	descPoolInfo.poolSizeCount = (uint32_t)poolSizes.size();
 	m_DescriptorPool = VK_DEVICE.createDescriptorPool(descPoolInfo);
 	//tonemapping
-	m_ToneMapping.Init(VK_DEVICE, m_ScreenSize, m_FrameBuffer, m_DescriptorPool, m_RenderPass);
+	m_ToneMapping.Init(VK_DEVICE, m_ScreenSize, m_FrameBuffer, m_DescriptorPool, m_RenderPass, m_DeviceAllocator);
 
 	{
 		//uniform set
@@ -419,7 +419,9 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	for (int i = 0; i < BUFFER_COUNT; i++) {
 		cmdBuffer.ImageBarrier(m_VKSwapChain.Images[i], vk::ImageLayout::eUndefined, vk::ImageLayout::ePresentSrcKHR);
 
-		std::vector<vk::ImageLayout> layouts = {vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eDepthStencilAttachmentOptimal };
+		Vector<vk::ImageLayout> layouts;
+		layouts.push_back(vk::ImageLayout::eColorAttachmentOptimal);
+		layouts.push_back(vk::ImageLayout::eDepthStencilAttachmentOptimal);
 		m_FrameBuffer.ChangeLayout(cmdBuffer, layouts, i);
 	}
 	
@@ -492,6 +494,7 @@ void GraphicsEngine::Render() {
 		uniformBuffer.Material.y = metallic ? 1.0f : 0.0f;
 
 		m_DeviceAllocator.UpdateBuffer(m_PerFrameBuffer, sizeof(PerFrameBuffer), &uniformBuffer);
+		m_ToneMapping.Update(m_DeviceAllocator);
 		rq.ScheduleTransfer(m_DeviceAllocator);
 
 		m_CmdBufferFactory.Reset(VK_DEVICE, VK_FRAME_INDEX);
@@ -503,12 +506,18 @@ void GraphicsEngine::Render() {
 		m_CmdBufferFactory.EndBuffer(cmdBuffer);
 
 		m_vkQueue.Submit(cmdBuffer, nullptr, m_TransferComplete, nullptr);
+		
 	}
 	//render pass
 	{
 		auto& cmdBuffer = m_CmdBufferFactory.GetNextBuffer();
 		cmdBuffer.Begin(m_FrameBuffer.GetFrameBuffer(VK_FRAME_INDEX), m_FrameBuffer.GetRenderPass());
-		m_FrameBuffer.ChangeLayout(cmdBuffer, { vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eDepthStencilAttachmentOptimal }, VK_FRAME_INDEX);
+
+		Vector<vk::ImageLayout> newLayouts;
+		newLayouts.push_back(vk::ImageLayout::eColorAttachmentOptimal);
+		newLayouts.push_back(vk::ImageLayout::eDepthStencilAttachmentOptimal);
+
+		m_FrameBuffer.ChangeLayout(cmdBuffer, newLayouts, VK_FRAME_INDEX);
 		cmdBuffer.PushPipelineBarrier();
 
 		vk::RenderPassBeginInfo renderPassInfo;
@@ -562,7 +571,11 @@ void GraphicsEngine::Render() {
 		vk::ClearValue cv = { cc };
 		rpBeginInfo.pClearValues = &cv;
 
-		m_FrameBuffer.ChangeLayout(cmdBuffer, { vk::ImageLayout::eShaderReadOnlyOptimal, vk::ImageLayout::eDepthStencilReadOnlyOptimal }, VK_FRAME_INDEX);
+		Vector<vk::ImageLayout> newLayouts;
+		newLayouts.push_back(vk::ImageLayout::eShaderReadOnlyOptimal);
+		newLayouts.push_back(vk::ImageLayout::eDepthStencilReadOnlyOptimal);
+
+		m_FrameBuffer.ChangeLayout(cmdBuffer, newLayouts, VK_FRAME_INDEX);
 		cmdBuffer.PushPipelineBarrier();
 		cmdBuffer.beginRenderPass(rpBeginInfo, vk::SubpassContents::eInline);
 		cmdBuffer.setViewport(0, 1, &m_Viewport);
@@ -595,6 +608,8 @@ void GraphicsEngine::Swap() {
 	m_RenderQueues[VK_FRAME_INDEX].Clear();
 
 	VK_FRAME_INDEX = VK_DEVICE.acquireNextImageKHR(m_VKSwapChain.SwapChain, UINT64_MAX, m_ImageAquiredSemaphore, nullptr).value;
+
+	m_DeviceAllocator.Clear();
 }
 
 RenderQueue* GraphicsEngine::GetRenderQueue() {

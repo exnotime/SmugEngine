@@ -2,9 +2,9 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb-master/stb_image.h"
 #include <gli/gli.hpp>
-
 #include "vk_mem_alloc.h"
 
+using namespace smug;
 VkTexture::VkTexture() {
 
 }

@@ -1,2 +1,2 @@
 #include "CameraComponent.h"
-unsigned int CameraComponent::Flag = 1 << 0;
+unsigned int smug::CameraComponent::Flag = 1 << 0;

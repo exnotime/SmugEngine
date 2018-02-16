@@ -1,6 +1,6 @@
 #include "Input.h"
 
-
+using namespace smug;
 Input::Input() {
 	m_MousePos = glm::vec2(0);
 	m_UpdateMouseDelta = true;

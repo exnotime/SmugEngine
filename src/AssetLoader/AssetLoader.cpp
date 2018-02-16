@@ -6,7 +6,7 @@
 #include "ShaderLoader.h"
 #include <Utility/Hash.h>
 #define SAFE_DELETE(x) if(x) delete x
-
+using namespace smug;
 AssetLoader::AssetLoader() {
 	m_ResourceCache.reserve(1);
 }

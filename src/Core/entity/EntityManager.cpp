@@ -1,5 +1,7 @@
 #include "EntityManager.h"
 #include <Core/GlobalSystems.h>
+
+using namespace smug;
 EntityManager::EntityManager() {}
 
 EntityManager::~EntityManager() {}

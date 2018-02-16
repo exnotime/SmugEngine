@@ -7,12 +7,12 @@
 #include "AssetLoader.h"
 #include <Utility/Hash.h>
 #include <Utility/Memory.h>
-
+using namespace smug;
 ModelLoader::ModelLoader() {}
 ModelLoader::~ModelLoader() {}
 
 std::string GetDir(const std::string& file) {
-	for (int i = file.length() - 1; i >= 0; i--) {
+	for (uint32_t i = (uint32_t)file.length() - 1; i >= 0; i--) {
 		if (file[i] == '\\' || file[i] == '/') {
 			return file.substr(0, i + 1);
 		}
@@ -221,10 +221,10 @@ DeSerializedResult ModelLoader::DeSerializeAsset(void* assetBuffer) {
 	}
 
 	for (uint32_t i = 0; i < src->MaterialCount; i++) {
-		dst->Materials[i].Albedo = g_AssetLoader.LoadAsset(dst->Materials[i].Albedo);
-		dst->Materials[i].Metal = g_AssetLoader.LoadAsset(dst->Materials[i].Metal);
-		dst->Materials[i].Normal = g_AssetLoader.LoadAsset(dst->Materials[i].Normal);
-		dst->Materials[i].Roughness = g_AssetLoader.LoadAsset(dst->Materials[i].Roughness);
+		dst->Materials[i].Albedo = g_AssetLoader.LoadAsset((uint32_t)dst->Materials[i].Albedo);
+		dst->Materials[i].Metal = g_AssetLoader.LoadAsset((uint32_t)dst->Materials[i].Metal);
+		dst->Materials[i].Normal = g_AssetLoader.LoadAsset((uint32_t)dst->Materials[i].Normal);
+		dst->Materials[i].Roughness = g_AssetLoader.LoadAsset((uint32_t)dst->Materials[i].Roughness);
 	}
 	
 	DeSerializedResult res;

@@ -23,7 +23,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 
-namespace Tephra {
+namespace smug {
 enum SHADER_LANGUAGE {
 	GLSL,
 	HLSL

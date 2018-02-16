@@ -1,4 +1,6 @@
 #pragma once
-namespace if_component {
-	void InitComponentInterface();
-};
+namespace smug {
+	namespace if_component {
+		void InitComponentInterface();
+	}
+}

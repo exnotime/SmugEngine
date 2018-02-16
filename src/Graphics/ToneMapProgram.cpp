@@ -1,5 +1,7 @@
 #include "ToneMapProgram.h"
+#include <Imgui/imgui.h>
 
+using namespace smug;
 ToneMapProgram::ToneMapProgram() {
 
 }
@@ -8,7 +10,7 @@ ToneMapProgram::~ToneMapProgram() {
 
 }
 
-void ToneMapProgram::Init(vk::Device& device, const glm::vec2& screenSize, FrameBuffer& fbo, vk::DescriptorPool& descPool, vk::RenderPass& rp) {
+void ToneMapProgram::Init(vk::Device& device, const glm::vec2& screenSize, FrameBuffer& fbo, vk::DescriptorPool& descPool, vk::RenderPass& rp, VkMemoryAllocator& allocator) {
 
 	m_Pipeline.LoadPipelineFromFile(device, "shader/ToneMap.json", vk::Viewport(0,0, screenSize.x, screenSize.y), rp);
 	//pepare desc sets
@@ -20,7 +22,6 @@ void ToneMapProgram::Init(vk::Device& device, const glm::vec2& screenSize, Frame
 	for (uint32_t i = 0; i < BUFFER_COUNT; i++) {
 		m_DescSet[i] = device.allocateDescriptorSets(setAllocInfo)[0];
 	}
-
 	
 	vk::SamplerCreateInfo sampInfo = {};
 	sampInfo.addressModeU = vk::SamplerAddressMode::eRepeat;
@@ -40,8 +41,16 @@ void ToneMapProgram::Init(vk::Device& device, const glm::vec2& screenSize, Frame
 	sampInfo.unnormalizedCoordinates = false;
 	m_Sampler = device.createSampler(sampInfo);
 
-	vk::WriteDescriptorSet writeSet[BUFFER_COUNT];
+	//each framebuffer texture + uniform buffer
+	vk::WriteDescriptorSet writeSet[BUFFER_COUNT + 2];
 	vk::DescriptorImageInfo imageInfo[BUFFER_COUNT];
+	vk::DescriptorBufferInfo bufferInfo;
+
+	//allocate memory for buffer
+	m_Buffer = allocator.AllocateBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(ToneMapUniformData));
+	bufferInfo.offset = 0;
+	bufferInfo.range = VK_WHOLE_SIZE;
+	bufferInfo.buffer = m_Buffer.buffer;
 
 	for (uint32_t i = 0; i < BUFFER_COUNT; i++) {
 		imageInfo[i].imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
@@ -55,8 +64,28 @@ void ToneMapProgram::Init(vk::Device& device, const glm::vec2& screenSize, Frame
 		writeSet[i].pImageInfo = &imageInfo[i];
 		writeSet[i].dstSet = m_DescSet[i];
 	}
-	
-	device.updateDescriptorSets(BUFFER_COUNT, writeSet, 0, nullptr);
+
+	for (uint32_t i = 0; i < BUFFER_COUNT; i++) {
+		writeSet[BUFFER_COUNT + i].descriptorCount = 1;
+		writeSet[BUFFER_COUNT + i].descriptorType = vk::DescriptorType::eUniformBuffer;
+		writeSet[BUFFER_COUNT + i].dstArrayElement = 0;
+		writeSet[BUFFER_COUNT + i].dstBinding = 1;
+		writeSet[BUFFER_COUNT + i].dstSet = m_DescSet[i];
+		writeSet[BUFFER_COUNT + i].pBufferInfo = &bufferInfo;
+	}
+
+	device.updateDescriptorSets(BUFFER_COUNT + 2, writeSet, 0, nullptr);
+}
+
+void ToneMapProgram::Update(VkMemoryAllocator& allocator) {
+	static ToneMapUniformData data = {1.0f, 1.0f / 1.6f};
+
+	ImGui::Begin("Scene");
+	ImGui::Spacing();
+	ImGui::SliderFloat("Bright", &data.bright, 0.0f, 1.0f);
+	ImGui::SliderFloat("Exposure", &data.exposure, 0.0f, 1.0f);
+	ImGui::End();
+	allocator.UpdateBuffer(m_Buffer, sizeof(ToneMapUniformData), &data);
 }
 
 void ToneMapProgram::Render(VulkanCommandBuffer& cmdBuffer, vk::Viewport viewport, uint32_t frameIndex) {

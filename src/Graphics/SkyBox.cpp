@@ -2,6 +2,7 @@
 #define PAR_SHAPES_IMPLEMENTATION
 #include <par_shapes.h>
 #include <glm/gtx/transform.hpp>
+using namespace smug;
 
 SkyBox::SkyBox() {
 

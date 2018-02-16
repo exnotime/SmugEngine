@@ -1,4 +1,4 @@
-solution "Tephra"
+solution "SmugEngine"
     configurations { "Debug", "Release" }
         flags{ "NoPCH" }
         local vulkan_dir = os.getenv("VULKAN_SDK");
@@ -29,7 +29,7 @@ solution "Tephra"
 
 
 	project "Core"
-        targetname "Tephra"
+        targetname "SmugEngine"
 		debugdir ""
         defines { "AS_USE_NAMESPACE", "USE_IMGUI" }
 		location ( location_path )

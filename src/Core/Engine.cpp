@@ -23,6 +23,7 @@
 #include "script/ScriptEngine.h"
 #include <Imgui/imgui_impl_glfw_vulkan.h>
 
+using namespace smug;
 Engine::Engine() {
 
 }
@@ -47,7 +48,7 @@ void Engine::Init() {
 	ws.Height = 900;
 	ws.HighDPI = false;
 	ws.OpenGL = true;
-	ws.Title = "Tephra";
+	ws.Title = "Smug Engine";
 	ws.Vsync = false;
 	ws.BorderLess = false;
 	m_Window->Initialize(ws);
@@ -70,7 +71,9 @@ void Engine::Init() {
 	//set up physics engine
 	globals::g_Physics = new PhysicsEngine();
 	globals::g_Physics->Init();
+	
 	g_ScriptEngine.Init();
+
 	if_asset::RegisterInterface();
 	if_entity::RegisterEntityInterface();
 	if_component::InitComponentInterface();

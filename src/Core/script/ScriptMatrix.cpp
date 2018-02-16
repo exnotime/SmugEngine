@@ -1,5 +1,6 @@
 #include "ScriptMatrix.h"
 
+using namespace smug;
 //Mat4x4
 Mat4x4::Mat4x4() {
 	m_Mat = glm::mat4x4(1);

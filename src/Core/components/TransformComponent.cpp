@@ -1,2 +1,2 @@
 #include "TransformComponent.h"
-unsigned int TransformComponent::Flag = 1 << 5;
+unsigned int smug::TransformComponent::Flag = 1 << 5;

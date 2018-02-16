@@ -4,10 +4,9 @@
 #include <fstream>
 #include <Utility/Hash.h>
 #include <Utility/Memory.h>
-
+using namespace smug;
 ShaderLoader::ShaderLoader() {}
 ShaderLoader::~ShaderLoader() {}
-
 
 ShaderByteCode* CompileShader(const std::string& file, SHADER_KIND kind, const std::string& entryPoint, SHADER_LANGUAGE lang, bool debug) {
 	//load shader file
@@ -97,16 +96,16 @@ ShaderByteCode* CompileShader(const std::string& file, SHADER_KIND kind, const s
 	}
 	delete[] code;
 	ShaderByteCode* bc = new ShaderByteCode();
-	bc->ByteCodeSize = shaderc_result_get_length(result);
+	bc->ByteCodeSize = (uint32_t)shaderc_result_get_length(result);
 	bc->Kind = kind;
 	bc->SrcLanguage = lang;
 	bc->Type = SPIRV;
 	bc->ByteCode = malloc(bc->ByteCodeSize);
 	memcpy(bc->ByteCode, shaderc_result_get_bytes(result), bc->ByteCodeSize);
-	bc->DependencyCount = includes.size();
+	bc->DependencyCount = (uint32_t)includes.size();
 	if(bc->DependencyCount){
 		bc->DependenciesHashes = (uint32_t*)malloc(sizeof(uint32_t) * bc->DependencyCount);
-		for (int i = 0; i < bc->DependencyCount; ++i) {
+		for (uint32_t i = 0; i < bc->DependencyCount; ++i) {
 			bc->DependenciesHashes[i] = HashString(includes[i]);
 		}
 	}
@@ -169,9 +168,9 @@ char* ShaderLoader::LoadShaders(const std::string& filename, ShaderInfo& info) {
 				byte_codes.push_back(bc);
 			}
 		}
-		info.ShaderCount = byte_codes.size();
+		info.ShaderCount = (uint32_t)byte_codes.size();
 		info.Shaders = new ShaderByteCode[info.ShaderCount];
-		for (int i = 0; i < info.ShaderCount; ++i) {
+		for (uint32_t i = 0; i < info.ShaderCount; ++i) {
 			info.Shaders[i] = *byte_codes[i];
 		}
 

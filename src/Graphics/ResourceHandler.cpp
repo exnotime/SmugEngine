@@ -3,6 +3,7 @@
 #include <Utility/Hash.h>
 
 #define SAFE_DELETE(x) if(x) delete x
+using namespace smug;
 
 ResourceHandler::ResourceHandler() {
 
@@ -184,8 +185,8 @@ void ResourceHandler::AllocateModel(const ModelInfo& model, ResourceHandle handl
 	internalModel.IndexCount = (uint32_t)indices.size();
 
 	vk::BufferCreateInfo vertBufferCreateInfo[NUM_VERTEX_CHANNELS];
-	uint32_t sizes[] = { positions.size() * sizeof(glm::vec3), normals.size() * sizeof(glm::vec3),
-		tangents.size() * sizeof(glm::vec3), texcoords.size() * sizeof(glm::vec2) };
+	uint32_t sizes[] = { (uint32_t)positions.size() * sizeof(glm::vec3), (uint32_t)normals.size() * sizeof(glm::vec3),
+		(uint32_t)tangents.size() * sizeof(glm::vec3), (uint32_t)texcoords.size() * sizeof(glm::vec2) };
 	void* datas[] = { positions.data(), normals.data(), tangents.data(), texcoords.data() };
 
 	for (uint32_t i = 0; i < NUM_VERTEX_CHANNELS; ++i) {

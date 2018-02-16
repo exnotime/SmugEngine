@@ -2,6 +2,7 @@
 #include <gli/gli.hpp>
 #include <Utility/Hash.h>
 #include <Utility/Memory.h>
+using namespace smug;
 
 TextureLoader::TextureLoader() {}
 TextureLoader::~TextureLoader() {}

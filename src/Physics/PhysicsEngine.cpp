@@ -4,7 +4,7 @@
 #if _DEBUG
 #include <PhysX/pvd/PxPvd.h>
 #endif
-
+using namespace smug;
 using namespace physx;
 
 PhysicsEngine::PhysicsEngine() {

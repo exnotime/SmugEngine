@@ -1,5 +1,5 @@
 #include "RenderQueue.h"
-
+using namespace smug;
 RenderQueue::RenderQueue() {
 }
 
@@ -8,7 +8,7 @@ RenderQueue::~RenderQueue() {
 
 void RenderQueue::Init(VkMemoryAllocator& memory) {
 	//allocate gpu memory for shader inputs
-	m_Buffer = memory.AllocateBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, 4 * 1024 * 1024, nullptr);
+	m_Buffer = memory.AllocateBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, 1024 * 1024, nullptr);
 
 	m_Cameras.reserve(10);
 	m_Inputs.reserve(1024);
@@ -31,13 +31,15 @@ void RenderQueue::AddModel(ResourceHandle model, const glm::mat4& transform, con
 		m_Models[model].Count = 0;
 	}
 	m_Models[model].Count++;
-	m_Models[model].Inputs.push_back({ transform, tint });
+	ShaderInput i = { transform, tint };
+	m_Models[model].Inputs.push_back(i);
 }
 
 void RenderQueue::ScheduleTransfer(VkMemoryAllocator& memory) {
 	for (auto& mi : m_Models) {
-		mi.second.Offset = m_Inputs.size();
-		m_Inputs.insert(m_Inputs.end(), mi.second.Inputs.begin(), mi.second.Inputs.end());
+		mi.second.Offset = (uint32_t)m_Inputs.size();
+		//m_Inputs.insert(m_Inputs.end(), mi.second.Inputs.begin(), mi.second.Inputs.end());
+		m_Inputs += mi.second.Inputs;
 	}
 
 	if (m_Inputs.size() > 0) {

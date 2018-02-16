@@ -1,4 +1,5 @@
 #include "GlobalSystems.h"
+using namespace smug;
 
 GraphicsEngine* globals::g_Gfx = nullptr;
 PhysicsEngine* globals::g_Physics = nullptr;

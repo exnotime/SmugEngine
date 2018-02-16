@@ -1,5 +1,6 @@
 #include "Camera.h"
 #include <glm/gtx/transform2.hpp>	// lookAt, and perspectiveFov
+using namespace smug;
 Camera::Camera() {
 	m_CamData.View = glm::mat4(1);
 	m_CamData.Proj = glm::mat4(1);
