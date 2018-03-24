@@ -21,10 +21,11 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <vulkan/vulkan.hpp>
 
 namespace smug {
-class VkPipeline {
+
+class PipelineState {
   public:
-	VkPipeline();
-	~VkPipeline();
+	  PipelineState();
+	~PipelineState();
 	void LoadPipelineFromFile(const vk::Device& device, const std::string& filename, vk::Viewport vp, vk::RenderPass renderPass);
 	void SetDefaultVertexState(const vk::PipelineVertexInputStateCreateInfo& vertexState);
 	void SetDefaultMulitSampleState(const vk::PipelineMultisampleStateCreateInfo& msState);

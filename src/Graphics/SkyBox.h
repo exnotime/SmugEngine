@@ -12,7 +12,7 @@ namespace smug {
 		void PrepareUniformBuffer(VulkanCommandBuffer cmdBuffer, VkMemoryAllocator& allocator, const glm::mat4& viewProj, const glm::mat4& world);
 		void Render(VulkanCommandBuffer cmdBuffer);
 	private:
-		VkPipeline m_Pipeline;
+		PipelineState m_Pipeline;
 		VkBufferHandle m_VBO;
 		VkBufferHandle m_UBO;
 		vk::DescriptorSet m_DescSet;

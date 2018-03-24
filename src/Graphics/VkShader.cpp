@@ -5,8 +5,27 @@
 #include <sstream>
 #include <sys/types.h>
 #include <sys/stat.h>
-
+#include "DescriptorSetLayout.h"
 using namespace smug;
+
+const char* StageString(SHADER_STAGE stage) {
+	if (stage == VERTEX)
+		return "VERTEX";
+	else if (stage == FRAGMENT)
+		return "FRAGMENT";
+	else if (stage == GEOMETRY)
+		return "GEOMETRY";
+	else if (stage == CONTROL)
+		return "CONTROL";
+	else if (stage == EVALUATION)
+		return "EVALUATION";
+	else if (stage == COMPUTE)
+		return "COMPUTE";
+	else
+		return "";
+}
+
+
 
 vk::ShaderModule smug::LoadShader(const vk::Device& device, const std::string& filename, SHADER_STAGE stage, const std::string& entryPoint, SHADER_LANGUAGE language) {
 	//read file ending and figure out shader type
@@ -43,7 +62,7 @@ vk::ShaderModule smug::LoadShader(const vk::Device& device, const std::string& f
 	}
 
 	//check if there is an up to date shader cache
-	std::string cacheName = SHADER_CACHE_DIR + filename.substr(filename.find_last_of('/') + 1) + ".spv";
+	std::string cacheName = SHADER_CACHE_DIR + filename.substr(filename.find_last_of('/') + 1) + "." + StageString(stage) + ".spv";
 	struct stat cacheBuf, fileBuf;
 	stat(cacheName.c_str(), &cacheBuf);
 	stat(filename.c_str(), &fileBuf);
@@ -75,7 +94,7 @@ vk::ShaderModule smug::LoadShader(const vk::Device& device, const std::string& f
 	//compile into spir-v
 	shaderc_compiler_t compiler = shaderc_compiler_initialize();
 	shaderc_compile_options_t options = shaderc_compile_options_initialize();
-
+	
 	if(language == GLSL)
 		shaderc_compile_options_set_source_language(options, shaderc_source_language_glsl);
 	else if (language == HLSL)
@@ -85,6 +104,10 @@ vk::ShaderModule smug::LoadShader(const vk::Device& device, const std::string& f
 	shaderc_compile_options_set_generate_debug_info(options);
 #endif
 	shaderc_compile_options_set_optimization_level(options, shaderc_optimization_level::shaderc_optimization_level_zero);
+	//add macros
+	const char* stageStr = StageString(stage);
+	shaderc_compile_options_add_macro_definition(options, stageStr, strlen(stageStr), nullptr, 0);
+
 	//include resolver lambda
 	auto includeResolver = [](void* user_data, const char* requested_source, int type,
 	const char* requesting_source, size_t include_depth) -> shaderc_include_result* {
@@ -134,6 +157,9 @@ vk::ShaderModule smug::LoadShader(const vk::Device& device, const std::string& f
 	shaderInfo.codeSize = shaderc_result_get_length(result);
 	shaderInfo.pCode = reinterpret_cast<const uint32_t*>(shaderc_result_get_bytes(result));
 	vk::ShaderModule module = device.createShaderModule(shaderInfo);
+	//TEST:
+	DescriptorSetLayout layout;
+	layout.InitFromSpirV(shaderInfo.pCode, shaderInfo.codeSize);
 	//save to cache
 	FILE* fout = fopen(cacheName.c_str(), "wb");
 	fwrite(shaderc_result_get_bytes(result), sizeof(char), shaderc_result_get_length(result), fout);

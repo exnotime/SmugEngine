@@ -17,7 +17,7 @@ enum SHADER_TYPES {
 
 #pragma region mappings
 //static mappings to vulkan enums
-std::unordered_map<std::string, vk::DescriptorType> VkPipeline::ToDescriptorType = {
+std::unordered_map<std::string, vk::DescriptorType> PipelineState::ToDescriptorType = {
 	{ "Sampler", vk::DescriptorType::eSampler},
 	{ "CombinedImageSampler", vk::DescriptorType::eCombinedImageSampler },
 	{ "SampledImage", vk::DescriptorType::eSampledImage },
@@ -31,7 +31,7 @@ std::unordered_map<std::string, vk::DescriptorType> VkPipeline::ToDescriptorType
 	{ "InputAttachment", vk::DescriptorType::eInputAttachment }
 };
 
-std::unordered_map<std::string, vk::BlendFactor> VkPipeline::ToBlendFactor = {
+std::unordered_map<std::string, vk::BlendFactor> PipelineState::ToBlendFactor = {
 	{ "Zero", vk::BlendFactor::eZero },
 	{ "One", vk::BlendFactor::eOne },
 	{ "SrcColor", vk::BlendFactor::eSrcColor },
@@ -53,7 +53,7 @@ std::unordered_map<std::string, vk::BlendFactor> VkPipeline::ToBlendFactor = {
 	{ "OneMinusSrc1Alpha", vk::BlendFactor::eOneMinusSrc1Alpha },
 };
 
-std::unordered_map<std::string, vk::BlendOp> VkPipeline::ToBlendOp = {
+std::unordered_map<std::string, vk::BlendOp> PipelineState::ToBlendOp = {
 	{ "Add", vk::BlendOp::eAdd },
 	{ "Subtract", vk::BlendOp::eSubtract },
 	{ "ReverseSubtract", vk::BlendOp::eReverseSubtract },
@@ -61,7 +61,7 @@ std::unordered_map<std::string, vk::BlendOp> VkPipeline::ToBlendOp = {
 	{ "Max", vk::BlendOp::eMax }
 };
 
-std::unordered_map<int, vk::ShaderStageFlagBits> VkPipeline::ToShaderStage = {
+std::unordered_map<int, vk::ShaderStageFlagBits> PipelineState::ToShaderStage = {
 	{ 0, vk::ShaderStageFlagBits::eVertex },
 	{ 1, vk::ShaderStageFlagBits::eFragment },
 	{ 2, vk::ShaderStageFlagBits::eGeometry },
@@ -70,7 +70,7 @@ std::unordered_map<int, vk::ShaderStageFlagBits> VkPipeline::ToShaderStage = {
 	{ 5, vk::ShaderStageFlagBits::eCompute }
 };
 
-std::unordered_map<std::string, vk::LogicOp> VkPipeline::ToLogicOp = {
+std::unordered_map<std::string, vk::LogicOp> PipelineState::ToLogicOp = {
 	{ "Clear", vk::LogicOp::eClear },
 	{ "And", vk::LogicOp::eAnd },
 	{ "AndReverse", vk::LogicOp::eAndReverse },
@@ -89,7 +89,7 @@ std::unordered_map<std::string, vk::LogicOp> VkPipeline::ToLogicOp = {
 	{ "Set", vk::LogicOp::eSet }
 };
 
-std::unordered_map<std::string, vk::StencilOp> VkPipeline::ToStencilOp = {
+std::unordered_map<std::string, vk::StencilOp> PipelineState::ToStencilOp = {
 	{ "Keep", vk::StencilOp::eKeep },
 	{ "Zero", vk::StencilOp::eZero },
 	{ "Replace", vk::StencilOp::eReplace },
@@ -100,7 +100,7 @@ std::unordered_map<std::string, vk::StencilOp> VkPipeline::ToStencilOp = {
 	{ "DecrementAndWrap", vk::StencilOp::eDecrementAndWrap }
 };
 
-std::unordered_map<std::string, vk::CompareOp> VkPipeline::ToCompareOp = {
+std::unordered_map<std::string, vk::CompareOp> PipelineState::ToCompareOp = {
 	{ "Never", vk::CompareOp::eNever },
 	{ "Less", vk::CompareOp::eLess },
 	{ "Equal", vk::CompareOp::eEqual },
@@ -111,7 +111,7 @@ std::unordered_map<std::string, vk::CompareOp> VkPipeline::ToCompareOp = {
 	{ "Always", vk::CompareOp::eAlways }
 };
 
-std::unordered_map<std::string, vk::PrimitiveTopology> VkPipeline::ToPrimitiveTopology = {
+std::unordered_map<std::string, vk::PrimitiveTopology> PipelineState::ToPrimitiveTopology = {
 	{ "PointList", vk::PrimitiveTopology::ePointList },
 	{ "LineList", vk::PrimitiveTopology::eLineList },
 	{ "LineStrip", vk::PrimitiveTopology::eLineStrip },
@@ -126,7 +126,7 @@ std::unordered_map<std::string, vk::PrimitiveTopology> VkPipeline::ToPrimitiveTo
 };
 
 
-std::unordered_map<int, vk::SampleCountFlagBits> VkPipeline::ToSampleCount = {
+std::unordered_map<int, vk::SampleCountFlagBits> PipelineState::ToSampleCount = {
 	{ 1, vk::SampleCountFlagBits::e1 },
 	{ 2, vk::SampleCountFlagBits::e2 },
 	{ 4, vk::SampleCountFlagBits::e4 },
@@ -136,30 +136,30 @@ std::unordered_map<int, vk::SampleCountFlagBits> VkPipeline::ToSampleCount = {
 	{ 64, vk::SampleCountFlagBits::e64 }
 };
 
-std::unordered_map<std::string, vk::CullModeFlagBits> VkPipeline::ToCullMode = {
+std::unordered_map<std::string, vk::CullModeFlagBits> PipelineState::ToCullMode = {
 	{ "None", vk::CullModeFlagBits::eNone },
 	{ "Front", vk::CullModeFlagBits::eFront },
 	{ "Back", vk::CullModeFlagBits::eBack },
 	{ "FrontAndBack", vk::CullModeFlagBits::eFrontAndBack }
 };
 
-std::unordered_map<std::string, vk::FrontFace> VkPipeline::ToFrontFace = {
+std::unordered_map<std::string, vk::FrontFace> PipelineState::ToFrontFace = {
 	{ "CounterClockwise", vk::FrontFace::eCounterClockwise },
 	{ "Clockwise", vk::FrontFace::eClockwise }
 };
 
-std::unordered_map<std::string, vk::PolygonMode> VkPipeline::ToPolygonMode = {
+std::unordered_map<std::string, vk::PolygonMode> PipelineState::ToPolygonMode = {
 	{ "Fill", vk::PolygonMode::eFill },
 	{ "Line", vk::PolygonMode::eLine },
 	{ "Point", vk::PolygonMode::ePoint }
 };
 
-std::unordered_map<std::string, vk::VertexInputRate> VkPipeline::ToVertexInputRate = {
+std::unordered_map<std::string, vk::VertexInputRate> PipelineState::ToVertexInputRate = {
 	{ "Instance", vk::VertexInputRate::eInstance },
 	{ "Vertex", vk::VertexInputRate::eVertex }
 };
 
-std::unordered_map<std::string, vk::Format> VkPipeline::ToFormat = {
+std::unordered_map<std::string, vk::Format> PipelineState::ToFormat = {
 	{ "Undefined", vk::Format::eUndefined },
 	{ "R4G4UnormPack8", vk::Format::eR4G4UnormPack8 },
 	{ "R4G4B4A4UnormPack16", vk::Format::eR4G4B4A4UnormPack16 },
@@ -357,12 +357,12 @@ std::unordered_map<std::string, vk::Format> VkPipeline::ToFormat = {
 };
 #pragma endregion
 
-VkPipeline::VkPipeline() {
+PipelineState::PipelineState() {
 	m_DefaultVertexStateSet = false;
 	m_DefaultMultiSampleStateSet = false;
 }
 
-VkPipeline::~VkPipeline() {
+PipelineState::~PipelineState() {
 
 }
 
@@ -385,22 +385,22 @@ vk::PipelineColorBlendAttachmentState ReadColorBlendAttachmentState(const json& 
 		blendAttachStateInfo.blendEnable = TO_VK_BOOL(blendJson["BlendEnable"]);
 	}
 	if (blendJson.find("SrcColorBlendFactor") != blendJson.end()) {
-		blendAttachStateInfo.srcColorBlendFactor = VkPipeline::ToBlendFactor[blendJson["SrcColorBlendFactor"]];
+		blendAttachStateInfo.srcColorBlendFactor = PipelineState::ToBlendFactor[blendJson["SrcColorBlendFactor"]];
 	}
 	if (blendJson.find("DstColorBlendFactor") != blendJson.end()) {
-		blendAttachStateInfo.dstColorBlendFactor = VkPipeline::ToBlendFactor[blendJson["DstColorBlendFactor"]];
+		blendAttachStateInfo.dstColorBlendFactor = PipelineState::ToBlendFactor[blendJson["DstColorBlendFactor"]];
 	}
 	if (blendJson.find("ColorBlendOp") != blendJson.end()) {
-		blendAttachStateInfo.colorBlendOp = VkPipeline::ToBlendOp[blendJson["ColorBlendOp"]];
+		blendAttachStateInfo.colorBlendOp = PipelineState::ToBlendOp[blendJson["ColorBlendOp"]];
 	}
 	if (blendJson.find("SrcAlphaBlendFactor") != blendJson.end()) {
-		blendAttachStateInfo.srcAlphaBlendFactor = VkPipeline::ToBlendFactor[blendJson["SrcAlphaBlendFactor"]];
+		blendAttachStateInfo.srcAlphaBlendFactor = PipelineState::ToBlendFactor[blendJson["SrcAlphaBlendFactor"]];
 	}
 	if (blendJson.find("DstAlphaBlendFactor") != blendJson.end()) {
-		blendAttachStateInfo.dstAlphaBlendFactor = VkPipeline::ToBlendFactor[blendJson["DstAlphaBlendFactor"]];
+		blendAttachStateInfo.dstAlphaBlendFactor = PipelineState::ToBlendFactor[blendJson["DstAlphaBlendFactor"]];
 	}
 	if (blendJson.find("AlphaBlendOp") != blendJson.end()) {
-		blendAttachStateInfo.alphaBlendOp = VkPipeline::ToBlendOp[blendJson["AlphaBlendOp"]];
+		blendAttachStateInfo.alphaBlendOp = PipelineState::ToBlendOp[blendJson["AlphaBlendOp"]];
 	}
 	//add color write mask
 	return blendAttachStateInfo;
@@ -420,7 +420,7 @@ vk::PipelineColorBlendStateCreateInfo GetDefaultColorBlendState() {
 vk::PipelineColorBlendStateCreateInfo ReadColorBlendState(const json& blendState) {
 	vk::PipelineColorBlendStateCreateInfo blendStateInfo = GetDefaultColorBlendState();
 	if (blendState.find("LogicOp") != blendState.end()) {
-		blendStateInfo.logicOp = VkPipeline::ToLogicOp[blendState["LogicOp"]];
+		blendStateInfo.logicOp = PipelineState::ToLogicOp[blendState["LogicOp"]];
 	}
 	if (blendState.find("logicOpEnable") != blendState.end()) {
 		blendStateInfo.logicOpEnable = TO_VK_BOOL(blendState["logicOpEnable"]);
@@ -450,16 +450,16 @@ vk::PipelineDepthStencilStateCreateInfo GetDefaultDepthStencilstate() {
 vk::PipelineDepthStencilStateCreateInfo ReadDepthStencilstate(const json& depthState) {
 	vk::PipelineDepthStencilStateCreateInfo depthStencilCreateInfo = GetDefaultDepthStencilstate();
 	if (depthState.find("Back") != depthState.end()) {
-		depthStencilCreateInfo.back = VkPipeline::ToStencilOp[depthState["Back"]];
+		depthStencilCreateInfo.back = PipelineState::ToStencilOp[depthState["Back"]];
 	}
 	if (depthState.find("Front") != depthState.end()) {
-		depthStencilCreateInfo.front = VkPipeline::ToStencilOp[depthState["Front"]];
+		depthStencilCreateInfo.front = PipelineState::ToStencilOp[depthState["Front"]];
 	}
 	if (depthState.find("DepthBoundsTestEnable") != depthState.end()) {
 		depthStencilCreateInfo.depthBoundsTestEnable = TO_VK_BOOL(depthState["DepthBoundsTestEnable"]);
 	}
 	if (depthState.find("DepthCompareOp") != depthState.end()) {
-		depthStencilCreateInfo.depthCompareOp = VkPipeline::ToCompareOp[depthState["DepthCompareOp"]];
+		depthStencilCreateInfo.depthCompareOp = PipelineState::ToCompareOp[depthState["DepthCompareOp"]];
 	}
 	if (depthState.find("DepthTestEnable") != depthState.end()) {
 		depthStencilCreateInfo.depthTestEnable = TO_VK_BOOL(depthState["DepthTestEnable"]);
@@ -490,7 +490,7 @@ vk::PipelineMultisampleStateCreateInfo GetDefaultMultiSampleState() {
 vk::PipelineMultisampleStateCreateInfo ReadMultiSampleState(const json& msStateJson) {
 	vk::PipelineMultisampleStateCreateInfo msState = GetDefaultMultiSampleState();
 	if (msStateJson.find("RasterizationSamples") != msStateJson.end()) {
-		msState.rasterizationSamples = VkPipeline::ToSampleCount[msStateJson["RasterizationSamples"]];
+		msState.rasterizationSamples = PipelineState::ToSampleCount[msStateJson["RasterizationSamples"]];
 	}
 	if (msStateJson.find("SampleShadingEnable") != msStateJson.end()) {
 		msState.sampleShadingEnable = TO_VK_BOOL(msStateJson["SampleShadingEnable"]);
@@ -525,13 +525,13 @@ vk::PipelineRasterizationStateCreateInfo GetDefaultRasterState() {
 vk::PipelineRasterizationStateCreateInfo ReadRasterState(const json& rasterStateJson) {
 	vk::PipelineRasterizationStateCreateInfo rState = GetDefaultRasterState();
 	if (rasterStateJson.find("CullMode") != rasterStateJson.end()) {
-		rState.cullMode = VkPipeline::ToCullMode[rasterStateJson["CullMode"]];
+		rState.cullMode = PipelineState::ToCullMode[rasterStateJson["CullMode"]];
 	}
 	if (rasterStateJson.find("FrontFace") != rasterStateJson.end()) {
-		rState.frontFace = VkPipeline::ToFrontFace[rasterStateJson["FrontFace"]];
+		rState.frontFace = PipelineState::ToFrontFace[rasterStateJson["FrontFace"]];
 	}
 	if (rasterStateJson.find("PolygonMode") != rasterStateJson.end()) {
-		rState.polygonMode = VkPipeline::ToPolygonMode[rasterStateJson["PolygonMode"]];
+		rState.polygonMode = PipelineState::ToPolygonMode[rasterStateJson["PolygonMode"]];
 	}
 	if (rasterStateJson.find("DepthClampEnable") != rasterStateJson.end()) {
 		rState.depthClampEnable = TO_VK_BOOL(rasterStateJson["DepthClampEnable"]);
@@ -557,7 +557,7 @@ vk::PipelineRasterizationStateCreateInfo ReadRasterState(const json& rasterState
 	return rState;
 }
 
-void VkPipeline::LoadPipelineFromFile(const vk::Device& device, const std::string& filename, vk::Viewport vp, vk::RenderPass renderPass) {
+void PipelineState::LoadPipelineFromFile(const vk::Device& device, const std::string& filename, vk::Viewport vp, vk::RenderPass renderPass) {
 	std::ifstream fin(filename);
 	if (!fin.is_open()) {
 		printf("Error opening pipeline file %s\n", filename.c_str());
@@ -822,25 +822,25 @@ void VkPipeline::LoadPipelineFromFile(const vk::Device& device, const std::strin
 	if (tesselationstate) delete tesselationstate;
 }
 
-void VkPipeline::SetDefaultVertexState(const vk::PipelineVertexInputStateCreateInfo& vertexState) {
+void PipelineState::SetDefaultVertexState(const vk::PipelineVertexInputStateCreateInfo& vertexState) {
 	m_DefaultVertexState = vertexState;
 	m_DefaultVertexStateSet = true;
 }
 
-void VkPipeline::SetDefaultMulitSampleState(const vk::PipelineMultisampleStateCreateInfo& msState) {
+void PipelineState::SetDefaultMulitSampleState(const vk::PipelineMultisampleStateCreateInfo& msState) {
 	m_DefaultMultiSampleState = msState;
 	m_DefaultMultiSampleStateSet = true;
 }
 
-std::vector<vk::DescriptorSetLayout>& VkPipeline::GetDescriptorSetLayouts() {
+std::vector<vk::DescriptorSetLayout>& PipelineState::GetDescriptorSetLayouts() {
 	return m_DescSetLayouts;
 }
 
-vk::Pipeline VkPipeline::GetPipeline() {
+vk::Pipeline PipelineState::GetPipeline() {
 	return m_Pipeline;
 }
 
-vk::PipelineLayout VkPipeline::GetPipelineLayout() {
+vk::PipelineLayout PipelineState::GetPipelineLayout() {
 	return m_PipelineLayout;
 }
 

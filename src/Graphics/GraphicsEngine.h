@@ -63,7 +63,7 @@ namespace smug {
 		VulkanCommandBufferFactory m_CmdBufferFactory;
 
 		VulkanQueue m_vkQueue;
-		VkPipeline m_Pipeline;
+		PipelineState m_Pipeline;
 		int m_CurrentPipeline;
 
 		vk::RenderPass m_RenderPass;

@@ -18,7 +18,7 @@ namespace smug {
 		void Update(VkMemoryAllocator& allocator);
 		void Render(VulkanCommandBuffer& cmdBuffer, vk::Viewport viewport, uint32_t frameIndex);
 	private:
-		VkPipeline m_Pipeline;
+		PipelineState m_Pipeline;
 		vk::DescriptorSet m_DescSet[BUFFER_COUNT];
 		vk::Sampler m_Sampler;
 		VkBufferHandle m_Buffer;

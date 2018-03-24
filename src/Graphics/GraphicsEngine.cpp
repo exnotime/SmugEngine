@@ -44,17 +44,16 @@ VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDebugCallback(
 void GraphicsEngine::CreateContext() {
 
 	vk::ApplicationInfo appInfo;
-	appInfo.pApplicationName = "Tephra";
+	appInfo.pApplicationName = "SmugEngine";
 	appInfo.applicationVersion = 1;
-	appInfo.pEngineName = "Tephra";
+	appInfo.pEngineName = "SmugEngine";
 	appInfo.engineVersion = 1;
-	appInfo.apiVersion = VK_API_VERSION_1_0;
+	appInfo.apiVersion = VK_API_VERSION_1_1;
 
 	Vector<const char*> layers;
 	Vector<const char*> extensions;
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(USE_DEBUG_LAYER)
 	extensions.push_back("VK_EXT_debug_report");
-
 	layers.push_back("VK_LAYER_LUNARG_standard_validation");
 #endif
 
@@ -72,7 +71,7 @@ void GraphicsEngine::CreateContext() {
 	instInfo.ppEnabledLayerNames = &layers[0];
 	m_VKContext.Instance = vk::createInstance(instInfo);
 
-#if  defined(_DEBUG) && USE_DEBUG_LAYER
+#if  defined(_DEBUG) && defined(USE_DEBUG_LAYER)
 	/* Load VK_EXT_debug_report entry points in debug builds */
 	PFN_vkCreateDebugReportCallbackEXT vkCreateDebugReportCallbackEXT =
 	    reinterpret_cast<PFN_vkCreateDebugReportCallbackEXT>
@@ -87,7 +86,8 @@ void GraphicsEngine::CreateContext() {
 	VkDebugReportCallbackCreateInfoEXT debugCallbacks;
 	debugCallbacks.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT;
 	debugCallbacks.pfnCallback = &VulkanDebugCallback;
-
+	debugCallbacks.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT;
+	debugCallbacks.pNext = nullptr;
 	vkCreateDebugReportCallbackEXT(m_VKContext.Instance, &debugCallbacks, nullptr, &m_DebugCallbacks);
 #endif
 	auto gpus = m_VKContext.Instance.enumeratePhysicalDevices();
@@ -115,14 +115,55 @@ void GraphicsEngine::CreateContext() {
 	}
 	std::vector<const char*> devicelayers;
 	std::vector<const char*> deviceExtensions;
-	uint32_t devExtStringCount = deviceExtensionStrings.size();
-	for (uint32_t i = 0; i < devExtStringCount; ++i) {
-		deviceExtensions.push_back(deviceExtensionStrings[i].c_str());
-	}
-	uint32_t devlayerStringCount = devicelayerStrings.size();
-	for (uint32_t i = 0; i < devlayerStringCount; ++i) {
-		devicelayers.push_back(devicelayerStrings[i].c_str());
-	}
+	//device extensions
+	deviceExtensions.push_back("VK_KHR_swapchain");
+	deviceExtensions.push_back("VK_KHR_16bit_storage");
+	deviceExtensions.push_back("VK_KHR_bind_memory2");
+	deviceExtensions.push_back("VK_KHR_descriptor_update_template");
+	deviceExtensions.push_back("VK_KHR_dedicated_allocation");
+	deviceExtensions.push_back("VK_KHR_get_memory_requirements2");
+	//deviceExtensions.push_back("VK_KHR_get_physical_device_properties2");
+	deviceExtensions.push_back("VK_KHR_image_format_list");
+	deviceExtensions.push_back("VK_KHR_maintenance1");
+	deviceExtensions.push_back("VK_KHR_maintenance2");
+	//deviceExtensions.push_back("VK_KHR_push_descriptor");
+	deviceExtensions.push_back("VK_KHR_relaxed_block_layout");
+	deviceExtensions.push_back("VK_KHR_sampler_mirror_clamp_to_edge");
+	deviceExtensions.push_back("VK_KHR_sampler_ycbcr_conversion");
+	deviceExtensions.push_back("VK_KHR_shader_draw_parameters");
+	deviceExtensions.push_back("VK_KHR_storage_buffer_storage_class");
+	deviceExtensions.push_back("VK_KHR_external_memory");
+	deviceExtensions.push_back("VK_KHR_external_memory_win32");
+	deviceExtensions.push_back("VK_KHR_external_semaphore");
+	deviceExtensions.push_back("VK_KHR_external_semaphore_win32");
+	deviceExtensions.push_back("VK_KHR_win32_keyed_mutex");
+	deviceExtensions.push_back("VK_KHR_external_fence");
+	deviceExtensions.push_back("VK_KHR_external_fence_win32");
+	deviceExtensions.push_back("VK_KHR_variable_pointers");
+	deviceExtensions.push_back("VK_EXT_blend_operation_advanced");
+	deviceExtensions.push_back("VK_EXT_depth_range_unrestricted");
+	deviceExtensions.push_back("VK_EXT_discard_rectangles");
+	deviceExtensions.push_back("VK_EXT_post_depth_coverage");
+	deviceExtensions.push_back("VK_EXT_sampler_filter_minmax");
+	deviceExtensions.push_back("VK_EXT_shader_subgroup_ballot");
+	deviceExtensions.push_back("VK_EXT_shader_subgroup_vote");
+	deviceExtensions.push_back("VK_EXT_shader_viewport_index_layer");
+	deviceExtensions.push_back("VK_NV_dedicated_allocation");
+	deviceExtensions.push_back("VK_NV_external_memory");
+	deviceExtensions.push_back("VK_NV_external_memory_win32");
+	deviceExtensions.push_back("VK_NV_fill_rectangle");
+	deviceExtensions.push_back("VK_NV_fragment_coverage_to_color");
+	deviceExtensions.push_back("VK_NV_framebuffer_mixed_samples");
+	deviceExtensions.push_back("VK_NV_glsl_shader");
+	deviceExtensions.push_back("VK_NV_win32_keyed_mutex");
+	deviceExtensions.push_back("VK_NV_sample_mask_override_coverage");
+	deviceExtensions.push_back("VK_NV_viewport_array2");
+	deviceExtensions.push_back("VK_NV_viewport_swizzle");
+	deviceExtensions.push_back("VK_NV_geometry_shader_passthrough");
+	deviceExtensions.push_back("VK_NVX_device_generated_commands");
+	deviceExtensions.push_back("VK_NVX_multiview_per_view_attributes");
+	//device layers
+	devicelayers.push_back("VK_LAYER_LUNARG_standard_validation");
 
 	vk::DeviceCreateInfo deviceInfo;
 	deviceInfo.queueCreateInfoCount = 1;
