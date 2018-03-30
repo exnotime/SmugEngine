@@ -2,7 +2,7 @@ solution "SmugEngine"
     configurations { "Debug", "Release" }
         flags{ "NoPCH" }
         local vulkan_dir = os.getenv("VULKAN_SDK");
-        libdirs { "lib", vulkan_dir .. "/bin", vulkan_dir .. "/lib", "lib/physx" }
+        libdirs { "lib", vulkan_dir .. "/bin", vulkan_dir .. "/lib", "lib/physx", "lib/spirv_cross" }
         includedirs { "include", vulkan_dir .. "/include"}
         platforms{"x64" }
 
@@ -54,9 +54,9 @@ solution "SmugEngine"
     	kind "StaticLib"
     	links { "vulkan-1", "AssetLoader", "glfw3", "Utility"}
     	configuration { "Debug" }
-                links { "shaderc_combinedD" }
+                links { "shaderc_combinedD", "spirv-cross-coreD", "spirv-cross-glslD"  }
         configuration { "Release" }
-                links { "shaderc_combined" }
+                links { "shaderc_combined", "spirv-cross-core", "spirv-cross-glsl"}
 
     project "AssetLoader"
     	targetname "AssetLoader"

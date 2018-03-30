@@ -557,7 +557,7 @@ vk::PipelineRasterizationStateCreateInfo ReadRasterState(const json& rasterState
 	return rState;
 }
 
-void PipelineState::LoadPipelineFromFile(const vk::Device& device, const std::string& filename, vk::Viewport vp, vk::RenderPass renderPass) {
+void PipelineState::LoadPipelineFromFile(const vk::Device& device, const std::string& filename, vk::RenderPass renderPass) {
 	std::ifstream fin(filename);
 	if (!fin.is_open()) {
 		printf("Error opening pipeline file %s\n", filename.c_str());

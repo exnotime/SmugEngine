@@ -26,8 +26,8 @@ namespace smug {
 		VkMemoryAllocator();
 		~VkMemoryAllocator();
 		void Init(vk::Device& device, vk::PhysicalDevice& physicalDevice);
-		void AllocateImage(VkImageCreateInfo* createInfo, VkImage* image, uint64_t size, void* data = nullptr);
-		VkBufferHandle AllocateBuffer(const VkBufferUsageFlags usage, uint64_t size, void * data = nullptr);
+		void AllocateImage(VkImageCreateInfo* createInfo, VkImage* image, uint64_t size = 0, void* data = nullptr);
+		VkBufferHandle AllocateBuffer(const VkBufferUsageFlags usage, uint64_t size = 0, void * data = nullptr);
 		void UpdateBuffer(VkBufferHandle& handle, uint64_t size, void* data = nullptr);
 		void ScheduleTransfers(VulkanCommandBuffer& cmdBuffer);
 		void Clear();

@@ -26,7 +26,7 @@ class PipelineState {
   public:
 	  PipelineState();
 	~PipelineState();
-	void LoadPipelineFromFile(const vk::Device& device, const std::string& filename, vk::Viewport vp, vk::RenderPass renderPass);
+	void LoadPipelineFromFile(const vk::Device& device, const std::string& filename, vk::RenderPass rp);
 	void SetDefaultVertexState(const vk::PipelineVertexInputStateCreateInfo& vertexState);
 	void SetDefaultMulitSampleState(const vk::PipelineMultisampleStateCreateInfo& msState);
 
