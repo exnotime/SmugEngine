@@ -12,7 +12,7 @@ ToneMapProgram::~ToneMapProgram() {
 
 void ToneMapProgram::Init(vk::Device& device, const glm::vec2& screenSize, FrameBuffer& fbo, vk::DescriptorPool& descPool, vk::RenderPass& rp, VkMemoryAllocator& allocator) {
 
-	m_Pipeline.LoadPipelineFromFile(device, "shader/ToneMap.json", vk::Viewport(0,0, screenSize.x, screenSize.y), rp);
+	m_Pipeline.LoadPipelineFromFile(device, "shader/ToneMap.json", rp);
 	//pepare desc sets
 	vk::DescriptorSetAllocateInfo setAllocInfo;
 	setAllocInfo.descriptorPool = descPool;

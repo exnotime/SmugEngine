@@ -91,7 +91,7 @@ void main(){
     mat.g = Material.g;
 
     vec3 lightColor = CalcDirLight(-lightDir, texColor, normal, toCam, mat.r, mat.g) * mat.b;
-    vec3 ibl = CalcIBLLight( normal, toCam, texColor, mat.r, mat.g) * mat.b;
-    outColor = saturate(vec4(lightColor + ibl, 1));
+    lightColor += CalcIBLLight( normal, toCam, texColor, mat.r, mat.g);
+    outColor = saturate(vec4(lightColor, 1));
 }
 #endif

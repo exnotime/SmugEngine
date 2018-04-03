@@ -31,7 +31,7 @@ solution "SmugEngine"
 	project "Core"
         targetname "SmugEngine"
 		debugdir ""
-        defines { "AS_USE_NAMESPACE", "USE_IMGUI" }
+        defines { "AS_USE_NAMESPACE", "USE_IMGUI","GLM_FORCE_DEPTH_ZERO_TO_ONE"  }
 		location ( location_path )
 		language "C++"
 		kind "ConsoleApp"
@@ -45,7 +45,7 @@ solution "SmugEngine"
 
     project "Graphics"
     	targetname "Graphics"
-    	defines { "VK_USE_PLATFORM_WIN32_KHR", "USE_IMGUI"}
+    	defines { "VK_USE_PLATFORM_WIN32_KHR", "USE_IMGUI", "GLM_FORCE_DEPTH_ZERO_TO_ONE" }
     	debugdir ""
     	location (location_path)
     	language("C++")

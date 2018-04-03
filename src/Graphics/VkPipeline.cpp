@@ -822,6 +822,15 @@ void PipelineState::LoadPipelineFromFile(const vk::Device& device, const std::st
 	if (tesselationstate) delete tesselationstate;
 }
 
+void PipelineState::ReloadPipelineFromFile(const vk::Device& device, const std::string& filename, vk::RenderPass rp) {
+	m_DescSetLayouts.clear();
+	m_ShaderBits = 0;
+	m_Shaders.clear();
+	device.destroyPipeline(m_Pipeline);
+	device.destroyPipelineLayout(m_PipelineLayout);
+	LoadPipelineFromFile(device, filename, rp);
+}
+
 void PipelineState::SetDefaultVertexState(const vk::PipelineVertexInputStateCreateInfo& vertexState) {
 	m_DefaultVertexState = vertexState;
 	m_DefaultVertexStateSet = true;

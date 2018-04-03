@@ -162,8 +162,10 @@ vk::ShaderModule smug::LoadShader(const vk::Device& device, const std::string& f
 	layout.InitFromSpirV(shaderInfo.pCode, shaderInfo.codeSize);
 	//save to cache
 	FILE* fout = fopen(cacheName.c_str(), "wb");
-	fwrite(shaderc_result_get_bytes(result), sizeof(char), shaderc_result_get_length(result), fout);
-	fclose(fout);
+	if (fout) {
+		fwrite(shaderc_result_get_bytes(result), sizeof(char), shaderc_result_get_length(result), fout);
+		fclose(fout);
+	}
 	//clean up
 	shaderc_result_release(result);
 	shaderc_compile_options_release(options);

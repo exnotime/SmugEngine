@@ -12,7 +12,7 @@ SkyBox::~SkyBox() {
 
 void SkyBox::Init(const vk::Device& device, const vk::PhysicalDevice& physDev, const std::string& filename,const vk::Viewport& vp, const vk::RenderPass& rp, VkMemoryAllocator& allocator) {
 	//load pipestate
-	m_Pipeline.LoadPipelineFromFile(device, "shader/Skybox.json", vp, rp);
+	m_Pipeline.LoadPipelineFromFile(device, "shader/Skybox.json", rp);
 	//allocate memory
 	m_Texture.Init(filename,&allocator, device);
 	//generate model

@@ -140,28 +140,28 @@ void GraphicsEngine::CreateContext() {
 	deviceExtensions.push_back("VK_KHR_external_fence");
 	deviceExtensions.push_back("VK_KHR_external_fence_win32");
 	deviceExtensions.push_back("VK_KHR_variable_pointers");
-	deviceExtensions.push_back("VK_EXT_blend_operation_advanced");
+	//deviceExtensions.push_back("VK_EXT_blend_operation_advanced");
 	deviceExtensions.push_back("VK_EXT_depth_range_unrestricted");
 	deviceExtensions.push_back("VK_EXT_discard_rectangles");
-	deviceExtensions.push_back("VK_EXT_post_depth_coverage");
-	deviceExtensions.push_back("VK_EXT_sampler_filter_minmax");
+	//deviceExtensions.push_back("VK_EXT_post_depth_coverage");
+	//deviceExtensions.push_back("VK_EXT_sampler_filter_minmax");
 	deviceExtensions.push_back("VK_EXT_shader_subgroup_ballot");
 	deviceExtensions.push_back("VK_EXT_shader_subgroup_vote");
-	deviceExtensions.push_back("VK_EXT_shader_viewport_index_layer");
+	//deviceExtensions.push_back("VK_EXT_shader_viewport_index_layer");
 	deviceExtensions.push_back("VK_NV_dedicated_allocation");
 	deviceExtensions.push_back("VK_NV_external_memory");
 	deviceExtensions.push_back("VK_NV_external_memory_win32");
-	deviceExtensions.push_back("VK_NV_fill_rectangle");
-	deviceExtensions.push_back("VK_NV_fragment_coverage_to_color");
-	deviceExtensions.push_back("VK_NV_framebuffer_mixed_samples");
+	//deviceExtensions.push_back("VK_NV_fill_rectangle");
+	//deviceExtensions.push_back("VK_NV_fragment_coverage_to_color");
+	//deviceExtensions.push_back("VK_NV_framebuffer_mixed_samples");
 	deviceExtensions.push_back("VK_NV_glsl_shader");
 	deviceExtensions.push_back("VK_NV_win32_keyed_mutex");
-	deviceExtensions.push_back("VK_NV_sample_mask_override_coverage");
-	deviceExtensions.push_back("VK_NV_viewport_array2");
-	deviceExtensions.push_back("VK_NV_viewport_swizzle");
-	deviceExtensions.push_back("VK_NV_geometry_shader_passthrough");
-	deviceExtensions.push_back("VK_NVX_device_generated_commands");
-	deviceExtensions.push_back("VK_NVX_multiview_per_view_attributes");
+	//deviceExtensions.push_back("VK_NV_sample_mask_override_coverage");
+	//deviceExtensions.push_back("VK_NV_viewport_array2");
+	//deviceExtensions.push_back("VK_NV_viewport_swizzle");
+	//deviceExtensions.push_back("VK_NV_geometry_shader_passthrough");
+	//deviceExtensions.push_back("VK_NVX_device_generated_commands");
+	//deviceExtensions.push_back("VK_NVX_multiview_per_view_attributes");
 	//device layers
 	devicelayers.push_back("VK_LAYER_LUNARG_standard_validation");
 
@@ -332,7 +332,7 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	//load pipelines
 	m_Pipeline.SetDefaultVertexState(Geometry::GetVertexState());
 
-	m_Pipeline.LoadPipelineFromFile(VK_DEVICE, "shader/filled.json", m_Viewport, m_FrameBuffer.GetRenderPass());
+	m_Pipeline.LoadPipelineFromFile(VK_DEVICE, "shader/filled.json", m_FrameBuffer.GetRenderPass());
 
 	m_PerFrameBuffer = m_DeviceAllocator.AllocateBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(PerFrameBuffer), nullptr);
 
@@ -344,16 +344,16 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	vk::DescriptorPoolCreateInfo descPoolInfo;
 	descPoolInfo.maxSets = 16 * 1000;
 	std::vector<vk::DescriptorPoolSize> poolSizes;
-	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eSampler, 1000));
-	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eCombinedImageSampler, 1000));
+	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eSampler, 50));
+	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eCombinedImageSampler, 10000));
 	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eSampledImage, 1000));
 	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eStorageImage, 1000));
-	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eStorageTexelBuffer, 1000));
-	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eUniformBuffer, 1000));
-	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eStorageBuffer, 1000));
+	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eStorageTexelBuffer, 10));
+	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eUniformBuffer, 10000));
+	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eStorageBuffer, 10000));
 	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eUniformBufferDynamic, 1000));
 	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eStorageBufferDynamic, 1000));
-	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eInputAttachment, 1000));
+	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eInputAttachment, 10));
 	descPoolInfo.pPoolSizes = poolSizes.data();
 	descPoolInfo.poolSizeCount = (uint32_t)poolSizes.size();
 	m_DescriptorPool = VK_DEVICE.createDescriptorPool(descPoolInfo);
@@ -508,6 +508,12 @@ void GraphicsEngine::RenderModels(RenderQueue& rq, VulkanCommandBuffer& cmdBuffe
 }
 
 void GraphicsEngine::Render() {
+
+	if (ImGui::Button("Recompile shader")) {
+		VK_DEVICE.waitIdle();
+		m_Pipeline.ReloadPipelineFromFile(VK_DEVICE, "shader/filled.json", m_RenderPass);
+	}
+
 	RenderQueue& rq = m_RenderQueues[VK_FRAME_INDEX];
 	//reset stats
 	{
@@ -549,6 +555,10 @@ void GraphicsEngine::Render() {
 		m_vkQueue.Submit(cmdBuffer, nullptr, m_TransferComplete, nullptr);
 		
 	}
+	DirLight dl;
+	dl.Direction = glm::vec3(0.1f, -1.0f, -0.5f);
+	dl.Color = glm::vec4(1);
+	m_ShadowProgram.Render(rq, dl);
 	//render pass
 	{
 		auto& cmdBuffer = m_CmdBufferFactory.GetNextBuffer();

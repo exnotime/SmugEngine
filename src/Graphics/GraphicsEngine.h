@@ -8,7 +8,7 @@
 #include "ResourceHandler.h"
 #include "FrameBuffer.h"
 #include "ToneMapProgram.h"
-
+#include "ShadowMapProgram.h"
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
@@ -90,6 +90,7 @@ namespace smug {
 		glm::vec2 m_ScreenSize;
 		vk::PipelineMultisampleStateCreateInfo m_MSState;
 
+		ShadowMapProgram m_ShadowProgram;
 		ToneMapProgram m_ToneMapping;
 		VkDebugReportCallbackEXT m_DebugCallbacks;
 

@@ -30,7 +30,7 @@ void SSCamera::Startup() {
 	Entity& e = globals::g_EntityManager->CreateEntity();
 
 	TransformComponent tc;
-	tc.Position = glm::vec3(0, 3, -15);
+	tc.Position = glm::vec3(0, 0, 0);
 	tc.Scale = glm::vec3(1.0f);
 	globals::g_Components->CreateComponent(&tc, e, TransformComponent::Flag);
 

@@ -9,9 +9,9 @@ Camera::Camera() {
 	m_CamData.Forward = glm::vec3(0, 0, 1);
 	m_CamData.Right = glm::vec3(1, 0, 0);
 	m_CamData.Up = glm::vec3(0, -1, 0);
-	m_CamData.Fov = 0.6f;
+	m_CamData.Fov = 0.61f;
 	m_CamData.Near = 0.1f;
-	m_CamData.Far = 1000.0f;
+	m_CamData.Far = 100.0f;
 	m_CamData.Width = 16;
 	m_CamData.Height = 9;
 	m_Orientation = glm::quat(1, 0, 0, 0);
