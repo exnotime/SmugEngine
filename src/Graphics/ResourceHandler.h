@@ -3,7 +3,7 @@
 #include <unordered_map>
 #include <glm/glm.hpp>
 #include <AssetLoader/AssetLoader.h>
-#include "VkMemoryAllocator.h"
+#include "DeviceAllocator.h"
 #include "VulkanContext.h"
 #include "Texture.h"
 
@@ -46,17 +46,17 @@ namespace smug {
 	public:
 		ResourceHandler();
 		~ResourceHandler();
-		void Init(vk::Device* device, const vk::PhysicalDevice& physDev, MemoryBudget budget, VkMemoryAllocator& deviceAlloc);
-		void ScheduleTransfer(VulkanCommandBuffer& cmdBuffer);
+		void Init(vk::Device* device, const vk::PhysicalDevice& physDev, MemoryBudget budget, DeviceAllocator& deviceAlloc);
+		void ScheduleTransfer(CommandBuffer& cmdBuffer);
 		void Clear();
 
-		const Model& GetModel(ResourceHandle handle);
+		const Model& GetModel(ResourceHandle handle) const;
 
 		void AllocateModel(const ModelInfo& model, ResourceHandle handle);
 		void AllocateTexture(const TextureInfo& tex, ResourceHandle handle);
 	private:
 		vk::Device* m_Device;
-		VkMemoryAllocator* m_DeviceAllocator;
+		DeviceAllocator* m_DeviceAllocator;
 
 		std::unordered_map<ResourceHandle, Model> m_Models;
 		std::unordered_map<ResourceHandle, VkTexture> m_Textures;

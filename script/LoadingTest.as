@@ -1,14 +1,21 @@
 typedef uint64 ResourceHandle;
 
 ResourceHandle koopaModel;
+ResourceHandle planeModel;
 uint koopaEntity;
+uint planeEntity;
 
 void Load(){
 	print("Loading from script is possible!!\n");
-	ResourceHandle koopaModel = LoadModel("assets/models/KoopaTroopa/Koopa.obj");
+	koopaModel = LoadModel("assets/models/KoopaTroopa/Koopa.obj");
 	LoadModel("assets/models/sphere/sphere.obj");
 
 	koopaEntity = CreateEntity();
 	CreateTransformComponent(koopaEntity, vec3(0,100,0));
 	CreateModelComponent(koopaEntity, koopaModel);
+
+	planeEntity = CreateEntity();
+	planeModel = LoadModel("assets/models/plane/plane.obj");
+	CreateTransformComponent(planeEntity, vec3(0,-100,0));
+	CreateModelComponent(planeEntity, planeModel);
 }

@@ -1,13 +1,13 @@
-#include "VkMemoryAllocator.h"
+#include "DeviceAllocator.h"
 using namespace smug;
 
-VkMemoryAllocator::VkMemoryAllocator() {
+DeviceAllocator::DeviceAllocator() {
 
 }
-VkMemoryAllocator::~VkMemoryAllocator() {
+DeviceAllocator::~DeviceAllocator() {
 
 }
-void VkMemoryAllocator::Init(vk::Device& device, vk::PhysicalDevice& physicalDevice) {
+void DeviceAllocator::Init(vk::Device& device, vk::PhysicalDevice& physicalDevice) {
 	VmaAllocatorCreateInfo allocatorCrateInfo = {};
 	allocatorCrateInfo.device = device;
 	allocatorCrateInfo.physicalDevice = physicalDevice;
@@ -15,7 +15,7 @@ void VkMemoryAllocator::Init(vk::Device& device, vk::PhysicalDevice& physicalDev
 
 	m_Device = &device;
 }
-void VkMemoryAllocator::AllocateImage(VkImageCreateInfo* createInfo, VkImage* image, uint64_t size, void* data) {
+void DeviceAllocator::AllocateImage(VkImageCreateInfo* createInfo, VkImage* image, uint64_t size, void* data) {
 	VkImageLayout finalLayout = createInfo->initialLayout;
 	createInfo->initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
@@ -81,7 +81,7 @@ void VkMemoryAllocator::AllocateImage(VkImageCreateInfo* createInfo, VkImage* im
 	}
 }
 
-VkBufferHandle VkMemoryAllocator::AllocateBuffer(const VkBufferUsageFlags usage, uint64_t size, void * data) {
+VkBufferHandle DeviceAllocator::AllocateBuffer(const VkBufferUsageFlags usage, uint64_t size, void * data) {
 	VkBufferHandle ret;
 
 	VkBufferCreateInfo createInfo = {};
@@ -124,7 +124,7 @@ VkBufferHandle VkMemoryAllocator::AllocateBuffer(const VkBufferUsageFlags usage,
 	return ret;
 }
 
-void VkMemoryAllocator::UpdateBuffer(VkBufferHandle& handle, uint64_t size, void* data) {
+void DeviceAllocator::UpdateBuffer(VkBufferHandle& handle, uint64_t size, void* data) {
 	if (data) {
 		BufferTransfer transfer;
 		VkBufferCreateInfo createInfo = {};
@@ -158,18 +158,18 @@ void VkMemoryAllocator::UpdateBuffer(VkBufferHandle& handle, uint64_t size, void
 	}
 }
 
-void VkMemoryAllocator::ScheduleTransfers(VulkanCommandBuffer& cmdBuffer) {
+void DeviceAllocator::ScheduleTransfers(CommandBuffer* cmdBuffer) {
 	uint32_t imageCount = (uint32_t)m_ImageCopies.size();
 	if (imageCount > 0) {
 		for (uint32_t i = 0; i < imageCount; ++i) {
-			cmdBuffer.ImageBarrier(m_ImageCopies[i].dst, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
+			cmdBuffer->ImageBarrier(m_ImageCopies[i].dst, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
 		}
-		cmdBuffer.PushPipelineBarrier();
+		cmdBuffer->PushPipelineBarrier();
 		for (uint32_t i = 0; i < imageCount; ++i) {
-			cmdBuffer.copyBufferToImage(m_ImageCopies[i].src, m_ImageCopies[i].dst, vk::ImageLayout::eTransferDstOptimal, m_ImageCopies[i].copies);
-			cmdBuffer.ImageBarrier(m_ImageCopies[i].dst, vk::ImageLayout::eTransferDstOptimal, (vk::ImageLayout)m_ImageCopies[i].finalLayout);
+			cmdBuffer->copyBufferToImage(m_ImageCopies[i].src, m_ImageCopies[i].dst, vk::ImageLayout::eTransferDstOptimal, m_ImageCopies[i].copies);
+			cmdBuffer->ImageBarrier(m_ImageCopies[i].dst, vk::ImageLayout::eTransferDstOptimal, (vk::ImageLayout)m_ImageCopies[i].finalLayout);
 		}
-		cmdBuffer.PushPipelineBarrier();
+		cmdBuffer->PushPipelineBarrier();
 		//m_ImageCopies.clear();
 	}
 
@@ -177,14 +177,14 @@ void VkMemoryAllocator::ScheduleTransfers(VulkanCommandBuffer& cmdBuffer) {
 	if (bufferCopies > 0) {
 		for (uint32_t i = 0; i < bufferCopies; ++i) {
 			std::vector<vk::BufferCopy> copy = { m_BufferCopies[i].copy };
-			cmdBuffer.copyBuffer(m_BufferCopies[i].src, m_BufferCopies[i].dst, copy);
+			cmdBuffer->copyBuffer(m_BufferCopies[i].src, m_BufferCopies[i].dst, copy);
 		}
 		//m_BufferCopies.clear();
 	}
-	cmdBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTopOfPipe, vk::DependencyFlagBits::eByRegion, nullptr, nullptr, nullptr);
+	cmdBuffer->pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTopOfPipe, vk::DependencyFlagBits::eByRegion, nullptr, nullptr, nullptr);
 }
 
-void VkMemoryAllocator::Clear() {
+void DeviceAllocator::Clear() {
 	for (auto& buffer : m_BufferCopies) {
 		vmaDestroyBuffer(m_Allocator, buffer.src);
 	}
@@ -195,6 +195,6 @@ void VkMemoryAllocator::Clear() {
 	m_ImageCopies.clear();
 }
 
-void VkMemoryAllocator::PrintStats() {
+void DeviceAllocator::PrintStats() {
 
 }

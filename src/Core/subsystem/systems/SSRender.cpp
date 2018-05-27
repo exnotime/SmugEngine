@@ -65,9 +65,9 @@ void SSRender::Update(const double deltaTime) {
 	uint32_t entityCount = (uint32_t)entities.size();
 
 	static glm::vec4 tint = glm::vec4(1.0f);
-	ImGui::Begin("Scene");
-	ImGui::ColorEdit4("Global Color", &tint[0], false);
-	ImGui::End();
+	//ImGui::Begin("Scene");
+	//ImGui::ColorEdit4("Global Color", &tint[0], false);
+	//ImGui::End();
 
 	for (uint32_t e = 0; e < entityCount; ++e) {
 		auto& entity = entities[e];

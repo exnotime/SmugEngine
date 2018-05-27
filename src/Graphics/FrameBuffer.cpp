@@ -25,11 +25,11 @@ bool IsDepthStencil(vk::Format f) {
 	return false;
 }
 
-void FrameBuffer::Init(const vk::Device& device, const vk::PhysicalDevice& gpu, const glm::vec2& size, const Vector<vk::Format>& formats, const Vector<vk::ImageUsageFlags>& usages) {
+void FrameBuffer::Init(const vk::Device& device, const vk::PhysicalDevice& gpu, const glm::vec2& size, const Vector<vk::Format>& formats, const Vector<vk::ImageUsageFlags>& usages, uint32_t bufferCount) {
 	m_FrameBufferSize = size;
 	m_FormatCount = (uint32_t)formats.size();
 	//init image and views
-	for (int i = 0; i < BUFFER_COUNT; i++) {
+	for (int i = 0; i < bufferCount; i++) {
 		for (uint32_t f = 0; f < m_FormatCount; ++f) {
 			vk::ImageCreateInfo imageInfo;
 			imageInfo.arrayLayers = 1;
@@ -72,7 +72,7 @@ void FrameBuffer::Init(const vk::Device& device, const vk::PhysicalDevice& gpu, 
 
 	uint32_t image = 0;
 	uint64_t memOffset = 0;
-	for (int i = 0; i < BUFFER_COUNT; i++) {
+	for (int i = 0; i < bufferCount; i++) {
 		for (uint32_t f = 0; f < m_FormatCount; ++f) {
 			auto memReq = device.getImageMemoryRequirements(m_Images[image]);
 			memOffset = (memOffset + (memReq.alignment - 1)) & ~(memReq.alignment - 1); //handle alignment
@@ -94,7 +94,7 @@ void FrameBuffer::Init(const vk::Device& device, const vk::PhysicalDevice& gpu, 
 			image++;
 		}
 	}
-	
+
 	//init renderpass
 	vk::RenderPassCreateInfo renderPassInfo;
 	renderPassInfo.attachmentCount = (uint32_t)formats.size();
@@ -121,8 +121,9 @@ void FrameBuffer::Init(const vk::Device& device, const vk::PhysicalDevice& gpu, 
 	std::vector<vk::AttachmentReference> depthAttachments;
 	for (uint32_t i = 0; i < attachments.size(); ++i) {
 		if (attachments[i].initialLayout == vk::ImageLayout::eColorAttachmentOptimal) {
-			colorAttachments.push_back({i, vk::ImageLayout::eColorAttachmentOptimal});
-		} else {
+			colorAttachments.push_back({ i, vk::ImageLayout::eColorAttachmentOptimal });
+		}
+		else {
 			depthAttachments.push_back({ i, vk::ImageLayout::eDepthStencilAttachmentOptimal });
 		}
 	}
@@ -148,12 +149,46 @@ void FrameBuffer::Init(const vk::Device& device, const vk::PhysicalDevice& gpu, 
 	framebufferInfo.width = size.x;
 	framebufferInfo.layers = 1;
 	framebufferInfo.renderPass = m_RenderPass;
-	for (int i = 0; i < BUFFER_COUNT; i++) {
+	for (int i = 0; i < bufferCount; i++) {
 		framebufferInfo.pAttachments = &m_ImageViews[i * framebufferInfo.attachmentCount];
 		m_FrameBuffers[i] = device.createFramebuffer(framebufferInfo);
 	}
 
+	//Init descriptors
+	for (int i = 0; i < m_FormatCount; ++i){
+		vk::DescriptorImageInfo imageDescInfo = {};
+		if (usages[i] & vk::ImageUsageFlagBits::eSampled) {
+			imageDescInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+			imageDescInfo.imageView = m_ImageViews[i];
+
+			vk::SamplerCreateInfo samplerInfo = {};
+			samplerInfo.addressModeU = vk::SamplerAddressMode::eRepeat;
+			samplerInfo.addressModeV = vk::SamplerAddressMode::eRepeat;
+			samplerInfo.addressModeW = vk::SamplerAddressMode::eRepeat;
+			samplerInfo.anisotropyEnable = false;
+			samplerInfo.magFilter = vk::Filter::eNearest;
+			samplerInfo.minFilter = vk::Filter::eNearest;
+			samplerInfo.mipmapMode = vk::SamplerMipmapMode::eNearest;
+			if (IsDepthStencil(m_Formats[i])) {
+				//used for shadow maps
+				samplerInfo.compareEnable = true;
+				samplerInfo.compareOp = vk::CompareOp::eLessOrEqual;
+				samplerInfo.magFilter = vk::Filter::eLinear;
+				samplerInfo.minFilter = vk::Filter::eLinear;
+				samplerInfo.addressModeU = vk::SamplerAddressMode::eClampToEdge;
+				samplerInfo.addressModeV = vk::SamplerAddressMode::eClampToEdge;
+				samplerInfo.addressModeW = vk::SamplerAddressMode::eClampToEdge;
+			} else {
+				samplerInfo.compareEnable = false;
+			}
+			imageDescInfo.sampler = device.createSampler(samplerInfo);
+		}
+		m_Descriptors.push_back(imageDescInfo);
+	}
+
 	m_Formats += formats;
+
+	m_BufferCount = bufferCount;
 }
 
 void FrameBuffer::Resize(const glm::vec2& size) {
@@ -161,9 +196,11 @@ void FrameBuffer::Resize(const glm::vec2& size) {
 }
 
 ///Push barrier needs to be called forthis to make an effect
-void FrameBuffer::ChangeLayout(VulkanCommandBuffer& cmdBuffer, const Vector<vk::ImageLayout>& newLayouts, uint32_t frameIndex) {
+void FrameBuffer::ChangeLayout(CommandBuffer& cmdBuffer, const Vector<vk::ImageLayout>& newLayouts, uint32_t frameIndex) {
+	
 	uint32_t imageCount = (uint32_t)m_Formats.size();
 	assert(imageCount == newLayouts.size());
+	assert(frameIndex < m_BufferCount);
 
 	for (uint32_t i = 0; i < imageCount; ++i) {
 		//if (m_CurrentLayouts[frameIndex * imageCount + i] == newLayouts[i]) {

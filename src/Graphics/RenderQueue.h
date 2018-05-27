@@ -4,7 +4,7 @@
 ///Fetch the renderqueue for the current frame from the graphics engine
 #include "GraphicsObjects.h"
 #include "VulkanContext.h"
-#include "VkMemoryAllocator.h"
+#include "DeviceAllocator.h"
 #include <AssetLoader/Resources.h>
 #include <vector>
 #include <map>
@@ -26,11 +26,11 @@ namespace smug {
 	public:
 		RenderQueue();
 		~RenderQueue();
-		void Init(VkMemoryAllocator& memory);
+		void Init(DeviceAllocator& memory);
 		void Clear();
 		void AddCamera(const CameraData& cd);
 		void AddModel(ResourceHandle handle, const glm::mat4& transform, const glm::vec4& tint);
-		void ScheduleTransfer(VkMemoryAllocator& memory);
+		void ScheduleTransfer(DeviceAllocator& memory);
 
 		const Vector<CameraData>& GetCameras() const { return m_Cameras; }
 		const Vector<ShaderInput>& GetInputs() const { return m_Inputs; }

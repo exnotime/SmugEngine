@@ -52,7 +52,7 @@ class PipelineState {
   public:
 	//mappings to vulkan
 #define TO_VK_BOOL(x) (x) ? 1 : 0;
-	static std::unordered_map<std::string, vk::DescriptorType> ToDescriptorType;
+	/*static std::unordered_map<std::string, vk::DescriptorType> ToDescriptorType;
 	static std::unordered_map<std::string, vk::BlendFactor> ToBlendFactor;
 	static std::unordered_map<std::string, vk::BlendOp> ToBlendOp;
 	static std::unordered_map<std::string, vk::LogicOp> ToLogicOp;
@@ -65,6 +65,6 @@ class PipelineState {
 	static std::unordered_map<std::string, vk::PolygonMode> ToPolygonMode;
 	static std::unordered_map<std::string, vk::Format> ToFormat;
 	static std::unordered_map<int, vk::ShaderStageFlagBits> ToShaderStage;
-	static std::unordered_map<std::string, vk::VertexInputRate> ToVertexInputRate;
+	static std::unordered_map<std::string, vk::VertexInputRate> ToVertexInputRate;*/
 };
 };

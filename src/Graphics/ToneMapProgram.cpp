@@ -10,7 +10,7 @@ ToneMapProgram::~ToneMapProgram() {
 
 }
 
-void ToneMapProgram::Init(vk::Device& device, const glm::vec2& screenSize, FrameBuffer& fbo, vk::DescriptorPool& descPool, vk::RenderPass& rp, VkMemoryAllocator& allocator) {
+void ToneMapProgram::Init(vk::Device& device, const glm::vec2& screenSize, FrameBuffer& fbo, vk::DescriptorPool& descPool, vk::RenderPass& rp, DeviceAllocator& allocator) {
 
 	m_Pipeline.LoadPipelineFromFile(device, "shader/ToneMap.json", rp);
 	//pepare desc sets
@@ -77,18 +77,18 @@ void ToneMapProgram::Init(vk::Device& device, const glm::vec2& screenSize, Frame
 	device.updateDescriptorSets(BUFFER_COUNT + 2, writeSet, 0, nullptr);
 }
 
-void ToneMapProgram::Update(VkMemoryAllocator& allocator) {
+void ToneMapProgram::Update(DeviceAllocator& allocator) {
 	static ToneMapUniformData data = {1.0f, 1.0f / 1.6f};
 
-	ImGui::Begin("Scene");
-	ImGui::Spacing();
-	ImGui::SliderFloat("Bright", &data.bright, 0.0f, 1.0f);
-	ImGui::SliderFloat("Exposure", &data.exposure, 0.0f, 1.0f);
-	ImGui::End();
+	//ImGui::Begin("Scene");
+	//ImGui::Spacing();
+	//ImGui::SliderFloat("Bright", &data.bright, 0.0f, 1.0f);
+	//ImGui::SliderFloat("Exposure", &data.exposure, 0.0f, 1.0f);
+	//ImGui::End();
 	allocator.UpdateBuffer(m_Buffer, sizeof(ToneMapUniformData), &data);
 }
 
-void ToneMapProgram::Render(VulkanCommandBuffer& cmdBuffer, vk::Viewport viewport, uint32_t frameIndex) {
+void ToneMapProgram::Render(CommandBuffer& cmdBuffer, vk::Viewport viewport, uint32_t frameIndex) {
 	cmdBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipeline());
 	cmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipelineLayout(), 0, m_DescSet[frameIndex], nullptr);
 	cmdBuffer.setViewport(0, 1, &viewport);

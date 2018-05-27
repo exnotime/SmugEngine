@@ -31,7 +31,7 @@ void AllocateAssetCallback(const void* data, void* userData, const std::string& 
 	}
 }
 
-void ResourceHandler::Init(vk::Device* device, const vk::PhysicalDevice& physDev, MemoryBudget budget, VkMemoryAllocator& deviceAlloc) {
+void ResourceHandler::Init(vk::Device* device, const vk::PhysicalDevice& physDev, MemoryBudget budget, DeviceAllocator& deviceAlloc) {
 	m_DeviceAllocator = &deviceAlloc;
 
 	ResourceAllocator allocator;
@@ -96,8 +96,8 @@ void ResourceHandler::Init(vk::Device* device, const vk::PhysicalDevice& physDev
 	m_Device = device;
 }
 
-const Model& ResourceHandler::GetModel(ResourceHandle handle) {
-	return m_Models[handle];
+const Model& ResourceHandler::GetModel(ResourceHandle handle) const {
+	return m_Models.find(handle)->second;
 }
 
 void ResourceHandler::AllocateModel(const ModelInfo& model, ResourceHandle handle) {
@@ -202,8 +202,8 @@ void ResourceHandler::AllocateTexture(const TextureInfo& tex, ResourceHandle han
 	m_Textures[handle] = texture;
 }
 
-void ResourceHandler::ScheduleTransfer(VulkanCommandBuffer& cmdBuffer) {
-	m_DeviceAllocator->ScheduleTransfers(cmdBuffer);
+void ResourceHandler::ScheduleTransfer(CommandBuffer& cmdBuffer) {
+	m_DeviceAllocator->ScheduleTransfers(&cmdBuffer);
 }
 
 void ResourceHandler::Clear() {

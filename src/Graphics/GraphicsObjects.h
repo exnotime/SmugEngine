@@ -10,9 +10,9 @@ namespace smug {
 		glm::vec3 Forward = glm::vec3(0, 0, 1);
 		glm::vec3 Right = glm::vec3(1, 0, 0);
 		glm::vec3 Up = glm::vec3(0, -1, 0);
-		float Fov = 0.4f;
+		float Fov = 0.61f;
 		float Near = 0.1f;
-		float Far = 50.0f;
+		float Far = 500.0f;
 		uint32_t Width = 16;
 		uint32_t Height = 9;
 	};

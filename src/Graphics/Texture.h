@@ -2,7 +2,7 @@
 #include <string>
 #include <glm/glm.hpp>
 #include <AssetLoader/Resources.h>
-#include "VkMemoryAllocator.h"
+#include "DeviceAllocator.h"
 namespace smug {
 	class VkTexture {
 	public:
@@ -12,8 +12,8 @@ namespace smug {
 		//void Init(const std::string& filename, VkMemory& memory, const vk::Device& device);
 		//void Init(const TextureInfo& texInfo, VkMemory& memory, const vk::Device& device);
 
-		void Init(const std::string& filename, VkMemoryAllocator* allocator, const vk::Device& device);
-		void Init(const TextureInfo& texInfo, VkMemoryAllocator* allocator, const vk::Device& device);
+		void Init(const std::string& filename, DeviceAllocator* allocator, const vk::Device& device);
+		void Init(const TextureInfo& texInfo, DeviceAllocator* allocator, const vk::Device& device);
 
 		vk::DescriptorImageInfo GetDescriptorInfo();
 		vk::Image GetImage() {

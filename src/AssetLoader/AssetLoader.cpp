@@ -12,6 +12,7 @@ AssetLoader::AssetLoader() {
 }
 
 AssetLoader::~AssetLoader() {
+	//Close();
 }
 
 AssetLoader& AssetLoader::GetInstance() {

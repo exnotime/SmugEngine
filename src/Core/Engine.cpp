@@ -21,7 +21,6 @@
 #include "entity/if_Entity.h"
 #include "components/if_Components.h"
 #include "script/ScriptEngine.h"
-#include <Imgui/imgui_impl_glfw_vulkan.h>
 
 using namespace smug;
 Engine::Engine() {
@@ -44,8 +43,8 @@ void Engine::Init() {
 	WindowSettings ws;
 	ws.X = 100;
 	ws.Y = 100;
-	ws.Width = 1600;
-	ws.Height = 900;
+	ws.Width = 1920;
+	ws.Height = 1080;
 	ws.HighDPI = false;
 	ws.OpenGL = true;
 	ws.Title = "Smug Engine";
@@ -101,11 +100,10 @@ void Engine::Init() {
 
 	AngelScript::asIScriptModule* mod = g_ScriptEngine.CompileScriptToModule("script/LoadingTest.as");
 	g_ScriptEngine.ExecuteModule(mod, "void Load()");
-
-	ImGui_ImplGlfwVulkan_Init_Data imguiData = globals::g_Gfx->GetImguiInit();
-	ImGui_ImplGlfwVulkan_Init(m_Window->GetWindow(), false, &imguiData);
-	ImGuiContext* ctx = ImGui::GetCurrentContext();
-	globals::g_Gfx->CreateImguiFont(ImGui::GetCurrentContext());
+	ImGuiContext* ctx = ImGui::CreateContext();
+	ImGui_ImplGlfwVulkan_Init_Data* imguiData = globals::g_Gfx->GetImguiInit();
+	ImGui_ImplGlfwVulkan_Init(m_Window->GetWindow(), false, imguiData);
+	globals::g_Gfx->CreateImguiFont(ctx);
 
 	//assets need to be loaded before this
 	globals::g_Gfx->TransferToGPU();
@@ -115,26 +113,16 @@ void Engine::Run() {
 	int mode = GLFW_CURSOR_DISABLED;
 	while (!glfwWindowShouldClose(m_Window->GetWindow())) {
 
-		ImGui_ImplGlfwVulkan_NewFrame(m_Window->GetWindow());
+		ImGui_ImplGlfwVulkan_NewFrame();
 
-		if (g_Input.IsKeyPushed(GLFW_KEY_L)) {
+		if (g_Input.IsKeyPushed(GLFW_KEY_F3)) {
 			mode = (mode == GLFW_CURSOR_NORMAL) ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL;
 			g_Input.SetCursorMode(m_Window->GetWindow(), mode);
 			g_Input.SetMouseDeltaUpdate(mode != GLFW_CURSOR_NORMAL);
 		}
-
 		if (g_Input.IsKeyDown(GLFW_KEY_ESCAPE)) {
 			break;
 		}
-
-		bool showMetrics = true;
-		if (g_Input.IsKeyPushed(GLFW_KEY_I)) {
-			showMetrics = !showMetrics;
-		}
-		if (showMetrics) {
-			ImGui::ShowMetricsWindow();
-		}
-
 		globals::g_Gfx->PrintStats();
 		m_MainSubSystemSet->UpdateSubSystems(m_GlobalTimer->Tick());
 		globals::g_Physics->Update(1.0f / 60.0f);

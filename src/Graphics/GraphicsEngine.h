@@ -9,30 +9,27 @@
 #include "FrameBuffer.h"
 #include "ToneMapProgram.h"
 #include "ShadowMapProgram.h"
+#include "PipelineStateEditor.h"
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #endif
 
 #ifdef USE_IMGUI
+
 #include <Imgui/imgui.h>
 #include <Imgui/imgui_impl_glfw_vulkan.h>
+#endif
 
 namespace smug {
-	struct ImguiInitData {
-		void(*check_vk_result)(VkResult err);
-		vk::PhysicalDevice Gpu;
-		vk::Device Device;
-		vk::RenderPass RenderPass;
-		vk::DescriptorPool DescPool;
-	};
-#endif
 
 	struct PerFrameBuffer {
 		glm::mat4 ViewProj;
 		glm::vec4 CameraPos;
 		glm::vec4 LightDir;
 		glm::vec4 Material;
+		glm::mat4 LightViewProj[4];
+		glm::vec4 NearFarPadding;
 	};
 
 	struct PerFrameStatistics {
@@ -56,13 +53,13 @@ namespace smug {
 	private:
 		void CreateContext();
 		void CreateSwapChain(VkSurfaceKHR surface);
-		void RenderModels(RenderQueue& rq, VulkanCommandBuffer& cmdBuffer);
+		void RenderModels(RenderQueue& rq, CommandBuffer& cmdBuffer);
 
 		VulkanContext m_VKContext;
 		VulkanSwapChain m_VKSwapChain;
 		VulkanCommandBufferFactory m_CmdBufferFactory;
 
-		VulkanQueue m_vkQueue;
+		DeviceQueue m_vkQueue;
 		PipelineState m_Pipeline;
 		int m_CurrentPipeline;
 
@@ -76,44 +73,43 @@ namespace smug {
 
 		VkBufferHandle m_PerFrameBuffer;
 		SkyBox m_SkyBox;
-		vk::DescriptorPool m_DescriptorPool;
+		//vk::DescriptorPool m_DescriptorPool;
 		vk::DescriptorSet m_PerFrameSet;
 		//ibl TODO: MOVE SOMEWHERE ELSE
 		VkTexture m_IBLTex;
 		VkTexture m_SkyRad;
 		VkTexture m_SkyIrr;
 		vk::DescriptorSet m_IBLDescSet;
-		//uniform and FBO memory
+
 		FrameBuffer m_FrameBuffer;
 
 		bool m_VSync;
 		glm::vec2 m_ScreenSize;
 		vk::PipelineMultisampleStateCreateInfo m_MSState;
-
 		ShadowMapProgram m_ShadowProgram;
 		ToneMapProgram m_ToneMapping;
-		VkDebugReportCallbackEXT m_DebugCallbacks;
 
+		VkDebugReportCallbackEXT m_DebugCallbacks;
 		RenderQueue m_RenderQueues[BUFFER_COUNT];
 		RenderQueue m_StaticRenderQueue;
 		ResourceHandler m_Resources;
-
 		PerFrameStatistics m_Stats;
-		//Device Allocator
-		VkMemoryAllocator m_DeviceAllocator;
-
+		DeviceAllocator m_DeviceAllocator;
 
 #ifdef USE_IMGUI
 	public:
-		ImGui_ImplGlfwVulkan_Init_Data GetImguiInit();
+		ImGui_ImplGlfwVulkan_Init_Data* GetImguiInit();
 		void CreateImguiFont(ImGuiContext* imguiCtx);
 	private:
 		vk::Semaphore m_ImguiComplete;
 		ImGuiContext* m_ImguiCtx;
+
+		PipelineStateEditor pipelineEditor;
 #endif
 
 #define VK_DEVICE m_VKContext.Device
 #define VK_PHYS_DEVICE m_VKContext.PhysicalDevice
 #define VK_FRAME_INDEX m_VKContext.FrameIndex
+#define VK_DESC_POOL m_VKContext.DescriptorPool
 	};
 }

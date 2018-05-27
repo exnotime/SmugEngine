@@ -4,6 +4,7 @@
 #include <vulkan/vulkan.h>
 #include "Vertex.h"
 #include "Core/Timer.h"
+#include "Core/Input.h"
 #define USE_DEBUG_LAYER 0
 using namespace smug;
 
@@ -18,26 +19,24 @@ GraphicsEngine::~GraphicsEngine() {
 }
 
 VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDebugCallback(
-    VkDebugReportFlagsEXT       flags,
-    VkDebugReportObjectTypeEXT  objectType,
-    uint64_t                    object,
-    size_t                      location,
-    int32_t                     messageCode,
-    const char*                 pLayerPrefix,
-    const char*                 pMessage,
-    void*                       pUserData) {
-	if (messageCode == 3 || messageCode == 15 || messageCode == 1338) {
+	VkDebugUtilsMessageSeverityFlagBitsEXT           messageSeverity,
+	VkDebugUtilsMessageTypeFlagsEXT                  messageType,
+	const VkDebugUtilsMessengerCallbackDataEXT*      pCallbackData,
+	void*                                            pUserData) {
+
+	if (pCallbackData->messageIdNumber == 3 || pCallbackData->messageIdNumber == 15 || pCallbackData->messageIdNumber == 1338) {
 		return VK_FALSE;
 	}
 
 #ifdef _WIN32
 	wchar_t msg[1024];
-	mbstowcs(msg, pMessage, 1024);
+	mbstowcs(msg, pCallbackData->pMessage, 1024);
 	OutputDebugString(msg);
 	OutputDebugString(L"\n");
-#else
-	printf("%s\n", pMessage);
 #endif
+
+	printf("%s\n", pCallbackData->pMessage);
+
 	return VK_FALSE;
 }
 
@@ -52,13 +51,26 @@ void GraphicsEngine::CreateContext() {
 
 	Vector<const char*> layers;
 	Vector<const char*> extensions;
-#if defined(_DEBUG) && defined(USE_DEBUG_LAYER)
-	extensions.push_back("VK_EXT_debug_report");
-	layers.push_back("VK_LAYER_LUNARG_standard_validation");
-#endif
 
+#if defined(_DEBUG) && defined(USE_DEBUG_LAYER)
+	extensions.push_back("VK_EXT_debug_utils");
+	//layers.push_back("VK_LAYER_RENDERDOC_Capture");
+	layers.push_back("VK_LAYER_LUNARG_standard_validation");
+	VkDebugUtilsMessengerCreateInfoEXT messengerCreateInfo = {};
+	messengerCreateInfo.flags = 0;
+	messengerCreateInfo.messageSeverity =	VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+											VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT	|
+											VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT;
+	messengerCreateInfo.messageType =		VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+											VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+											VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+	messengerCreateInfo.pNext = nullptr;
+	messengerCreateInfo.pUserData = nullptr;
+	messengerCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+	messengerCreateInfo.pfnUserCallback = &VulkanDebugCallback;
+#endif
 	extensions.push_back("VK_KHR_surface");
-	//extensions.push_back("VK_KHR_swapchain");
+	extensions.push_back("VK_KHR_get_physical_device_properties2");
 #ifdef _WIN32
 	extensions.push_back("VK_KHR_win32_surface");
 #endif
@@ -69,27 +81,19 @@ void GraphicsEngine::CreateContext() {
 	instInfo.ppEnabledExtensionNames = &extensions[0];
 	instInfo.enabledLayerCount = (uint32_t)layers.size();
 	instInfo.ppEnabledLayerNames = &layers[0];
+#if defined(_DEBUG) && defined(USE_DEBUG_LAYER)
+	//push into instance create info to detect problem during initialization
+	instInfo.pNext = &messengerCreateInfo;
+#endif
 	m_VKContext.Instance = vk::createInstance(instInfo);
 
-#if  defined(_DEBUG) && defined(USE_DEBUG_LAYER)
-	/* Load VK_EXT_debug_report entry points in debug builds */
-	PFN_vkCreateDebugReportCallbackEXT vkCreateDebugReportCallbackEXT =
-	    reinterpret_cast<PFN_vkCreateDebugReportCallbackEXT>
-	    (m_VKContext.Instance.getProcAddr("vkCreateDebugReportCallbackEXT"));
-	PFN_vkDebugReportMessageEXT vkDebugReportMessageEXT =
-	    reinterpret_cast<PFN_vkDebugReportMessageEXT>
-	    (m_VKContext.Instance.getProcAddr("vkDebugReportMessageEXT"));
-	PFN_vkDestroyDebugReportCallbackEXT vkDestroyDebugReportCallbackEXT =
-	    reinterpret_cast<PFN_vkDestroyDebugReportCallbackEXT>
-	    (m_VKContext.Instance.getProcAddr("vkDestroyDebugReportCallbackEXT"));
 
-	VkDebugReportCallbackCreateInfoEXT debugCallbacks;
-	debugCallbacks.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT;
-	debugCallbacks.pfnCallback = &VulkanDebugCallback;
-	debugCallbacks.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT;
-	debugCallbacks.pNext = nullptr;
-	vkCreateDebugReportCallbackEXT(m_VKContext.Instance, &debugCallbacks, nullptr, &m_DebugCallbacks);
+#if defined(_DEBUG) && defined(USE_DEBUG_LAYER)
+	VkDebugUtilsMessengerEXT messenger;
+	PFN_vkCreateDebugUtilsMessengerEXT CreateDebugUtilsMessengerEXT = (PFN_vkCreateDebugUtilsMessengerEXT)m_VKContext.Instance.getProcAddr("vkCreateDebugUtilsMessengerEXT");
+	CreateDebugUtilsMessengerEXT(m_VKContext.Instance, &messengerCreateInfo, nullptr, &messenger);
 #endif
+
 	auto gpus = m_VKContext.Instance.enumeratePhysicalDevices();
 	if (gpus.size() == 0) {
 		return;
@@ -105,11 +109,11 @@ void GraphicsEngine::CreateContext() {
 
 	m_vkQueue.Init(VK_PHYS_DEVICE, vk::QueueFlagBits::eGraphics);
 
-	Vector<std::string> deviceExtensionStrings;
+	std::vector<std::string> deviceExtensionStrings;
 	for (auto& extension : VK_PHYS_DEVICE.enumerateDeviceExtensionProperties()) {
 		deviceExtensionStrings.push_back(extension.extensionName);
 	}
-	Vector<std::string> devicelayerStrings;
+	std::vector<std::string> devicelayerStrings;
 	for (auto& layer : VK_PHYS_DEVICE.enumerateDeviceLayerProperties()) {
 		devicelayerStrings.push_back(layer.layerName);
 	}
@@ -117,53 +121,20 @@ void GraphicsEngine::CreateContext() {
 	std::vector<const char*> deviceExtensions;
 	//device extensions
 	deviceExtensions.push_back("VK_KHR_swapchain");
-	deviceExtensions.push_back("VK_KHR_16bit_storage");
-	deviceExtensions.push_back("VK_KHR_bind_memory2");
-	deviceExtensions.push_back("VK_KHR_descriptor_update_template");
 	deviceExtensions.push_back("VK_KHR_dedicated_allocation");
 	deviceExtensions.push_back("VK_KHR_get_memory_requirements2");
-	//deviceExtensions.push_back("VK_KHR_get_physical_device_properties2");
-	deviceExtensions.push_back("VK_KHR_image_format_list");
 	deviceExtensions.push_back("VK_KHR_maintenance1");
-	deviceExtensions.push_back("VK_KHR_maintenance2");
-	//deviceExtensions.push_back("VK_KHR_push_descriptor");
-	deviceExtensions.push_back("VK_KHR_relaxed_block_layout");
 	deviceExtensions.push_back("VK_KHR_sampler_mirror_clamp_to_edge");
-	deviceExtensions.push_back("VK_KHR_sampler_ycbcr_conversion");
 	deviceExtensions.push_back("VK_KHR_shader_draw_parameters");
-	deviceExtensions.push_back("VK_KHR_storage_buffer_storage_class");
-	deviceExtensions.push_back("VK_KHR_external_memory");
-	deviceExtensions.push_back("VK_KHR_external_memory_win32");
-	deviceExtensions.push_back("VK_KHR_external_semaphore");
-	deviceExtensions.push_back("VK_KHR_external_semaphore_win32");
-	deviceExtensions.push_back("VK_KHR_win32_keyed_mutex");
-	deviceExtensions.push_back("VK_KHR_external_fence");
-	deviceExtensions.push_back("VK_KHR_external_fence_win32");
-	deviceExtensions.push_back("VK_KHR_variable_pointers");
-	//deviceExtensions.push_back("VK_EXT_blend_operation_advanced");
-	deviceExtensions.push_back("VK_EXT_depth_range_unrestricted");
-	deviceExtensions.push_back("VK_EXT_discard_rectangles");
-	//deviceExtensions.push_back("VK_EXT_post_depth_coverage");
-	//deviceExtensions.push_back("VK_EXT_sampler_filter_minmax");
-	deviceExtensions.push_back("VK_EXT_shader_subgroup_ballot");
-	deviceExtensions.push_back("VK_EXT_shader_subgroup_vote");
-	//deviceExtensions.push_back("VK_EXT_shader_viewport_index_layer");
-	deviceExtensions.push_back("VK_NV_dedicated_allocation");
-	deviceExtensions.push_back("VK_NV_external_memory");
-	deviceExtensions.push_back("VK_NV_external_memory_win32");
-	//deviceExtensions.push_back("VK_NV_fill_rectangle");
-	//deviceExtensions.push_back("VK_NV_fragment_coverage_to_color");
-	//deviceExtensions.push_back("VK_NV_framebuffer_mixed_samples");
-	deviceExtensions.push_back("VK_NV_glsl_shader");
-	deviceExtensions.push_back("VK_NV_win32_keyed_mutex");
-	//deviceExtensions.push_back("VK_NV_sample_mask_override_coverage");
-	//deviceExtensions.push_back("VK_NV_viewport_array2");
-	//deviceExtensions.push_back("VK_NV_viewport_swizzle");
-	//deviceExtensions.push_back("VK_NV_geometry_shader_passthrough");
-	//deviceExtensions.push_back("VK_NVX_device_generated_commands");
-	//deviceExtensions.push_back("VK_NVX_multiview_per_view_attributes");
 	//device layers
+#ifdef _DEBUG
 	devicelayers.push_back("VK_LAYER_LUNARG_standard_validation");
+#endif
+	
+	vk::PhysicalDeviceFeatures features = VK_PHYS_DEVICE.getFeatures();
+	features.samplerAnisotropy = VK_TRUE;
+	features.multiDrawIndirect = VK_TRUE;
+	features.multiViewport = VK_TRUE;
 
 	vk::DeviceCreateInfo deviceInfo;
 	deviceInfo.queueCreateInfoCount = 1;
@@ -172,7 +143,7 @@ void GraphicsEngine::CreateContext() {
 	deviceInfo.ppEnabledExtensionNames = deviceExtensions.data();
 	deviceInfo.enabledLayerCount = (uint32_t)devicelayers.size();
 	deviceInfo.ppEnabledLayerNames = devicelayers.data();
-	deviceInfo.pEnabledFeatures = nullptr;
+	deviceInfo.pEnabledFeatures = &features;
 	VK_DEVICE = VK_PHYS_DEVICE.createDevice(deviceInfo);
 	//get queues
 	*static_cast<vk::Queue*>(&m_vkQueue) = VK_DEVICE.getQueue(m_vkQueue.GetQueueIndex(), 0);
@@ -289,7 +260,7 @@ void GraphicsEngine::CreateSwapChain(VkSurfaceKHR surface) {
 	Vector<vk::ImageUsageFlags> usages;
 	usages.push_back(vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled);
 	usages.push_back(vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled);
-	m_FrameBuffer.Init(VK_DEVICE, VK_PHYS_DEVICE, m_ScreenSize, fboFormats, usages);
+	m_FrameBuffer.Init(VK_DEVICE, VK_PHYS_DEVICE, m_ScreenSize, fboFormats, usages, BUFFER_COUNT);
 }
 
 void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
@@ -342,7 +313,7 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	m_StaticRenderQueue.Init(m_DeviceAllocator);
 
 	vk::DescriptorPoolCreateInfo descPoolInfo;
-	descPoolInfo.maxSets = 16 * 1000;
+	descPoolInfo.maxSets = 16 * 1024;
 	std::vector<vk::DescriptorPoolSize> poolSizes;
 	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eSampler, 50));
 	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eCombinedImageSampler, 10000));
@@ -356,20 +327,27 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eInputAttachment, 10));
 	descPoolInfo.pPoolSizes = poolSizes.data();
 	descPoolInfo.poolSizeCount = (uint32_t)poolSizes.size();
-	m_DescriptorPool = VK_DEVICE.createDescriptorPool(descPoolInfo);
+	VK_DESC_POOL = VK_DEVICE.createDescriptorPool(descPoolInfo);
+
+	MemoryBudget memBudget;
+	memBudget.GeometryBudget = 0;
+	memBudget.MaterialBudget = 0;
+	m_Resources.Init(&VK_DEVICE, VK_PHYS_DEVICE, memBudget, m_DeviceAllocator);
+
 	//tonemapping
-	m_ToneMapping.Init(VK_DEVICE, m_ScreenSize, m_FrameBuffer, m_DescriptorPool, m_RenderPass, m_DeviceAllocator);
+	m_ToneMapping.Init(VK_DEVICE, m_ScreenSize, m_FrameBuffer, VK_DESC_POOL, m_RenderPass, m_DeviceAllocator);
+	m_ShadowProgram.Init(m_VKContext, m_DeviceAllocator);
 
 	{
 		//uniform set
 		vk::DescriptorSetAllocateInfo descSetAllocInfo;
-		descSetAllocInfo.descriptorPool = m_DescriptorPool;
+		descSetAllocInfo.descriptorPool = VK_DESC_POOL;
 		descSetAllocInfo.descriptorSetCount = 1;
 		descSetAllocInfo.pSetLayouts = &m_Pipeline.GetDescriptorSetLayouts()[0];
 		VK_DEVICE.allocateDescriptorSets(&descSetAllocInfo, &m_PerFrameSet);
 
 		//ibl set
-		descSetAllocInfo.descriptorPool = m_DescriptorPool;
+		descSetAllocInfo.descriptorPool = VK_DESC_POOL;
 		descSetAllocInfo.descriptorSetCount = 1;
 		descSetAllocInfo.pSetLayouts = &m_Pipeline.GetDescriptorSetLayouts()[1];
 		VK_DEVICE.allocateDescriptorSets(&descSetAllocInfo, &m_IBLDescSet);
@@ -387,7 +365,7 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 		m_StaticRenderQueue.SetDescSet(set);
 	}
 
-	vk::WriteDescriptorSet descWrites[4 + BUFFER_COUNT];
+	vk::WriteDescriptorSet descWrites[6 + BUFFER_COUNT];
 	uint32_t c = 0;
 	descWrites[c].descriptorCount = 1;
 	descWrites[c].descriptorType = vk::DescriptorType::eUniformBuffer;
@@ -419,6 +397,12 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	descWrites[c].dstBinding = 1;
 	descWrites[c].pImageInfo = &imageInfo[1];
 	descWrites[c++].dstSet = m_IBLDescSet;
+	descWrites[c].descriptorCount = 1;
+	descWrites[c].descriptorType = vk::DescriptorType::eCombinedImageSampler;
+	descWrites[c].dstArrayElement = 0;
+	descWrites[c].dstBinding = 2;
+	descWrites[c].pImageInfo = &m_ShadowProgram.GetFrameBuffer().GetDescriptors()[0];
+	descWrites[c++].dstSet = m_IBLDescSet;
 
 	vk::DescriptorBufferInfo bufferInfos[BUFFER_COUNT + 1];
 	for (int q = 0; q < BUFFER_COUNT; ++q) {
@@ -448,11 +432,6 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	VK_DEVICE.updateDescriptorSets(c + BUFFER_COUNT + 1, descWrites, 0, nullptr);
 
 	m_SkyBox.Init(VK_DEVICE, VK_PHYS_DEVICE, "assets/textures/skybox.dds", m_Viewport, m_FrameBuffer.GetRenderPass(), m_DeviceAllocator);
-
-	MemoryBudget memBudget;
-	memBudget.GeometryBudget = 0;
-	memBudget.MaterialBudget = 0;
-	m_Resources.Init(&VK_DEVICE, VK_PHYS_DEVICE, memBudget, m_DeviceAllocator);
 	//prepare initial transfer
 	auto& cmdBuffer = m_CmdBufferFactory.GetNextBuffer();
 	cmdBuffer.Begin(nullptr, nullptr);
@@ -467,14 +446,17 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	}
 	
 	cmdBuffer.PushPipelineBarrier();
-	m_DeviceAllocator.ScheduleTransfers(cmdBuffer);
+	m_DeviceAllocator.ScheduleTransfers(&cmdBuffer);
 	m_CmdBufferFactory.EndBuffer(cmdBuffer);
 
 	m_vkQueue.Submit(cmdBuffer);
 	VK_DEVICE.waitIdle();
+
+	pipelineEditor.Init(VK_DEVICE);
+	pipelineEditor.Open("shader/filled.json");
 }
 
-void GraphicsEngine::RenderModels(RenderQueue& rq, VulkanCommandBuffer& cmdBuffer) {
+void GraphicsEngine::RenderModels(RenderQueue& rq, CommandBuffer& cmdBuffer) {
 	if (rq.GetModels().size() == 0) {
 		return;
 	}
@@ -509,11 +491,7 @@ void GraphicsEngine::RenderModels(RenderQueue& rq, VulkanCommandBuffer& cmdBuffe
 
 void GraphicsEngine::Render() {
 
-	if (ImGui::Button("Recompile shader")) {
-		VK_DEVICE.waitIdle();
-		m_Pipeline.ReloadPipelineFromFile(VK_DEVICE, "shader/filled.json", m_RenderPass);
-	}
-
+	pipelineEditor.Update();
 	RenderQueue& rq = m_RenderQueues[VK_FRAME_INDEX];
 	//reset stats
 	{
@@ -521,24 +499,36 @@ void GraphicsEngine::Render() {
 		m_Stats.MeshCount = 0;
 		m_Stats.TriangleCount = 0;
 	}
+
+	if (ImGui::Button("Recompile Shader")) {
+		m_Pipeline.ReloadPipelineFromFile(VK_DEVICE, "shader/filled.json", m_RenderPass);
+	}
 	//Transfer new frame data to GPU
 	{
 		const CameraData& cd = rq.GetCameras()[0];
+		
+		m_ShadowProgram.Update(m_DeviceAllocator, rq);
 
 		PerFrameBuffer uniformBuffer;
+		static int shadowIndex = 0;
 		uniformBuffer.ViewProj = cd.ProjView;
 		uniformBuffer.CameraPos = glm::vec4(cd.Position, 1);
 		static glm::vec3 lightDir = glm::vec3(0.1f, -1.0f, -0.5f);
 		static float globalRoughness = 1.0f;
 		static bool metallic = false;
-		ImGui::Begin("Scene");
-		ImGui::DragFloat3("Lighting direction", &lightDir[0], 0.001f, -1.0f, 1.0f);
-		ImGui::SliderFloat("Global Roughness", &globalRoughness,0, 1.0f);
-		ImGui::Checkbox("Metal", &metallic);
-		ImGui::End();
+		//ImGui::Begin("Scene");
+		//ImGui::DragFloat3("Lighting direction", &lightDir[0], 0.001f, -1.0f, 1.0f);
+		//ImGui::SliderFloat("Global Roughness", &globalRoughness,0, 1.0f);
+		//ImGui::Checkbox("Metal", &metallic);
+		//ImGui::End();
 		uniformBuffer.LightDir = glm::normalize(glm::vec4(lightDir, 1.0f));
 		uniformBuffer.Material.x = globalRoughness;
 		uniformBuffer.Material.y = metallic ? 1.0f : 0.0f;
+		uniformBuffer.LightViewProj[0] = m_ShadowProgram.GetShadowMatrix(0);
+		uniformBuffer.LightViewProj[1] = m_ShadowProgram.GetShadowMatrix(1);
+		uniformBuffer.LightViewProj[2] = m_ShadowProgram.GetShadowMatrix(2);
+		uniformBuffer.LightViewProj[3] = m_ShadowProgram.GetShadowMatrix(3);
+		uniformBuffer.NearFarPadding = glm::vec4(cd.Near, cd.Far, 0, 0);
 
 		m_DeviceAllocator.UpdateBuffer(m_PerFrameBuffer, sizeof(PerFrameBuffer), &uniformBuffer);
 		m_ToneMapping.Update(m_DeviceAllocator);
@@ -548,20 +538,24 @@ void GraphicsEngine::Render() {
 
 		auto& cmdBuffer = m_CmdBufferFactory.GetNextBuffer();
 		cmdBuffer.Begin(nullptr, nullptr);
-		m_DeviceAllocator.ScheduleTransfers(cmdBuffer);
+		m_DeviceAllocator.ScheduleTransfers(&cmdBuffer);
 		m_SkyBox.PrepareUniformBuffer(cmdBuffer, m_DeviceAllocator, cd.ProjView, glm::translate(cd.Position));
 		m_CmdBufferFactory.EndBuffer(cmdBuffer);
 
 		m_vkQueue.Submit(cmdBuffer, nullptr, m_TransferComplete, nullptr);
 		
 	}
-	DirLight dl;
-	dl.Direction = glm::vec3(0.1f, -1.0f, -0.5f);
-	dl.Color = glm::vec4(1);
-	m_ShadowProgram.Render(rq, dl);
+	
+	std::vector<vk::CommandBuffer> cmdBuffers;
 	//render pass
 	{
 		auto& cmdBuffer = m_CmdBufferFactory.GetNextBuffer();
+
+		m_ShadowProgram.Render(VK_FRAME_INDEX, cmdBuffer, rq, m_Resources);
+		m_CmdBufferFactory.EndBuffer(cmdBuffer);
+		cmdBuffers.push_back(cmdBuffer);
+
+		cmdBuffer = m_CmdBufferFactory.GetNextBuffer();
 		cmdBuffer.Begin(m_FrameBuffer.GetFrameBuffer(VK_FRAME_INDEX), m_FrameBuffer.GetRenderPass());
 
 		Vector<vk::ImageLayout> newLayouts;
@@ -574,7 +568,7 @@ void GraphicsEngine::Render() {
 		vk::RenderPassBeginInfo renderPassInfo;
 		renderPassInfo.framebuffer = m_FrameBuffer.GetFrameBuffer(VK_FRAME_INDEX);
 		renderPassInfo.renderPass = m_FrameBuffer.GetRenderPass();
-		glm::vec4 color = glm::vec4(255.0f / 255, 149.0f / 255, 237.0f / 255, 1);
+		glm::vec4 color = glm::vec4(0);
 		vk::ClearColorValue clearColor;
 		clearColor.float32[0] = color.r;
 		clearColor.float32[1] = color.g;
@@ -601,7 +595,9 @@ void GraphicsEngine::Render() {
 		cmdBuffer.endRenderPass();
 
 		m_CmdBufferFactory.EndBuffer(cmdBuffer);
-		m_vkQueue.Submit({ cmdBuffer }, { m_TransferComplete, m_ImageAquiredSemaphore }, { m_RenderCompleteSemaphore }, nullptr);
+		cmdBuffers.push_back(cmdBuffer);
+
+		m_vkQueue.Submit(cmdBuffers, { m_TransferComplete, m_ImageAquiredSemaphore }, { m_RenderCompleteSemaphore }, nullptr);
 	}
 	//Perform tonemapping and render Imgui
 	{
@@ -638,7 +634,7 @@ void GraphicsEngine::Render() {
 		cmdBuffer.endRenderPass();
 
 		m_CmdBufferFactory.EndBuffer(cmdBuffer);
-
+		
 		m_vkQueue.Submit(cmdBuffer, m_RenderCompleteSemaphore, m_ImguiComplete, m_Fence[VK_FRAME_INDEX]);
 	}
 }
@@ -689,15 +685,15 @@ void check_vk_result(VkResult err) {
 		abort();
 }
 
-ImGui_ImplGlfwVulkan_Init_Data GraphicsEngine::GetImguiInit() {
-	ImGui_ImplGlfwVulkan_Init_Data id;
-	id.check_vk_result = check_vk_result;
-	id.descriptor_pool = m_DescriptorPool;
-	id.device = VK_DEVICE;
-	id.gpu = VK_PHYS_DEVICE;
-	id.render_pass = m_RenderPass;
-	id.allocator = nullptr;
-	id.pipeline_cache = nullptr;
+ImGui_ImplGlfwVulkan_Init_Data* GraphicsEngine::GetImguiInit() {
+	ImGui_ImplGlfwVulkan_Init_Data* id = new ImGui_ImplGlfwVulkan_Init_Data();
+	id->check_vk_result = check_vk_result;
+	id->descriptor_pool = VK_DESC_POOL;
+	id->device = VK_DEVICE;
+	id->gpu = VK_PHYS_DEVICE;
+	id->render_pass = m_RenderPass;
+	id->allocator = nullptr;
+	id->pipeline_cache = nullptr;
 	return id;
 }
 
@@ -724,9 +720,15 @@ void GraphicsEngine::CreateImguiFont(ImGuiContext* imguiCtx) {
 
 
 void GraphicsEngine::PrintStats() {
-	ImGui::Begin("FrameStats");
-	ImGui::Text("ModelCount: %u", m_Stats.ModelCount);
-	ImGui::Text("MeshCount: %u", m_Stats.MeshCount);
-	ImGui::Text("TriangleCount: %u", m_Stats.TriangleCount);
-	ImGui::End();
+	static bool frameStats = false;
+	if (g_Input.IsKeyPushed(GLFW_KEY_F10)) {
+		frameStats = !frameStats;
+	}
+	if (frameStats) {
+		ImGui::Begin("FrameStats");
+		ImGui::Text("ModelCount: %u", m_Stats.ModelCount);
+		ImGui::Text("MeshCount: %u", m_Stats.MeshCount);
+		ImGui::Text("TriangleCount: %u", m_Stats.TriangleCount);
+		ImGui::End();
+	}
 }

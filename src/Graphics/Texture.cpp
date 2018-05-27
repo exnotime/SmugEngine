@@ -12,7 +12,7 @@ VkTexture::~VkTexture() {
 
 }
 
-void VkTexture::Init(const std::string& filename, VkMemoryAllocator* allocator, const vk::Device& device) {
+void VkTexture::Init(const std::string& filename, DeviceAllocator* allocator, const vk::Device& device) {
 	gli::texture texture(gli::load(filename));
 	//create image
 	VkImageCreateInfo imageInfo = {};
@@ -91,7 +91,7 @@ void VkTexture::Init(const std::string& filename, VkMemoryAllocator* allocator, 
 	m_Sampler = device.createSampler(sampInfo);
 }
 
-void VkTexture::Init(const TextureInfo& texInfo, VkMemoryAllocator* allocator, const vk::Device& device) {
+void VkTexture::Init(const TextureInfo& texInfo, DeviceAllocator* allocator, const vk::Device& device) {
 	//create image
 	VkImageCreateInfo imageInfo = {};
 	imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;

@@ -6,7 +6,7 @@ RenderQueue::RenderQueue() {
 RenderQueue::~RenderQueue() {
 }
 
-void RenderQueue::Init(VkMemoryAllocator& memory) {
+void RenderQueue::Init(DeviceAllocator& memory) {
 	//allocate gpu memory for shader inputs
 	m_Buffer = memory.AllocateBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, 1024 * 1024, nullptr);
 
@@ -35,10 +35,9 @@ void RenderQueue::AddModel(ResourceHandle model, const glm::mat4& transform, con
 	m_Models[model].Inputs.push_back(i);
 }
 
-void RenderQueue::ScheduleTransfer(VkMemoryAllocator& memory) {
+void RenderQueue::ScheduleTransfer(DeviceAllocator& memory) {
 	for (auto& mi : m_Models) {
 		mi.second.Offset = (uint32_t)m_Inputs.size();
-		//m_Inputs.insert(m_Inputs.end(), mi.second.Inputs.begin(), mi.second.Inputs.end());
 		m_Inputs += mi.second.Inputs;
 	}
 

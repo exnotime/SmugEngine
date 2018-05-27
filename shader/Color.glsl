@@ -18,6 +18,7 @@ layout (set = 0, binding = 0) uniform g_PerFrame {
     vec4 CamPos;
     vec4 LightDir;
     vec4 Material;
+    mat4 light_view_proj[4];
 };
 
 struct PerObject{
@@ -62,9 +63,11 @@ layout (set = 0, binding = 0) uniform WVP{
     vec4 CamPos;
     vec4 LightDir;
     vec4 Material;
+    mat4 light_view_proj[4];
+    vec4 NearFar;
 };
 #include "lighting.glsl"
-
+layout(set = 1, binding = 2) uniform sampler2D g_ShadowCascades;
 layout(set = 3, binding = 0) uniform sampler2D g_Material[4];
 
 vec3 CalcBumpedNormal(vec3 Bump, vec3 Normal, vec3 Tangent, vec3 BiNorm){
@@ -75,6 +78,34 @@ vec3 CalcBumpedNormal(vec3 Bump, vec3 Normal, vec3 Tangent, vec3 BiNorm){
     mat3 TBN = mat3(tangent,binorm,normal);
     vec3 newNormal = TBN * Bump;
     return normalize(newNormal);
+}
+
+vec2 CascadeOffsets[4] = {
+	vec2(0,0), vec2(0.5,0), vec2(0,0.5), vec2(0.5,0.5)
+};
+
+float SampleShadowMap(vec3 posW){
+	//calc cascade index
+	float z = (2 * NearFar.x) / (NearFar.y + NearFar.x - gl_FragCoord.z * (NearFar.y - NearFar.x));
+	int cascadeIndex = int(z * 4.0);
+	//calc shadow uv
+	vec4 lightPos = light_view_proj[cascadeIndex] * vec4(posW, 1);
+	lightPos.xy /= lightPos.w;
+	lightPos.xy = lightPos.xy * 0.5 + 0.5;
+	vec2 samplePos = lightPos.xy * 0.5 + CascadeOffsets[cascadeIndex];
+
+	float shadow = 0.0;
+	//for(int x = -1; x < 2; x++){
+	//	for(int y = -1; y < 2; y++){
+	//		const float delta = 1.0 / 1024;
+	//		
+	//	}
+	//}
+	float d = texture(g_ShadowCascades, samplePos).r;
+	if(lightPos.w > 0 && d < lightPos.z){
+		shadow += 1.0;
+	}
+	return 1.0 - (shadow);
 }
 
 void main(){
@@ -88,10 +119,25 @@ void main(){
     mat.r *= mat.r;
     mat.r = saturate(mat.r * Material.r);
     mat.r = clamp( mat.r, 0.001, 0.999);
-    mat.g = Material.g;
+    //mat.g = texture(g_ShadowCascades, vec3(TexCoordOut, 1.0f)).r;
 
-    vec3 lightColor = CalcDirLight(-lightDir, texColor, normal, toCam, mat.r, mat.g) * mat.b;
+    vec3 lightColor = CalcDirLight(-lightDir, texColor, normal, toCam, mat.r, mat.g) * SampleShadowMap(PosW);
     lightColor += CalcIBLLight( normal, toCam, texColor, mat.r, mat.g);
     outColor = saturate(vec4(lightColor, 1));
+    //vec2 s = SampleShadowMap(PosW);
+    //if(s.x < -1){
+    //	outColor = vec4(1,0,0,1);
+    //}
+    //else if(s.x > 1){
+    //	outColor = vec4(0,1,0,1);
+    //}
+    //else if(s.y < -1){
+    //	outColor = vec4(0,0,1,1);
+    //}
+    //else if(s.y > 1){
+    //	outColor = vec4(0,1,0,1);
+    //}else{
+    //	outColor = vec4(1);
+    //}
 }
 #endif

@@ -21,15 +21,16 @@ namespace smug {
 		VkBuffer buffer;
 	};
 
-	class VkMemoryAllocator {
+	class CommandBuffer;
+	class DeviceAllocator {
 	public:
-		VkMemoryAllocator();
-		~VkMemoryAllocator();
+		DeviceAllocator();
+		~DeviceAllocator();
 		void Init(vk::Device& device, vk::PhysicalDevice& physicalDevice);
 		void AllocateImage(VkImageCreateInfo* createInfo, VkImage* image, uint64_t size = 0, void* data = nullptr);
 		VkBufferHandle AllocateBuffer(const VkBufferUsageFlags usage, uint64_t size = 0, void * data = nullptr);
 		void UpdateBuffer(VkBufferHandle& handle, uint64_t size, void* data = nullptr);
-		void ScheduleTransfers(VulkanCommandBuffer& cmdBuffer);
+		void ScheduleTransfers(CommandBuffer* cmdBuffer);
 		void Clear();
 		void PrintStats();
 	private:

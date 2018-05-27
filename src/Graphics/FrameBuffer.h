@@ -8,15 +8,16 @@ namespace smug {
 	public:
 		FrameBuffer();
 		~FrameBuffer();
-		void Init(const vk::Device& device, const vk::PhysicalDevice& gpu, const glm::vec2& size, const Vector<vk::Format>& formats, const Vector<vk::ImageUsageFlags>& usages);
+		void Init(const vk::Device& device, const vk::PhysicalDevice& gpu, const glm::vec2& size, const Vector<vk::Format>& formats, const Vector<vk::ImageUsageFlags>& usages, uint32_t bufferCount);
 		void Resize(const glm::vec2& size);
-		void ChangeLayout(VulkanCommandBuffer& cmdBuffer, const Vector<vk::ImageLayout>& newLayouts, uint32_t frameIndex);
+		void ChangeLayout(CommandBuffer& cmdBuffer, const Vector<vk::ImageLayout>& newLayouts, uint32_t frameIndex);
 		void SetLayouts(const std::vector<vk::ImageLayout>& newLayouts, uint32_t frameIndex);
 		//Getters
 		Vector<vk::Image>& GetImages() { return m_Images; }
 		Vector<vk::ImageView>& GetViews() { return m_ImageViews; }
 		Vector<vk::Format>& GetFormats() { return m_Formats; }
 		Vector<vk::ImageLayout>& GetLayouts() { return m_CurrentLayouts; }
+		Vector<vk::DescriptorImageInfo>& GetDescriptors() { return m_Descriptors; }
 		vk::RenderPass GetRenderPass() { return m_RenderPass; }
 		vk::Framebuffer GetFrameBuffer(uint32_t frameIndex) { return m_FrameBuffers[frameIndex]; }
 
@@ -52,7 +53,9 @@ namespace smug {
 		Vector<vk::ImageView> m_ImageViews;
 		Vector<vk::Format> m_Formats;
 		Vector<vk::ImageLayout> m_CurrentLayouts;
+		Vector<vk::DescriptorImageInfo> m_Descriptors;
 		uint64_t m_MemorySize;
 		uint32_t m_FormatCount;
+		uint32_t m_BufferCount;
 	};
 }

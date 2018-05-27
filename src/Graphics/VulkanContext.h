@@ -3,12 +3,6 @@
 #include <deque>
 #define BUFFER_COUNT 2
 namespace smug {
-	struct VulkanContext {
-		vk::Instance Instance;
-		vk::Device Device;
-		vk::PhysicalDevice PhysicalDevice;
-		uint32_t FrameIndex;
-	};
 
 	struct VulkanSwapChain {
 		vk::SurfaceKHR Surface;
@@ -18,6 +12,14 @@ namespace smug {
 		vk::Framebuffer FrameBuffers[BUFFER_COUNT];
 		bool SRGB;
 		vk::Format Format;
+	};
+
+	struct VulkanContext {
+		vk::Instance Instance;
+		vk::Device Device;
+		vk::PhysicalDevice PhysicalDevice;
+		vk::DescriptorPool DescriptorPool;
+		uint32_t FrameIndex;
 	};
 
 
@@ -72,17 +74,17 @@ namespace smug {
 		return vk::ImageAspectFlagBits::eMetadata;
 	}
 
-	class VulkanCommandBuffer : public vk::CommandBuffer {
+	class CommandBuffer : public vk::CommandBuffer {
 	public:
-		VulkanCommandBuffer() {
+		CommandBuffer() {
 
 		}
 
-		VulkanCommandBuffer(vk::CommandBuffer buffer) {
+		CommandBuffer(vk::CommandBuffer buffer) {
 			*static_cast<vk::CommandBuffer*>(this) = buffer;
 		}
 
-		~VulkanCommandBuffer() {
+		~CommandBuffer() {
 
 		}
 
@@ -92,7 +94,7 @@ namespace smug {
 			inheritanceInfo.framebuffer = frameBuffer;
 			inheritanceInfo.renderPass = renderPass;
 			beginInfo.pInheritanceInfo = &inheritanceInfo;
-			beginInfo.flags = vk::CommandBufferUsageFlagBits::eSimultaneousUse;
+			beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
 
 			this->begin(&beginInfo);
 		}
@@ -145,7 +147,7 @@ namespace smug {
 
 			auto& buffers = device.allocateCommandBuffers(bufferInfo);
 			for (uint32_t i = 0; i < buffers.size(); ++i) {
-				m_CommandBuffers.push_back(VulkanCommandBuffer(buffers[i]));
+				m_CommandBuffers.push_back(CommandBuffer(buffers[i]));
 			}
 			m_ResetBuffers.insert(m_ResetBuffers.begin(), m_CommandBuffers.begin(), m_CommandBuffers.end());
 		}
@@ -160,30 +162,30 @@ namespace smug {
 			device.resetCommandPool(m_CmdPools[frameIndex], vk::CommandPoolResetFlagBits::eReleaseResources);
 		}
 
-		VulkanCommandBuffer& GetNextBuffer() {
-			VulkanCommandBuffer& buffer = m_ResetBuffers.front();
+		CommandBuffer& GetNextBuffer() {
+			CommandBuffer& buffer = m_ResetBuffers.front();
 			m_ResetBuffers.pop_front();
 			return buffer;
 		}
 
-		void EndBuffer(VulkanCommandBuffer& buffer) {
+		void EndBuffer(CommandBuffer& buffer) {
 			buffer.end();
 			m_UsedBuffers.push_back(buffer);
 		}
 
 	private:
-		std::vector<VulkanCommandBuffer> m_CommandBuffers;
-		std::deque<VulkanCommandBuffer> m_ResetBuffers;
-		std::deque<VulkanCommandBuffer> m_UsedBuffers;
+		std::vector<CommandBuffer> m_CommandBuffers;
+		std::deque<CommandBuffer> m_ResetBuffers;
+		std::deque<CommandBuffer> m_UsedBuffers;
 		vk::CommandPool m_CmdPools[BUFFER_COUNT];
 	};
 
-	class VulkanQueue : public vk::Queue {
+	class DeviceQueue : public vk::Queue {
 	public:
-		VulkanQueue() {
+		DeviceQueue() {
 
 		}
-		~VulkanQueue() {
+		~DeviceQueue() {
 
 		}
 

@@ -10,7 +10,7 @@ SkyBox::SkyBox() {
 SkyBox::~SkyBox() {
 }
 
-void SkyBox::Init(const vk::Device& device, const vk::PhysicalDevice& physDev, const std::string& filename,const vk::Viewport& vp, const vk::RenderPass& rp, VkMemoryAllocator& allocator) {
+void SkyBox::Init(const vk::Device& device, const vk::PhysicalDevice& physDev, const std::string& filename,const vk::Viewport& vp, const vk::RenderPass& rp, DeviceAllocator& allocator) {
 	//load pipestate
 	m_Pipeline.LoadPipelineFromFile(device, "shader/Skybox.json", rp);
 	//allocate memory
@@ -69,7 +69,7 @@ void SkyBox::Init(const vk::Device& device, const vk::PhysicalDevice& physDev, c
 	device.updateDescriptorSets(writeDescs, nullptr);
 }
 
-void SkyBox::PrepareUniformBuffer(VulkanCommandBuffer cmdBuffer, VkMemoryAllocator& allocator, const glm::mat4& viewProj, const glm::mat4& world) {
+void SkyBox::PrepareUniformBuffer(CommandBuffer cmdBuffer, DeviceAllocator& allocator, const glm::mat4& viewProj, const glm::mat4& world) {
 	struct perFrameBuffer {
 		glm::mat4 vp;
 		glm::mat4 w;
@@ -77,10 +77,10 @@ void SkyBox::PrepareUniformBuffer(VulkanCommandBuffer cmdBuffer, VkMemoryAllocat
 	pfb.vp = viewProj;
 	pfb.w = world;
 	allocator.UpdateBuffer(m_UBO, sizeof(perFrameBuffer), &pfb);
-	allocator.ScheduleTransfers(cmdBuffer);
+	allocator.ScheduleTransfers(&cmdBuffer);
 }
 
-void SkyBox::Render(VulkanCommandBuffer cmdBuffer) {
+void SkyBox::Render(CommandBuffer cmdBuffer) {
 	cmdBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipeline());
 	vk::DeviceSize offset = 0;
 	vk::Buffer buf(m_VBO.buffer);//vulkan.hpp!!! why?!

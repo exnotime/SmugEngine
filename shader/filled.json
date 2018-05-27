@@ -11,7 +11,8 @@
         ],
         [
             {"Binding":0, "Count":1, "Type":"CombinedImageSampler"},
-            {"Binding":1, "Count":2, "Type":"CombinedImageSampler"}
+            {"Binding":1, "Count":2, "Type":"CombinedImageSampler"},
+            {"Binding":2, "Count":1, "Type":"CombinedImageSampler"}
         ],
         [
             {"Binding":0, "Count":1, "Type":"StorageBuffer"} 

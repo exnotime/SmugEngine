@@ -15,6 +15,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 #pragma once
 #include <vulkan/vulkan.hpp>
+#include <AssetLoader/Resources.h>
 
 #ifndef SHADER_CACHE_DIR
 //#define USE_SHADER_CACHE 1
@@ -24,20 +25,5 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 namespace smug {
-enum SHADER_LANGUAGE {
-	GLSL,
-	HLSL
-};
-
-enum SHADER_STAGE {
-	VERTEX,
-	FRAGMENT,
-	GEOMETRY,
-	CONTROL,
-	EVALUATION,
-	COMPUTE,
-	PRECOMPILED
-};
-
-vk::ShaderModule LoadShader(const vk::Device& device, const std::string& filename, SHADER_STAGE stage, const std::string& entryPoint = "main", SHADER_LANGUAGE language = GLSL);
+vk::ShaderModule LoadShader(const vk::Device& device, const std::string& filename, SHADER_KIND stage, const std::string& entryPoint = "main", SHADER_LANGUAGE language = GLSL);
 };

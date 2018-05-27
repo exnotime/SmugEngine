@@ -1,0 +1,37 @@
+{
+    "Shaders":
+    {
+        "Vertex":{"Source":"shader/shadow.glsl"},
+        "Geometry":{"Source":"shader/shadow.glsl"}
+    },
+    "DescriptorSetLayouts":
+    [
+        [
+            {"Binding":0, "Count":1, "Type":"UniformBuffer"}
+        ],
+        [
+            {"Binding":0, "Count":1, "Type":"StorageBuffer"}
+        ]
+    ],
+    "PushConstantRanges":
+    [
+        {"Size":4, "Offset":0}
+    ],
+    "VertexInputState":
+    {
+    	"InputBindings": [ {"Binding":0,"InputRate":"Vertex", "Stride":12} ],
+    	"InputAttributes": [ {"Binding":0, "Format":"R32G32B32Sfloat", "Location":0, "Offset":0}]
+    },
+    "RasterizationState":
+    {
+        "CullMode":"Front",
+        "FrontFace":"CounterClockwise",
+        "PolygonMode":"Fill",
+        "DepthBiasEnable":true,
+        "DepthBiasConstantFactor":1.25,
+        "DepthBiasClamp":0.0,
+        "DepthBiasSlopeFactor":1.75
+    },
+    "ViewportCount":4,
+    "ScissorCount":4
+}
