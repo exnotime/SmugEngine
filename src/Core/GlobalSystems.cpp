@@ -7,7 +7,7 @@ ComponentManager* globals::g_Components = nullptr;
 EntityManager* globals::g_EntityManager = nullptr;
 
 void globals::Clear() {
-	delete g_Gfx;
+	//delete g_Gfx;
 	g_Gfx = nullptr;
 	delete g_Physics;
 	g_Physics = nullptr;

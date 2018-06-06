@@ -26,7 +26,7 @@ struct Options {
 
 Options ParseOptions(const uint32_t argc, const char** argv) {
 	Options opt;
-	for (uint32_t i = 0; i < argc; ++i){
+	for (uint32_t i = 0; i < argc; ++i) {
 		if (strcmp(argv[i], "-assetfolder") == 0 || strcmp(argv[i], "-af") == 0) {
 			opt.AssetFolder = argv[++i];
 		}
@@ -67,7 +67,7 @@ void SanitizeFilePath(std::string& fp) {
 
 	Replace(".\\", ""); //replace .\\ 
 	Replace("\\", "/"); // replace single backslash
-	
+
 }
 
 void ScanDirForAssets(const std::string& dirName, const std::vector<std::string>& fileExtentions, std::vector<std::string>& filesOut) {

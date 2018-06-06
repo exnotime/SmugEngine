@@ -11,11 +11,11 @@ void Load(){
 	LoadModel("assets/models/sphere/sphere.obj");
 
 	koopaEntity = CreateEntity();
-	CreateTransformComponent(koopaEntity, vec3(0,100,0));
+	CreateTransformComponent(koopaEntity, vec3(5,-5,0), vec3(20));
 	CreateModelComponent(koopaEntity, koopaModel);
 
 	planeEntity = CreateEntity();
 	planeModel = LoadModel("assets/models/plane/plane.obj");
-	CreateTransformComponent(planeEntity, vec3(0,-100,0));
+	CreateTransformComponent(planeEntity, vec3(0,-4.5,0));
 	CreateModelComponent(planeEntity, planeModel);
 }

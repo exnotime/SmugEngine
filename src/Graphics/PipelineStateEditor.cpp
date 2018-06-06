@@ -32,11 +32,11 @@ void PipelineStateEditor::Open(const char* filename) {
 	m_CurrentPipelineFile = filename;
 	//open json pipeline state
 	std::ifstream fin(filename);
-	if(!fin.is_open()){
+	if(!fin.is_open()) {
 		return;
 	}
 	json root;
-	try{
+	try {
 		root << fin;
 	} catch (const std::exception& e) {
 		printf("%s\n", e.what());
@@ -56,8 +56,7 @@ void PipelineStateEditor::Open(const char* filename) {
 
 				if (shader.find("EntryPoint") != shader.end()) {
 					shaderEntry.EntryPoint = shader["EntryPoint"];
-				}
-				else {
+				} else {
 					shaderEntry.EntryPoint = "main";
 				}
 				if (shader.find("Language") != shader.end()) {
@@ -66,8 +65,7 @@ void PipelineStateEditor::Open(const char* filename) {
 					} else if (shader["Language"] == "HLSL") {
 						shaderEntry.Lang = SHADER_LANGUAGE::HLSL;
 					}
-				}
-				else {
+				} else {
 					shaderEntry.Lang = SHADER_LANGUAGE::GLSL;
 				}
 				shaderEntry.Stage = (SHADER_KIND)i;
@@ -237,7 +235,7 @@ void RenderAttachmentStateEditor(vk::PipelineColorBlendAttachmentState& attachme
 	attachmentState.srcColorBlendFactor = ToBlendFactor[blendFactorLabels[srcColorIndex]];
 	ImGui::Combo("Dst color blend factor ", &dstColorIndex, blendFactorLabels.data(), blendFactorLabels.size());
 	attachmentState.dstColorBlendFactor = ToBlendFactor[blendFactorLabels[dstColorIndex]];
-	
+
 }
 
 void PipelineStateEditor::Update() {
@@ -308,5 +306,5 @@ void PipelineStateEditor::Update() {
 			m_ActiveAttachmentEditor = -1;
 		ImGui::End();
 	}
-	
+
 }

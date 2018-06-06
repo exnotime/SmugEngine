@@ -13,8 +13,8 @@
 #include "../../Camera.h"
 
 using namespace smug;
-#define CAMERA_SPEED 20.0f
-#define SPRINT_FACTOR 5.0f
+#define CAMERA_SPEED 10.0f
+#define SPRINT_FACTOR 0.2f
 #define CAMERA_ROTATION_SPEED 0.001f
 SSCamera::SSCamera() {
 
@@ -36,6 +36,7 @@ void SSCamera::Startup() {
 
 	CameraComponent cc;
 	cc.Cam.SetPosition(tc.Position);
+	cc.Cam.GetEditableData().Far = 100.0f;
 	globals::g_Components->CreateComponent(&cc, e, CameraComponent::Flag);
 
 	ScriptComponent sc;

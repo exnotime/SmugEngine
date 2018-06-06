@@ -117,7 +117,7 @@ void* FileBuffer::LoadFile(uint32_t hash) {
 	auto& e = m_Files.find(hash);
 	if (e == m_Files.end())
 		return nullptr;
-	
+
 	m_File = fopen(m_Filename.c_str(), "rb");
 	if (!m_File)
 		return nullptr;

@@ -114,8 +114,7 @@ LoadResult ModelLoader::LoadAsset(const char* filename) {
 		res.Error = error;
 		res.Data = nullptr;
 		res.Type = RT_MODEL;
-	}
-	else {
+	} else {
 		res.Hash = HashString(filename);
 		res.Data = info;
 		res.Type = RT_MODEL;
@@ -162,34 +161,31 @@ void ModelLoader::SerializeAsset(FileBuffer* buffer, LoadResult* asset) {
 		std::string normal = g_AssetLoader.GetFilenameFromCache(info->Materials[m].Normal);
 		if (!normal.empty()) {
 			info->Materials[m].Normal = HashString(normal);
-		}
-		else {
+		} else {
 			info->Materials[m].Normal = RESOURCE_INVALID;
 		}
 
 		std::string metal = g_AssetLoader.GetFilenameFromCache(info->Materials[m].Metal);
 		if (!metal.empty()) {
 			info->Materials[m].Metal = HashString(metal);
-		}
-		else {
+		} else {
 			info->Materials[m].Metal = RESOURCE_INVALID;
 		}
 
 		std::string roughness = g_AssetLoader.GetFilenameFromCache(info->Materials[m].Roughness);
 		if (!albedo.empty()) {
 			info->Materials[m].Roughness = HashString(roughness);
-		}
-		else {
+		} else {
 			info->Materials[m].Roughness = RESOURCE_INVALID;
 		}
 	}
-	
+
 	ModelInfo* model = new ModelInfo();
 	*model = *info;
 	model->Meshes = (MeshInfo*)sizeof(ModelInfo);
 	size_t meshSize = sizeof(MeshInfo);
 	model->Materials = (MaterialInfo*)((uint8_t*)model->Meshes + sizeof(MeshInfo) * info->MeshCount);
-	
+
 	buffer->Write(sizeof(ModelInfo), model, asset->Hash);
 	buffer->Write(sizeof(MeshInfo) * meshes.size(), meshes.data(), asset->Hash);
 	buffer->Write(sizeof(MaterialInfo) * info->MaterialCount, info->Materials, asset->Hash);
@@ -226,7 +222,7 @@ DeSerializedResult ModelLoader::DeSerializeAsset(void* assetBuffer) {
 		dst->Materials[i].Normal = g_AssetLoader.LoadAsset((uint32_t)dst->Materials[i].Normal);
 		dst->Materials[i].Roughness = g_AssetLoader.LoadAsset((uint32_t)dst->Materials[i].Roughness);
 	}
-	
+
 	DeSerializedResult res;
 	res.Data = dst;
 	res.Type = RT_MODEL;

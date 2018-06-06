@@ -14,15 +14,14 @@ struct GLFWwindow;
 
 #define IMGUI_VK_QUEUED_FRAMES 2
 
-struct ImGui_ImplGlfwVulkan_Init_Data
-{
-    VkAllocationCallbacks* allocator;
-    VkPhysicalDevice       gpu;
-    VkDevice               device;
-    VkRenderPass           render_pass;
-    VkPipelineCache        pipeline_cache;
-    VkDescriptorPool       descriptor_pool;
-    void (*check_vk_result)(VkResult err);
+struct ImGui_ImplGlfwVulkan_Init_Data {
+	VkAllocationCallbacks* allocator;
+	VkPhysicalDevice       gpu;
+	VkDevice               device;
+	VkRenderPass           render_pass;
+	VkPipelineCache        pipeline_cache;
+	VkDescriptorPool       descriptor_pool;
+	void (*check_vk_result)(VkResult err);
 };
 
 IMGUI_API bool        ImGui_ImplGlfwVulkan_Init(GLFWwindow* window, bool install_callbacks, ImGui_ImplGlfwVulkan_Init_Data *init_data);

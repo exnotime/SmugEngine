@@ -32,7 +32,8 @@ void GeometryProgram::Render(CommandBuffer& cmdBuffer, const RenderQueue& rq, co
 
 		const Model& model = resources.GetModel(m.first);
 		const vk::Buffer vertexBuffers[4] = { model.VertexBuffers[0].buffer, model.VertexBuffers[1].buffer,
-			model.VertexBuffers[2].buffer, model.VertexBuffers[3].buffer };
+		                                      model.VertexBuffers[2].buffer, model.VertexBuffers[3].buffer
+		                                    };
 
 		const vk::DeviceSize offsets[4] = { 0,0,0,0 };
 		cmdBuffer.bindVertexBuffers(0, 4, vertexBuffers, offsets);

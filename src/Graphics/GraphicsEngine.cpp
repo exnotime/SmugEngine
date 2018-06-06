@@ -19,10 +19,10 @@ GraphicsEngine::~GraphicsEngine() {
 }
 
 VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDebugCallback(
-	VkDebugUtilsMessageSeverityFlagBitsEXT           messageSeverity,
-	VkDebugUtilsMessageTypeFlagsEXT                  messageType,
-	const VkDebugUtilsMessengerCallbackDataEXT*      pCallbackData,
-	void*                                            pUserData) {
+    VkDebugUtilsMessageSeverityFlagBitsEXT           messageSeverity,
+    VkDebugUtilsMessageTypeFlagsEXT                  messageType,
+    const VkDebugUtilsMessengerCallbackDataEXT*      pCallbackData,
+    void*                                            pUserData) {
 
 	if (pCallbackData->messageIdNumber == 3 || pCallbackData->messageIdNumber == 15 || pCallbackData->messageIdNumber == 1338) {
 		return VK_FALSE;
@@ -59,11 +59,11 @@ void GraphicsEngine::CreateContext() {
 	VkDebugUtilsMessengerCreateInfoEXT messengerCreateInfo = {};
 	messengerCreateInfo.flags = 0;
 	messengerCreateInfo.messageSeverity =	VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-											VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT	|
-											VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT;
+	                                        VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT	|
+	                                        VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT;
 	messengerCreateInfo.messageType =		VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
-											VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-											VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+	                                        VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+	                                        VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
 	messengerCreateInfo.pNext = nullptr;
 	messengerCreateInfo.pUserData = nullptr;
 	messengerCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
@@ -130,7 +130,7 @@ void GraphicsEngine::CreateContext() {
 #ifdef _DEBUG
 	devicelayers.push_back("VK_LAYER_LUNARG_standard_validation");
 #endif
-	
+
 	vk::PhysicalDeviceFeatures features = VK_PHYS_DEVICE.getFeatures();
 	features.samplerAnisotropy = VK_TRUE;
 	features.multiDrawIndirect = VK_TRUE;
@@ -444,7 +444,7 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 		layouts.push_back(vk::ImageLayout::eDepthStencilAttachmentOptimal);
 		m_FrameBuffer.ChangeLayout(cmdBuffer, layouts, i);
 	}
-	
+
 	cmdBuffer.PushPipelineBarrier();
 	m_DeviceAllocator.ScheduleTransfers(&cmdBuffer);
 	m_CmdBufferFactory.EndBuffer(cmdBuffer);
@@ -466,10 +466,11 @@ void GraphicsEngine::RenderModels(RenderQueue& rq, CommandBuffer& cmdBuffer) {
 	for (auto& m : models) {
 		uint32_t instanceCount = m.second.Count;
 		m_Stats.ModelCount += instanceCount;
-		
+
 		const Model& model = m_Resources.GetModel(m.first);
 		const vk::Buffer vertexBuffers[4] = { model.VertexBuffers[0].buffer, model.VertexBuffers[1].buffer,
-			model.VertexBuffers[2].buffer, model.VertexBuffers[3].buffer };
+		                                      model.VertexBuffers[2].buffer, model.VertexBuffers[3].buffer
+		                                    };
 
 		const vk::DeviceSize offsets[4] = { 0,0,0,0 };
 		cmdBuffer.bindVertexBuffers(0, 4, vertexBuffers, offsets);
@@ -501,17 +502,19 @@ void GraphicsEngine::Render() {
 	}
 
 	if (ImGui::Button("Recompile Shader")) {
+		m_ShadowProgram.Recompile();
 		m_Pipeline.ReloadPipelineFromFile(VK_DEVICE, "shader/filled.json", m_RenderPass);
 	}
 	//Transfer new frame data to GPU
 	{
 		const CameraData& cd = rq.GetCameras()[0];
-		
+
 		m_ShadowProgram.Update(m_DeviceAllocator, rq);
 
 		PerFrameBuffer uniformBuffer;
 		static int shadowIndex = 0;
 		uniformBuffer.ViewProj = cd.ProjView;
+		uniformBuffer.View = cd.View;
 		uniformBuffer.CameraPos = glm::vec4(cd.Position, 1);
 		static glm::vec3 lightDir = glm::vec3(0.1f, -1.0f, -0.5f);
 		static float globalRoughness = 1.0f;
@@ -529,6 +532,7 @@ void GraphicsEngine::Render() {
 		uniformBuffer.LightViewProj[2] = m_ShadowProgram.GetShadowMatrix(2);
 		uniformBuffer.LightViewProj[3] = m_ShadowProgram.GetShadowMatrix(3);
 		uniformBuffer.NearFarPadding = glm::vec4(cd.Near, cd.Far, 0, 0);
+		uniformBuffer.ShadowSplits = m_ShadowProgram.GetShadowSplits();
 
 		m_DeviceAllocator.UpdateBuffer(m_PerFrameBuffer, sizeof(PerFrameBuffer), &uniformBuffer);
 		m_ToneMapping.Update(m_DeviceAllocator);
@@ -543,9 +547,9 @@ void GraphicsEngine::Render() {
 		m_CmdBufferFactory.EndBuffer(cmdBuffer);
 
 		m_vkQueue.Submit(cmdBuffer, nullptr, m_TransferComplete, nullptr);
-		
+
 	}
-	
+
 	std::vector<vk::CommandBuffer> cmdBuffers;
 	//render pass
 	{
@@ -614,7 +618,10 @@ void GraphicsEngine::Render() {
 		rpBeginInfo.renderArea.extent.width = (uint32_t)m_ScreenSize.x;
 		rpBeginInfo.renderArea.extent.height = (uint32_t)m_ScreenSize.y;
 		vk::ClearColorValue cc;
-		cc.float32[0] = 0.5f; cc.float32[1] = 0.5f; cc.float32[2] = 1.0f; cc.float32[3] = 1.0f;
+		cc.float32[0] = 0.5f;
+		cc.float32[1] = 0.5f;
+		cc.float32[2] = 1.0f;
+		cc.float32[3] = 1.0f;
 		vk::ClearValue cv = { cc };
 		rpBeginInfo.pClearValues = &cv;
 
@@ -634,7 +641,7 @@ void GraphicsEngine::Render() {
 		cmdBuffer.endRenderPass();
 
 		m_CmdBufferFactory.EndBuffer(cmdBuffer);
-		
+
 		m_vkQueue.Submit(cmdBuffer, m_RenderCompleteSemaphore, m_ImguiComplete, m_Fence[VK_FRAME_INDEX]);
 	}
 }

@@ -11,8 +11,7 @@ FrameBuffer::~FrameBuffer() {
 }
 
 bool IsDepthStencil(vk::Format f) {
-	switch (f)
-	{
+	switch (f) {
 	case vk::Format::eD16Unorm:
 	case vk::Format::eX8D24UnormPack32:
 	case vk::Format::eD32Sfloat:
@@ -122,8 +121,7 @@ void FrameBuffer::Init(const vk::Device& device, const vk::PhysicalDevice& gpu, 
 	for (uint32_t i = 0; i < attachments.size(); ++i) {
 		if (attachments[i].initialLayout == vk::ImageLayout::eColorAttachmentOptimal) {
 			colorAttachments.push_back({ i, vk::ImageLayout::eColorAttachmentOptimal });
-		}
-		else {
+		} else {
 			depthAttachments.push_back({ i, vk::ImageLayout::eDepthStencilAttachmentOptimal });
 		}
 	}
@@ -155,7 +153,7 @@ void FrameBuffer::Init(const vk::Device& device, const vk::PhysicalDevice& gpu, 
 	}
 
 	//Init descriptors
-	for (int i = 0; i < m_FormatCount; ++i){
+	for (int i = 0; i < m_FormatCount; ++i) {
 		vk::DescriptorImageInfo imageDescInfo = {};
 		if (usages[i] & vk::ImageUsageFlagBits::eSampled) {
 			imageDescInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
@@ -166,9 +164,9 @@ void FrameBuffer::Init(const vk::Device& device, const vk::PhysicalDevice& gpu, 
 			samplerInfo.addressModeV = vk::SamplerAddressMode::eRepeat;
 			samplerInfo.addressModeW = vk::SamplerAddressMode::eRepeat;
 			samplerInfo.anisotropyEnable = false;
-			samplerInfo.magFilter = vk::Filter::eNearest;
-			samplerInfo.minFilter = vk::Filter::eNearest;
-			samplerInfo.mipmapMode = vk::SamplerMipmapMode::eNearest;
+			samplerInfo.magFilter = vk::Filter::eLinear;
+			samplerInfo.minFilter = vk::Filter::eLinear;
+			samplerInfo.mipmapMode = vk::SamplerMipmapMode::eLinear;
 			if (IsDepthStencil(m_Formats[i])) {
 				//used for shadow maps
 				samplerInfo.compareEnable = true;
@@ -197,7 +195,7 @@ void FrameBuffer::Resize(const glm::vec2& size) {
 
 ///Push barrier needs to be called forthis to make an effect
 void FrameBuffer::ChangeLayout(CommandBuffer& cmdBuffer, const Vector<vk::ImageLayout>& newLayouts, uint32_t frameIndex) {
-	
+
 	uint32_t imageCount = (uint32_t)m_Formats.size();
 	assert(imageCount == newLayouts.size());
 	assert(frameIndex < m_BufferCount);

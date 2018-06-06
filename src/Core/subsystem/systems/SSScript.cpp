@@ -1,11 +1,11 @@
 #include "SSScript.h"
 
 using namespace smug;
-SSScript::SSScript(){
+SSScript::SSScript() {
 
 }
 
-SSScript::~SSScript(){
+SSScript::~SSScript() {
 
 }
 

@@ -21,8 +21,8 @@ SSRender::~SSRender() {
 
 void SSRender::Startup() {
 	const int c = 4;
-	const float d = 16;
-	const float s = 6;
+	const float d = 1;
+	const float s = 0.2f;
 	ModelComponent mc;
 	mc.ModelHandle = g_AssetLoader.LoadAsset("assets/models/sphere/sphere.obj");
 	//RenderQueue* rq = globals::g_Gfx->GetStaticQueue();

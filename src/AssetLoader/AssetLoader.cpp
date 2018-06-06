@@ -62,7 +62,7 @@ void AssetLoader::Init(const char* dataFolder, bool isCompiler) {
 			l.buffer->OpenForReading(l.BankFile.c_str(), l.LedgerFile.c_str());
 		}
 	}
-	
+
 }
 
 void AssetLoader::Close() {
@@ -114,7 +114,7 @@ ResourceHandle AssetLoader::LoadAsset(const char* filename) {
 			}
 
 			if (m_IsCompiler) {
-				
+
 				l.loader->SerializeAsset(l.buffer, &r);
 				l.buffer->Flush();
 			}

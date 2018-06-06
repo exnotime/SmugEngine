@@ -22,7 +22,7 @@ void ToneMapProgram::Init(vk::Device& device, const glm::vec2& screenSize, Frame
 	for (uint32_t i = 0; i < BUFFER_COUNT; i++) {
 		m_DescSet[i] = device.allocateDescriptorSets(setAllocInfo)[0];
 	}
-	
+
 	vk::SamplerCreateInfo sampInfo = {};
 	sampInfo.addressModeU = vk::SamplerAddressMode::eRepeat;
 	sampInfo.addressModeV = vk::SamplerAddressMode::eRepeat;

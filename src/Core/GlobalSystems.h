@@ -5,11 +5,11 @@
 #include <Core/entity/EntityManager.h>
 
 namespace smug {
-	namespace globals {
-		extern GraphicsEngine* g_Gfx;
-		extern PhysicsEngine* g_Physics;
-		extern ComponentManager* g_Components;
-		extern EntityManager* g_EntityManager;
-		void Clear();
-	}
+namespace globals {
+extern GraphicsEngine* g_Gfx;
+extern PhysicsEngine* g_Physics;
+extern ComponentManager* g_Components;
+extern EntityManager* g_EntityManager;
+void Clear();
+}
 }

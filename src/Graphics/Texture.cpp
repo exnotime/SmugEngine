@@ -42,8 +42,7 @@ void VkTexture::Init(const std::string& filename, DeviceAllocator* allocator, co
 		imageInfo.mipLevels = (uint32_t)tex2D.levels();
 		data = tex2D.data();
 		dataSize = tex2D.size();
-	}
-	else {
+	} else {
 		printf("Error unsupported image type\n");
 		return;
 	}
@@ -65,8 +64,7 @@ void VkTexture::Init(const std::string& filename, DeviceAllocator* allocator, co
 		viewInfo.subresourceRange.layerCount = imageInfo.arrayLayers;
 		viewInfo.subresourceRange.levelCount = imageInfo.mipLevels;
 		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
-	}
-	else if (texture.target() == gli::TARGET_2D) {
+	} else if (texture.target() == gli::TARGET_2D) {
 		viewInfo.subresourceRange.levelCount = VK_IMAGE_VIEW_TYPE_2D;
 		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 	}
@@ -124,8 +122,7 @@ void VkTexture::Init(const TextureInfo& texInfo, DeviceAllocator* allocator, con
 		viewInfo.subresourceRange.layerCount = imageInfo.arrayLayers;
 		viewInfo.subresourceRange.levelCount = imageInfo.mipLevels;
 		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
-	}
-	else{
+	} else {
 		viewInfo.subresourceRange.levelCount = VK_IMAGE_VIEW_TYPE_2D;
 		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 	}

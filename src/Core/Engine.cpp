@@ -28,13 +28,6 @@ Engine::Engine() {
 }
 
 Engine::~Engine() {
-	delete m_Window;
-	m_MainSubSystemSet->Clear();
-	delete m_MainSubSystemSet;
-	delete m_GlobalTimer;
-	delete m_ProfilerTimer;
-	globals::Clear();
-	glfwTerminate();
 }
 
 void Engine::Init() {
@@ -70,7 +63,7 @@ void Engine::Init() {
 	//set up physics engine
 	globals::g_Physics = new PhysicsEngine();
 	globals::g_Physics->Init();
-	
+
 	g_ScriptEngine.Init();
 
 	if_asset::RegisterInterface();
@@ -136,4 +129,13 @@ void Engine::Run() {
 
 void Engine::Shutdown() {
 	ImGui_ImplGlfwVulkan_Shutdown();
+
+	delete m_Window;
+	m_MainSubSystemSet->Clear();
+	delete m_MainSubSystemSet;
+	delete m_GlobalTimer;
+	delete m_ProfilerTimer;
+	globals::Clear();
+	glfwTerminate();
+
 }

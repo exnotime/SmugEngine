@@ -14,7 +14,7 @@ Entity& EntityManager::CreateEntity() {
 	return m_Entities.back();
 }
 
-Entity& EntityManager::GetEntity(uint32_t UID){
+Entity& EntityManager::GetEntity(uint32_t UID) {
 	return m_Entities[UID];
 }
 

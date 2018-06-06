@@ -21,7 +21,7 @@ void PhysicsEngine::Init() {
 		printf("Error creating physx foundation\n");
 		return;
 	}
-	
+
 #ifdef _DEBUG
 	m_PVD = PxCreatePvd(*m_Foundation);
 	PxPvdTransport* transport = PxDefaultPvdSocketTransportCreate("127.0.0.1", 5425, 10);
@@ -30,7 +30,7 @@ void PhysicsEngine::Init() {
 #else
 	m_Physics = PxCreatePhysics(PX_PHYSICS_VERSION, *m_Foundation, PxTolerancesScale(), false, nullptr);
 #endif
-	
+
 	if (!m_Physics) {
 		printf("Error creating physx physics\n");
 		return;
@@ -96,7 +96,7 @@ void PhysicsEngine::Update(double deltaTime) {
 void PhysicsEngine::Shutdown() {
 	m_Disbatcher->release();
 	m_Disbatcher = nullptr;
-	
+
 	for (auto& a : m_Actors) {
 		m_Scene->removeActor(*a);
 	}

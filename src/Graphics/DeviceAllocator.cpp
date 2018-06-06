@@ -56,7 +56,8 @@ void DeviceAllocator::AllocateImage(VkImageCreateInfo* createInfo, VkImage* imag
 		uint64_t bufferOffset = 0;
 		uint32_t w, h;
 		for (uint32_t l = 0; l < createInfo->arrayLayers; ++l) {
-			w = createInfo->extent.width; h = createInfo->extent.height;
+			w = createInfo->extent.width;
+			h = createInfo->extent.height;
 			for (uint32_t mip = 0; mip < createInfo->mipLevels; mip++) {
 				VkBufferImageCopy imageCopy = {};
 				imageCopy.imageExtent = {w,h,1};
@@ -69,11 +70,12 @@ void DeviceAllocator::AllocateImage(VkImageCreateInfo* createInfo, VkImage* imag
 				imageCopy.imageSubresource.mipLevel = mip;
 				imageCopy.imageSubresource.layerCount = 1;
 				bufferOffset += w * h * 4; //temp
-				w >>= 1; h >>= 1;
+				w >>= 1;
+				h >>= 1;
 				transfer.copies.push_back(imageCopy);
 			}
 		}
-		
+
 		transfer.src = intImage;
 		transfer.dst = *image;
 		transfer.finalLayout = finalLayout;
@@ -90,7 +92,7 @@ VkBufferHandle DeviceAllocator::AllocateBuffer(const VkBufferUsageFlags usage, u
 	createInfo.size = size;
 	createInfo.usage = usage | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 	createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	
+
 	VmaMemoryRequirements memReqs = {};
 	memReqs.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 	VkResult vkres = vmaCreateBuffer(m_Allocator, &createInfo, &memReqs, &ret.buffer, &ret.memory, nullptr);

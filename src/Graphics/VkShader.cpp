@@ -94,7 +94,7 @@ vk::ShaderModule smug::LoadShader(const vk::Device& device, const std::string& f
 	//compile into spir-v
 	shaderc_compiler_t compiler = shaderc_compiler_initialize();
 	shaderc_compile_options_t options = shaderc_compile_options_initialize();
-	
+
 	if(language == GLSL)
 		shaderc_compile_options_set_source_language(options, shaderc_source_language_glsl);
 	else if (language == HLSL)

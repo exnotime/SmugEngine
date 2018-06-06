@@ -24,7 +24,7 @@ namespace smug {
 
 class PipelineState {
   public:
-	  PipelineState();
+	PipelineState();
 	~PipelineState();
 	void LoadPipelineFromFile(const vk::Device& device, const std::string& filename, vk::RenderPass rp);
 	void ReloadPipelineFromFile(const vk::Device& device, const std::string& filename, vk::RenderPass rp);

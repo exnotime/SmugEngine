@@ -32,13 +32,12 @@ ShaderByteCode* CompileShader(const std::string& file, SHADER_KIND kind, const s
 	shaderc_compile_options_set_optimization_level(options, shaderc_optimization_level::shaderc_optimization_level_zero);
 
 	auto includeResolver = [](void* user_data, const char* requested_source, int type,
-		const char* requesting_source, size_t include_depth) -> shaderc_include_result* {
+	const char* requesting_source, size_t include_depth) -> shaderc_include_result* {
 		std::string filename;
 		if (type == shaderc_include_type_relative) {
 			std::string reqSrc = std::string(requesting_source);
 			filename = reqSrc.substr(0, reqSrc.find_last_of('/')) + '/' + std::string(requested_source);
-		}
-		else if (type == shaderc_include_type_standard) {
+		} else if (type == shaderc_include_type_standard) {
 			filename = "shaders/" + std::string(requested_source);
 		}
 		FILE* fin = fopen(filename.c_str(), "rb");
@@ -74,15 +73,15 @@ ShaderByteCode* CompileShader(const std::string& file, SHADER_KIND kind, const s
 	shaderc_shader_kind shaderType;
 	if (kind == VERTEX) {
 		shaderType = shaderc_glsl_vertex_shader;
-	}else if (kind == FRAGMENT) {
+	} else if (kind == FRAGMENT) {
 		shaderType = shaderc_glsl_fragment_shader;
-	}else if (kind == GEOMETRY) {
+	} else if (kind == GEOMETRY) {
 		shaderType = shaderc_glsl_geometry_shader;
-	}else if (kind == CONTROL) {
+	} else if (kind == CONTROL) {
 		shaderType = shaderc_glsl_tess_control_shader;
-	}else if (kind == EVALUATION) {
+	} else if (kind == EVALUATION) {
 		shaderType = shaderc_glsl_tess_evaluation_shader;
-	}else if (kind == COMPUTE) {
+	} else if (kind == COMPUTE) {
 		shaderType = shaderc_glsl_compute_shader;
 	}
 
@@ -103,7 +102,7 @@ ShaderByteCode* CompileShader(const std::string& file, SHADER_KIND kind, const s
 	bc->ByteCode = malloc(bc->ByteCodeSize);
 	memcpy(bc->ByteCode, shaderc_result_get_bytes(result), bc->ByteCodeSize);
 	bc->DependencyCount = (uint32_t)includes.size();
-	if(bc->DependencyCount){
+	if(bc->DependencyCount) {
 		bc->DependenciesHashes = (uint32_t*)malloc(sizeof(uint32_t) * bc->DependencyCount);
 		for (uint32_t i = 0; i < bc->DependencyCount; ++i) {
 			bc->DependenciesHashes[i] = HashString(includes[i]);
@@ -130,8 +129,7 @@ char* ShaderLoader::LoadShaders(const std::string& filename, ShaderInfo& info) {
 	json root;
 	try {
 		fin >> root;
-	}
-	catch (std::exception e) {
+	} catch (std::exception e) {
 		printf("json: %s\n", e.what());
 		return "json error";
 	}
@@ -153,8 +151,7 @@ char* ShaderLoader::LoadShaders(const std::string& filename, ShaderInfo& info) {
 				if (shader.find("Language") != shader.end()) {
 					if (shader["Language"] == "GLSL") {
 						lang = GLSL;
-					}
-					else if (shader["Language"] == "HLSL") {
+					} else if (shader["Language"] == "HLSL") {
 						lang = HLSL;
 					}
 				}

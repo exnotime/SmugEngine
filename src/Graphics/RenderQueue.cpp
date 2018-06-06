@@ -45,5 +45,5 @@ void RenderQueue::ScheduleTransfer(DeviceAllocator& memory) {
 		memory.UpdateBuffer(m_Buffer, m_Inputs.size() * sizeof(ShaderInput), m_Inputs.data());
 		m_Inputs.clear();
 	}
-		
+
 }

@@ -23,7 +23,7 @@ PipelineState::PipelineState() {
 }
 
 PipelineState::~PipelineState() {
-
+	m_Shaders.clear();
 }
 
 vk::PipelineColorBlendAttachmentState ReadColorBlendAttachmentState(const json& blendJson) {
@@ -203,12 +203,11 @@ void PipelineState::LoadPipelineFromFile(const vk::Device& device, const std::st
 					} else if (shader["Language"] == "HLSL") {
 						lang = HLSL;
 					}
-				}	
+				}
 
 				m_Shaders.push_back(LoadShader(device, shader["Source"], SHADER_KIND(i), entry, lang));
 				m_ShaderBits |= 1 << i;
-			}
-			else {
+			} else {
 				m_Shaders.push_back(vk::ShaderModule());
 			}
 		}
@@ -401,7 +400,7 @@ void PipelineState::LoadPipelineFromFile(const vk::Device& device, const std::st
 	vk::PipelineViewportStateCreateInfo viewportState;
 	if (root.find("ViewportCount") != root.end()) {
 		viewportState.viewportCount = root["ViewportCount"];
-	}else {
+	} else {
 		viewportState.viewportCount = 1;
 	}
 	if (root.find("ScissorCount") != root.end()) {
@@ -418,7 +417,7 @@ void PipelineState::LoadPipelineFromFile(const vk::Device& device, const std::st
 	vk::PipelineDynamicStateCreateInfo dynamicStateCreateInfo;
 	dynamicStateCreateInfo.dynamicStateCount = (uint32_t)dynamicStates.size();
 	dynamicStateCreateInfo.pDynamicStates = dynamicStates.data();
-	
+
 	//put everything together
 	vk::GraphicsPipelineCreateInfo pipelineCreateInfo;
 	pipelineCreateInfo.layout = m_PipelineLayout;
