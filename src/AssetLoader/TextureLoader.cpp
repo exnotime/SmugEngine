@@ -73,3 +73,7 @@ bool TextureLoader::IsExtensionSupported(const char* extension) {
 	}
 	return false;
 }
+
+bool TextureLoader::IsTypeSupported(int type) {
+	return type == RT_TEXTURE;
+}

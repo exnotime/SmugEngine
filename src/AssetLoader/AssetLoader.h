@@ -7,9 +7,13 @@
 #include "LoaderInterface.h"
 namespace smug {
 typedef ASSET_DLL void(*AllocateAsset)(const void* data, void* userData, const std::string& filename, const RESOURCE_TYPE type);
+typedef ASSET_DLL void(*ReAllocateAsset)(const void* data, void* userData, ResourceHandle handle);
+typedef ASSET_DLL void(*DeAllocateAsset)(ResourceHandle handle, void* userData);
 
 struct ASSET_DLL ResourceAllocator {
 	AllocateAsset AllocResource;
+	ReAllocateAsset ReAllocResource;
+	DeAllocateAsset DeAllocResource;
 	void* UserData;
 };
 
@@ -31,7 +35,12 @@ class ASSET_DLL AssetLoader {
 	void SetResourceAllocator(ResourceAllocator allocator);
 	ResourceHandle LoadAsset(const char* filename);
 	ResourceHandle LoadAsset(uint32_t hash);
+
+	ResourceHandle LoadGeneratedModel(ModelInfo& modelInfo, const char* name);
+	void UpdateModel(ResourceHandle handle, ModelInfo& modelInfo);
+
 	void UnloadAsset(ResourceHandle h);
+	void UnloadAllAssets();
 	void LoadStringPool(const char* filename);
 	void SaveStringPool(const char* filename);
 	std::string GetFilenameFromCache(ResourceHandle handle);
@@ -41,6 +50,7 @@ class ASSET_DLL AssetLoader {
 	AssetLoader();
 	ResourceAllocator m_Allocator;
 	std::unordered_map<uint32_t, ResourceHandle> m_ResourceCache;
+	std::unordered_map<ResourceHandle, void*> m_ResourceData;
 	StringPool m_StringPool;
 	bool m_IsCompiler = false;
 	std::vector<ResourceLoader> m_Loaders;

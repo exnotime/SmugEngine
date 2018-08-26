@@ -257,3 +257,8 @@ bool ShaderLoader::IsExtensionSupported(const char* extension) {
 	}
 	return false;
 }
+
+
+bool ShaderLoader::IsTypeSupported(int type) {
+	return type == RT_SHADER;
+}

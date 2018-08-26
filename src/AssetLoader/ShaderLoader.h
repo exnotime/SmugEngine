@@ -15,5 +15,6 @@ class ShaderLoader : public LoaderInterface {
 	virtual void SerializeAsset(FileBuffer* buffer, LoadResult* asset) override;
 	virtual DeSerializedResult DeSerializeAsset(void* assetBuffer) override;
 	virtual bool IsExtensionSupported(const char* extension) override;
+	virtual bool IsTypeSupported(int type) override;
 };
 }

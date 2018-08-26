@@ -86,7 +86,7 @@ void SSRender::Update(const double deltaTime) {
 			tc->Transform[1][1] *= tc->Scale.y;
 			tc->Transform[2][2] *= tc->Scale.z;
 
-			rq->AddModel(mc->ModelHandle, tc->Transform, tint);
+			rq->AddModel(mc->ModelHandle, tc->Transform, mc->Tint);
 		}
 	}
 	ImGui::Begin("Timing");

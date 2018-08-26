@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <new>
 #include <assert.h>
+/*
 namespace smug {
 template<class T>
 class Vector {
@@ -131,3 +132,4 @@ class Vector {
 	uint8_t* Data;
 };
 }
+*/

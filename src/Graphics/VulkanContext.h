@@ -115,7 +115,12 @@ class CommandBuffer : public vk::CommandBuffer {
 	void PushPipelineBarrier() {
 		this->pipelineBarrier(vk::PipelineStageFlagBits::eAllCommands, vk::PipelineStageFlagBits::eAllCommands, vk::DependencyFlagBits::eByRegion,
 		                      0, nullptr, 0, nullptr, (uint32_t)m_ImgBarriers.size(), m_ImgBarriers.data());
-		m_ImgBarriers.clear();
+		m_ImgBarriers.resize(0);
+	}
+
+	void Reset() {
+		this->reset(vk::CommandBufferResetFlagBits::eReleaseResources);
+		m_ImgBarriers.resize(0);
 	}
 
   private:
@@ -153,7 +158,7 @@ class VulkanCommandBufferFactory {
 	void Reset(vk::Device device, int frameIndex) {
 		while (!m_UsedBuffers.empty()) {
 			auto& buffer = m_UsedBuffers.front();
-			buffer.reset(vk::CommandBufferResetFlagBits::eReleaseResources);
+			buffer.Reset();
 			m_UsedBuffers.pop_front();
 			m_ResetBuffers.push_back(buffer);
 		}

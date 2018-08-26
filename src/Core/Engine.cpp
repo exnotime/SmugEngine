@@ -15,6 +15,8 @@
 #include "subsystem/systems/SSCamera.h"
 #include "subsystem/systems/SSRender.h"
 #include "subsystem/systems/SSPhysics.h"
+#include "subsystem/systems/SSLevel.h"
+#include "subsystem/systems/SSLevel.h"
 #include "GlobalSystems.h"
 #include "Timer.h"
 #include "if_Assets.h"
@@ -22,6 +24,7 @@
 #include "components/if_Components.h"
 #include "script/ScriptEngine.h"
 
+#include <Utility/ScriptWriter.h>
 using namespace smug;
 Engine::Engine() {
 
@@ -82,6 +85,7 @@ void Engine::Init() {
 
 	m_MainSubSystemSet = new SubSystemSet();
 	m_MainSubSystemSet->AddSubSystem(new SSCamera());
+	m_MainSubSystemSet->AddSubSystem(new SSLevel());
 	m_MainSubSystemSet->AddSubSystem(new SSPhysics());
 	m_MainSubSystemSet->AddSubSystem(new SSRender());
 	m_MainSubSystemSet->StartSubSystems();
@@ -93,13 +97,31 @@ void Engine::Init() {
 
 	AngelScript::asIScriptModule* mod = g_ScriptEngine.CompileScriptToModule("script/LoadingTest.as");
 	g_ScriptEngine.ExecuteModule(mod, "void Load()");
-	ImGuiContext* ctx = ImGui::CreateContext();
+
+	m_ImguiCtx = ImGui::CreateContext();
 	ImGui_ImplGlfwVulkan_Init_Data* imguiData = globals::g_Gfx->GetImguiInit();
 	ImGui_ImplGlfwVulkan_Init(m_Window->GetWindow(), false, imguiData);
-	globals::g_Gfx->CreateImguiFont(ctx);
+	globals::g_Gfx->CreateImguiFont(m_ImguiCtx);
 
 	//assets need to be loaded before this
 	globals::g_Gfx->TransferToGPU();
+
+	//test script writer
+	//ScriptWriter sw;
+	//sw.AddVariable("test", VAR_INT);
+	//sw.AddVariable("test2", VAR_FLOAT);
+	//float test = 3.14f;
+	//sw.AddVariable("test_with_data", VAR_FLOAT, &test);
+	//sw.AddVariable("test3", VAR_BOOL);
+	//int* array_test = (int*)malloc(sizeof(int) * 100);
+	//for (int i = 0; i < 100; ++i) {
+	//	array_test[i] = i;
+	//}
+	//sw.AddVariableArray("array_test", VAR_INT, 100, array_test);
+	//sw.OpenFunction("TestFunction");
+	//sw.AddSnippet("print(\"Test printing from a generated script file\\n\")");
+	//sw.CloseFunction();
+	//sw.WriteToFile("script/TestScript.ss");
 }
 
 void Engine::Run() {
@@ -128,8 +150,9 @@ void Engine::Run() {
 }
 
 void Engine::Shutdown() {
+	g_AssetLoader.Close();
 	ImGui_ImplGlfwVulkan_Shutdown();
-
+	ImGui::DestroyContext(m_ImguiCtx);
 	delete m_Window;
 	m_MainSubSystemSet->Clear();
 	delete m_MainSubSystemSet;

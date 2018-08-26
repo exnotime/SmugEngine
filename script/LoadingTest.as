@@ -14,8 +14,8 @@ void Load(){
 	CreateTransformComponent(koopaEntity, vec3(5,-5,0), vec3(20));
 	CreateModelComponent(koopaEntity, koopaModel);
 
-	planeEntity = CreateEntity();
-	planeModel = LoadModel("assets/models/plane/plane.obj");
-	CreateTransformComponent(planeEntity, vec3(0,-4.5,0));
-	CreateModelComponent(planeEntity, planeModel);
+	//planeEntity = CreateEntity();
+	//planeModel = LoadModel("assets/models/plane/plane.obj");
+	//CreateTransformComponent(planeEntity, vec3(0,-4.5,0));
+	//CreateModelComponent(planeEntity, planeModel);
 }

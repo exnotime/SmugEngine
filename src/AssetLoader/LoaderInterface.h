@@ -21,5 +21,6 @@ class LoaderInterface {
 	virtual void SerializeAsset(FileBuffer* buffer, LoadResult* asset) = 0;
 	virtual DeSerializedResult DeSerializeAsset(void* assetBuffer) = 0;
 	virtual bool IsExtensionSupported(const char* extension) = 0;
+	virtual bool IsTypeSupported(int type) = 0;
 };
 }

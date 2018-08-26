@@ -36,7 +36,7 @@ void SSCamera::Startup() {
 
 	CameraComponent cc;
 	cc.Cam.SetPosition(tc.Position);
-	cc.Cam.GetEditableData().Far = 100.0f;
+	cc.Cam.GetEditableData().Far = 1000.0f;
 	globals::g_Components->CreateComponent(&cc, e, CameraComponent::Flag);
 
 	ScriptComponent sc;

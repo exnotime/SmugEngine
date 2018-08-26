@@ -5,7 +5,7 @@
 #include "Vertex.h"
 #include "Core/Timer.h"
 #include "Core/Input.h"
-#define USE_DEBUG_LAYER 0
+#define USE_DEBUG_LAYER
 using namespace smug;
 
 GraphicsEngine::GraphicsEngine() {
@@ -13,9 +13,6 @@ GraphicsEngine::GraphicsEngine() {
 }
 
 GraphicsEngine::~GraphicsEngine() {
-#ifdef USE_IMGUI
-	ImGui_ImplGlfwVulkan_Shutdown();
-#endif
 }
 
 VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDebugCallback(
@@ -49,8 +46,8 @@ void GraphicsEngine::CreateContext() {
 	appInfo.engineVersion = 1;
 	appInfo.apiVersion = VK_API_VERSION_1_1;
 
-	Vector<const char*> layers;
-	Vector<const char*> extensions;
+	std::vector<const char*> layers;
+	std::vector<const char*> extensions;
 
 #if defined(_DEBUG) && defined(USE_DEBUG_LAYER)
 	extensions.push_back("VK_EXT_debug_utils");
@@ -78,9 +75,9 @@ void GraphicsEngine::CreateContext() {
 	vk::InstanceCreateInfo instInfo;
 	instInfo.enabledExtensionCount = (uint32_t)extensions.size();
 	instInfo.pApplicationInfo = &appInfo;
-	instInfo.ppEnabledExtensionNames = &extensions[0];
+	instInfo.ppEnabledExtensionNames = extensions.data();
 	instInfo.enabledLayerCount = (uint32_t)layers.size();
-	instInfo.ppEnabledLayerNames = &layers[0];
+	instInfo.ppEnabledLayerNames = layers.data();
 #if defined(_DEBUG) && defined(USE_DEBUG_LAYER)
 	//push into instance create info to detect problem during initialization
 	instInfo.pNext = &messengerCreateInfo;
@@ -127,7 +124,7 @@ void GraphicsEngine::CreateContext() {
 	deviceExtensions.push_back("VK_KHR_sampler_mirror_clamp_to_edge");
 	deviceExtensions.push_back("VK_KHR_shader_draw_parameters");
 	//device layers
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(USE_DEBUG_LAYER)
 	devicelayers.push_back("VK_LAYER_LUNARG_standard_validation");
 #endif
 
@@ -208,7 +205,7 @@ void GraphicsEngine::CreateSwapChain(VkSurfaceKHR surface) {
 	//renderpass
 	vk::RenderPassCreateInfo renderPassInfo;
 	renderPassInfo.dependencyCount = 0;
-	Vector<vk::AttachmentDescription> attachments;
+	std::vector<vk::AttachmentDescription> attachments;
 	vk::AttachmentDescription attachmentDesc;
 	attachmentDesc.format = format.format;
 	attachmentDesc.finalLayout = vk::ImageLayout::ePresentSrcKHR;
@@ -254,10 +251,10 @@ void GraphicsEngine::CreateSwapChain(VkSurfaceKHR surface) {
 	m_VKSwapChain.FrameBuffers[1] = VK_DEVICE.createFramebuffer(framebufferInfo);
 
 	//hdr offscreen framebuffer
-	Vector<vk::Format> fboFormats;
+	std::vector<vk::Format> fboFormats;
 	fboFormats.push_back(vk::Format::eR16G16B16A16Unorm);
 	fboFormats.push_back(vk::Format::eD24UnormS8Uint);
-	Vector<vk::ImageUsageFlags> usages;
+	std::vector<vk::ImageUsageFlags> usages;
 	usages.push_back(vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled);
 	usages.push_back(vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled);
 	m_FrameBuffer.Init(VK_DEVICE, VK_PHYS_DEVICE, m_ScreenSize, fboFormats, usages, BUFFER_COUNT);
@@ -433,19 +430,19 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 
 	m_SkyBox.Init(VK_DEVICE, VK_PHYS_DEVICE, "assets/textures/skybox.dds", m_Viewport, m_FrameBuffer.GetRenderPass(), m_DeviceAllocator);
 	//prepare initial transfer
-	auto& cmdBuffer = m_CmdBufferFactory.GetNextBuffer();
+	CommandBuffer& cmdBuffer = m_CmdBufferFactory.GetNextBuffer();
 	cmdBuffer.Begin(nullptr, nullptr);
 
 	for (int i = 0; i < BUFFER_COUNT; i++) {
 		cmdBuffer.ImageBarrier(m_VKSwapChain.Images[i], vk::ImageLayout::eUndefined, vk::ImageLayout::ePresentSrcKHR);
 
-		Vector<vk::ImageLayout> layouts;
+		std::vector<vk::ImageLayout> layouts;
 		layouts.push_back(vk::ImageLayout::eColorAttachmentOptimal);
 		layouts.push_back(vk::ImageLayout::eDepthStencilAttachmentOptimal);
 		m_FrameBuffer.ChangeLayout(cmdBuffer, layouts, i);
 	}
 
-	cmdBuffer.PushPipelineBarrier();
+	//cmdBuffer.PushPipelineBarrier();
 	m_DeviceAllocator.ScheduleTransfers(&cmdBuffer);
 	m_CmdBufferFactory.EndBuffer(cmdBuffer);
 
@@ -474,15 +471,15 @@ void GraphicsEngine::RenderModels(RenderQueue& rq, CommandBuffer& cmdBuffer) {
 
 		const vk::DeviceSize offsets[4] = { 0,0,0,0 };
 		cmdBuffer.bindVertexBuffers(0, 4, vertexBuffers, offsets);
-		cmdBuffer.bindIndexBuffer(model.IndexBuffer.buffer, 0, vk::IndexType::eUint16);
+		cmdBuffer.bindIndexBuffer(model.IndexBuffer.buffer, 0, vk::IndexType::eUint32);
 		cmdBuffer.pushConstants(m_Pipeline.GetPipelineLayout(), vk::ShaderStageFlagBits::eAll, 0, sizeof(unsigned), &m.second.Offset);
 		vk::DescriptorSet mat;
 		for (uint32_t meshIt = 0; meshIt < model.MeshCount; ++meshIt) {
 			m_Stats.MeshCount += instanceCount;
 			Mesh& mesh = model.Meshes[meshIt];
-			if (mat != mesh.Material) {
-				mat = mesh.Material;
-				cmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipelineLayout(), 3, 1, &mesh.Material, 0, nullptr);
+			if (mat != mesh.Material.DescSet) {
+				mat = mesh.Material.DescSet;
+				cmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipelineLayout(), 3, 1, &mesh.Material.DescSet, 0, nullptr);
 			}
 			m_Stats.TriangleCount += (mesh.IndexCount / 3) * instanceCount;
 			cmdBuffer.drawIndexed(mesh.IndexCount, instanceCount, mesh.IndexOffset, 0, 0);
@@ -540,7 +537,7 @@ void GraphicsEngine::Render() {
 
 		m_CmdBufferFactory.Reset(VK_DEVICE, VK_FRAME_INDEX);
 
-		auto& cmdBuffer = m_CmdBufferFactory.GetNextBuffer();
+		CommandBuffer cmdBuffer = m_CmdBufferFactory.GetNextBuffer();
 		cmdBuffer.Begin(nullptr, nullptr);
 		m_DeviceAllocator.ScheduleTransfers(&cmdBuffer);
 		m_SkyBox.PrepareUniformBuffer(cmdBuffer, m_DeviceAllocator, cd.ProjView, glm::translate(cd.Position));
@@ -553,7 +550,7 @@ void GraphicsEngine::Render() {
 	std::vector<vk::CommandBuffer> cmdBuffers;
 	//render pass
 	{
-		auto& cmdBuffer = m_CmdBufferFactory.GetNextBuffer();
+		CommandBuffer& cmdBuffer = m_CmdBufferFactory.GetNextBuffer();
 
 		m_ShadowProgram.Render(VK_FRAME_INDEX, cmdBuffer, rq, m_Resources);
 		m_CmdBufferFactory.EndBuffer(cmdBuffer);
@@ -562,7 +559,7 @@ void GraphicsEngine::Render() {
 		cmdBuffer = m_CmdBufferFactory.GetNextBuffer();
 		cmdBuffer.Begin(m_FrameBuffer.GetFrameBuffer(VK_FRAME_INDEX), m_FrameBuffer.GetRenderPass());
 
-		Vector<vk::ImageLayout> newLayouts;
+		std::vector<vk::ImageLayout> newLayouts;
 		newLayouts.push_back(vk::ImageLayout::eColorAttachmentOptimal);
 		newLayouts.push_back(vk::ImageLayout::eDepthStencilAttachmentOptimal);
 
@@ -605,7 +602,7 @@ void GraphicsEngine::Render() {
 	}
 	//Perform tonemapping and render Imgui
 	{
-		auto& cmdBuffer = m_CmdBufferFactory.GetNextBuffer();
+		CommandBuffer& cmdBuffer = m_CmdBufferFactory.GetNextBuffer();
 		cmdBuffer.Begin(m_VKSwapChain.FrameBuffers[VK_FRAME_INDEX], m_RenderPass);
 		// dont trust the renderpass inital layout
 		cmdBuffer.ImageBarrier(m_VKSwapChain.Images[VK_FRAME_INDEX], vk::ImageLayout::ePresentSrcKHR, vk::ImageLayout::eColorAttachmentOptimal);
@@ -625,7 +622,7 @@ void GraphicsEngine::Render() {
 		vk::ClearValue cv = { cc };
 		rpBeginInfo.pClearValues = &cv;
 
-		Vector<vk::ImageLayout> newLayouts;
+		std::vector<vk::ImageLayout> newLayouts;
 		newLayouts.push_back(vk::ImageLayout::eShaderReadOnlyOptimal);
 		newLayouts.push_back(vk::ImageLayout::eDepthStencilReadOnlyOptimal);
 
@@ -675,7 +672,7 @@ RenderQueue* GraphicsEngine::GetStaticQueue() {
 }
 
 void GraphicsEngine::TransferToGPU() {
-	auto& cmdBuffer = m_CmdBufferFactory.GetNextBuffer();
+	CommandBuffer& cmdBuffer = m_CmdBufferFactory.GetNextBuffer();
 	cmdBuffer.Begin(nullptr, nullptr);
 	m_Resources.ScheduleTransfer(cmdBuffer);
 	m_CmdBufferFactory.EndBuffer(cmdBuffer);
@@ -709,7 +706,7 @@ void GraphicsEngine::CreateImguiFont(ImGuiContext* imguiCtx) {
 	ImGui::SetCurrentContext(imguiCtx);
 	//upload font texture
 	{
-		auto& cmdBuffer = m_CmdBufferFactory.GetNextBuffer();
+		CommandBuffer& cmdBuffer = m_CmdBufferFactory.GetNextBuffer();
 		vk::CommandBufferBeginInfo begin_info = {};
 		begin_info.flags |= vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
 		cmdBuffer.begin(&begin_info);

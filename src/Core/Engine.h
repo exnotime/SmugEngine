@@ -1,8 +1,11 @@
 #pragma once
+struct ImGuiContext;
+
 namespace smug {
 class Window;
 class SubSystemSet;
 class Timer;
+
 class Engine {
   public:
 	Engine();
@@ -15,5 +18,6 @@ class Engine {
 	SubSystemSet* m_MainSubSystemSet;
 	Timer* m_GlobalTimer;
 	Timer* m_ProfilerTimer;
+	ImGuiContext* m_ImguiCtx;
 };
 }

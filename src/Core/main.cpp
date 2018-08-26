@@ -5,7 +5,7 @@
 int main(int argc, char* argv[]) {
 #if defined(_DEBUG)
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF); //detect memory leaks
-	//_CrtSetBreakAlloc(1297836); // mem leak debugger
+	//_CrtSetBreakAlloc(677806); // mem leak debugger
 #endif
 
 	smug::Engine eng;

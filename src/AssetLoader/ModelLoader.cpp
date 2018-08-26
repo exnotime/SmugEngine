@@ -237,3 +237,7 @@ bool ModelLoader::IsExtensionSupported(const char* extension) {
 	}
 	return false;
 }
+
+bool ModelLoader::IsTypeSupported(int type) {
+	return type == RT_MODEL;
+}

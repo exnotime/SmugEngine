@@ -30,6 +30,8 @@ class DeviceAllocator {
 	void AllocateImage(VkImageCreateInfo* createInfo, VkImage* image, uint64_t size = 0, void* data = nullptr);
 	VkBufferHandle AllocateBuffer(const VkBufferUsageFlags usage, uint64_t size = 0, void * data = nullptr);
 	void UpdateBuffer(VkBufferHandle& handle, uint64_t size, void* data = nullptr);
+	void DeAllocateBuffer(VkBufferHandle& handle);
+	void DeAllocateImage(VkImage& image);
 	void ScheduleTransfers(CommandBuffer* cmdBuffer);
 	void Clear();
 	void PrintStats();

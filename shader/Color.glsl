@@ -150,7 +150,7 @@ void main(){
     mat.r = clamp( mat.r, 0.001, 0.999);
     //mat.g = texture(g_ShadowCascades, vec3(TexCoordOut, 1.0f)).r;
 
-    vec3 lightColor = CalcDirLight(-lightDir, texColor, normal, toCam, mat.r, mat.g) * SampleShadowMap(PosW);
+    vec3 lightColor = CalcDirLight(-lightDir, texColor, normal, toCam, mat.r, mat.g);// * SampleShadowMap(PosW);
     lightColor += CalcIBLLight( normal, toCam, texColor, mat.r, mat.g);
     outColor = saturate(vec4(lightColor, 1));
 

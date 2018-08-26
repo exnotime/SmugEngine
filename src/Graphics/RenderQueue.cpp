@@ -38,7 +38,7 @@ void RenderQueue::AddModel(ResourceHandle model, const glm::mat4& transform, con
 void RenderQueue::ScheduleTransfer(DeviceAllocator& memory) {
 	for (auto& mi : m_Models) {
 		mi.second.Offset = (uint32_t)m_Inputs.size();
-		m_Inputs += mi.second.Inputs;
+		m_Inputs.insert(m_Inputs.end(), mi.second.Inputs.begin(), mi.second.Inputs.end());
 	}
 
 	if (m_Inputs.size() > 0) {

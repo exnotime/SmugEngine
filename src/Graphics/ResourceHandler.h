@@ -23,10 +23,24 @@ enum VertexChannels {
 	NUM_VERTEX_CHANNELS
 };
 
+enum MaterialChannels {
+	MC_ALBEDO,
+	MC_ROUGHNESS,
+	MC_NORMAL,
+	MC_METAL,
+	NUM_MATERIAL_CHANNELS
+};
+
+struct MaterialSet {
+	uint32_t TextureCount;
+	VkImage* Textures;
+	vk::DescriptorSet DescSet;
+};
+
 struct Mesh {
 	unsigned IndexCount;
 	unsigned IndexOffset;
-	vk::DescriptorSet Material;
+	MaterialSet Material;
 };
 
 struct Model {
@@ -54,10 +68,15 @@ class ResourceHandler {
 
 	void AllocateModel(const ModelInfo& model, ResourceHandle handle);
 	void AllocateTexture(const TextureInfo& tex, ResourceHandle handle);
+	void ReAllocateModel(const ModelInfo& model, ResourceHandle handle);
+	void DeAllocateModel(ResourceHandle handle);
+	void DeAllocateTexture(ResourceHandle handle);
+	ResourceAllocator& GetResourceAllocator() { return m_ResourceAllocator; }
   private:
 	vk::Device* m_Device;
 	DeviceAllocator* m_DeviceAllocator;
 
+	ResourceAllocator m_ResourceAllocator;
 	std::unordered_map<ResourceHandle, Model> m_Models;
 	std::unordered_map<ResourceHandle, VkTexture> m_Textures;
 

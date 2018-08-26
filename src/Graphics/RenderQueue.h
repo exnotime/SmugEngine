@@ -17,7 +17,7 @@ struct ShaderInput {
 };
 
 struct ModelInstance {
-	Vector<ShaderInput> Inputs;
+	std::vector<ShaderInput> Inputs;
 	uint32_t Count;
 	uint32_t Offset;
 };
@@ -32,10 +32,10 @@ class GFX_DLL RenderQueue {
 	void AddModel(ResourceHandle handle, const glm::mat4& transform, const glm::vec4& tint);
 	void ScheduleTransfer(DeviceAllocator& memory);
 
-	const Vector<CameraData>& GetCameras() const {
+	const std::vector<CameraData>& GetCameras() const {
 		return m_Cameras;
 	}
-	const Vector<ShaderInput>& GetInputs() const {
+	const std::vector<ShaderInput>& GetInputs() const {
 		return m_Inputs;
 	}
 	const std::map<ResourceHandle, ModelInstance>& GetModels() const {
@@ -54,8 +54,8 @@ class GFX_DLL RenderQueue {
 
 
   private:
-	Vector<CameraData> m_Cameras;
-	Vector<ShaderInput> m_Inputs;
+	std::vector<CameraData> m_Cameras;
+	std::vector<ShaderInput> m_Inputs;
 	std::map<ResourceHandle, ModelInstance> m_Models;
 	vk::DescriptorSet m_DescSet;
 	VkBufferHandle m_Buffer;

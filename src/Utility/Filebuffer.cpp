@@ -42,8 +42,11 @@ void FileBuffer::Close() {
 		fclose(m_File);
 		fclose(m_LedgerFile);
 		free(m_Buffer);
+		m_Buffer = nullptr;
+		m_File = nullptr;
+		m_LedgerFile = nullptr;
 	}
-
+	m_FilePtr = 0;
 	m_Open = false;
 }
 
@@ -111,6 +114,8 @@ void FileBuffer::OpenForReading(const char* filename, const char* ledgerFile) {
 	m_LedgerFilename = ledgerFile;
 	m_Filename = filename;
 	m_Open = true;
+	m_LedgerFile = nullptr;
+	m_File = nullptr;
 }
 
 void* FileBuffer::LoadFile(uint32_t hash) {
@@ -128,5 +133,6 @@ void* FileBuffer::LoadFile(uint32_t hash) {
 	void* buffer = malloc(e->second.Size);
 	fread(buffer, sizeof(uint8_t), e->second.Size, m_File);
 	fclose(m_File);
+	m_File = nullptr;
 	return buffer;
 }

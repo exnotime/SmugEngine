@@ -4,13 +4,11 @@
 #include <glm/glm.hpp>
 #include "AssetExport.h"
 
-#define RESOURCE_TYPE_MASK 0x00000000ffffffff
+#define RESOURCE_TYPE_MASK 0xffffffff00000000
 #define RESOURCE_HASH_SHIFT 32
 #define RESOURCE_INVALID -1
 
 namespace smug {
-typedef uint64_t ResourceHandle; //first 32 bits say type, second 32 bits say resource hash
-
 enum RESOURCE_TYPE : uint32_t {
 	RT_TEXTURE = 0x1,
 	RT_MODEL = 0x2,
@@ -19,6 +17,19 @@ enum RESOURCE_TYPE : uint32_t {
 	RT_SKELETON = 0x10,
 	RT_SCRIPT = 0x20
 };
+
+typedef ASSET_DLL uint64_t ResourceHandle; //first 32 bits say type, second 32 bits say resource hash
+
+static ResourceHandle CreateHandle(uint32_t hash, RESOURCE_TYPE type) {
+	ResourceHandle h = type;
+	h = h << RESOURCE_HASH_SHIFT;
+	h |= hash;
+	return h;
+}
+
+static RESOURCE_TYPE GetType(ResourceHandle h) {
+	return (RESOURCE_TYPE)((h & RESOURCE_TYPE_MASK) >> RESOURCE_HASH_SHIFT);
+}
 
 struct ASSET_DLL TextureInfo {
 	uint32_t Width;

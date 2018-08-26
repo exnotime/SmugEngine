@@ -66,6 +66,8 @@ void AssetLoader::Init(const char* dataFolder, bool isCompiler) {
 }
 
 void AssetLoader::Close() {
+
+	UnloadAllAssets();
 	for (auto& l : m_Loaders) {
 		l.buffer->Close();
 		delete l.buffer;
@@ -73,11 +75,8 @@ void AssetLoader::Close() {
 	}
 }
 
-ResourceHandle CreateHandle(uint32_t hash, RESOURCE_TYPE type) {
-	ResourceHandle h = type;
-	h = h << RESOURCE_HASH_SHIFT;
-	h |= hash;
-	return h;
+int ExtractType(ResourceHandle handle) {
+	return handle >> RESOURCE_HASH_SHIFT;
 }
 
 ResourceHandle AssetLoader::LoadAsset(const char* filename) {
@@ -102,6 +101,7 @@ ResourceHandle AssetLoader::LoadAsset(const char* filename) {
 					l.loader->UnloadAsset(asset.Data);
 					ResourceHandle h = CreateHandle(hash, asset.Type);
 					m_ResourceCache[hash] = h;
+					m_ResourceData[h] = assetBuffer;
 					return h;
 				}
 			}
@@ -121,6 +121,7 @@ ResourceHandle AssetLoader::LoadAsset(const char* filename) {
 			m_Allocator.AllocResource(r.Data, m_Allocator.UserData, filename, r.Type);
 			ResourceHandle h = CreateHandle(hash, r.Type);
 			m_ResourceCache[hash] = h;
+			m_ResourceData[h] = r.Data;
 			m_FilenameCache[h] = std::string(filename);
 			return h;
 		}
@@ -130,12 +131,41 @@ ResourceHandle AssetLoader::LoadAsset(const char* filename) {
 	return -1;
 }
 
+ResourceHandle AssetLoader::LoadGeneratedModel(ModelInfo& modelInfo, const char* name) {
+	m_Allocator.AllocResource(&modelInfo, m_Allocator.UserData, name, RT_MODEL);
+	uint32_t hash = HashString(name);
+	return CreateHandle(hash, RT_MODEL);
+}
+
+void AssetLoader::UpdateModel(ResourceHandle handle, ModelInfo& modelInfo) {
+	m_Allocator.ReAllocResource(&modelInfo, m_Allocator.UserData, handle);
+}
+
 ResourceHandle AssetLoader::LoadAsset(uint32_t hash) {
 	std::string name = m_StringPool.GetString(hash);
 	if (!name.empty()) {
 		return LoadAsset(name.c_str());
 	}
 	return RESOURCE_INVALID;
+}
+
+void AssetLoader::UnloadAsset(ResourceHandle h) {
+	int type = ExtractType(h);
+	for (auto& loader : m_Loaders) {
+		if (loader.loader->IsTypeSupported(type)) {
+			auto data = m_ResourceData.find(h);
+			if (data != m_ResourceData.end()) {
+				loader.loader->UnloadAsset(data->second);
+			}
+		}
+	}
+	m_ResourceData.erase(h);
+}
+
+void AssetLoader::UnloadAllAssets() {
+	for (auto& h : m_ResourceCache) {
+		UnloadAsset(h.second);
+	}
 }
 
 std::string AssetLoader::GetFilenameFromCache(ResourceHandle handle) {

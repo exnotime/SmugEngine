@@ -24,7 +24,7 @@ bool IsDepthStencil(vk::Format f) {
 	return false;
 }
 
-void FrameBuffer::Init(const vk::Device& device, const vk::PhysicalDevice& gpu, const glm::vec2& size, const Vector<vk::Format>& formats, const Vector<vk::ImageUsageFlags>& usages, uint32_t bufferCount) {
+void FrameBuffer::Init(const vk::Device& device, const vk::PhysicalDevice& gpu, const glm::vec2& size, const std::vector<vk::Format>& formats, const std::vector<vk::ImageUsageFlags>& usages, uint32_t bufferCount) {
 	m_FrameBufferSize = size;
 	m_FormatCount = (uint32_t)formats.size();
 	//init image and views
@@ -164,10 +164,10 @@ void FrameBuffer::Init(const vk::Device& device, const vk::PhysicalDevice& gpu, 
 			samplerInfo.addressModeV = vk::SamplerAddressMode::eRepeat;
 			samplerInfo.addressModeW = vk::SamplerAddressMode::eRepeat;
 			samplerInfo.anisotropyEnable = false;
-			samplerInfo.magFilter = vk::Filter::eLinear;
-			samplerInfo.minFilter = vk::Filter::eLinear;
-			samplerInfo.mipmapMode = vk::SamplerMipmapMode::eLinear;
-			if (IsDepthStencil(m_Formats[i])) {
+			samplerInfo.magFilter = vk::Filter::eNearest;
+			samplerInfo.minFilter = vk::Filter::eNearest;
+			samplerInfo.mipmapMode = vk::SamplerMipmapMode::eNearest;
+			if (IsDepthStencil(formats[i])) {
 				//used for shadow maps
 				samplerInfo.compareEnable = true;
 				samplerInfo.compareOp = vk::CompareOp::eLessOrEqual;
@@ -184,7 +184,7 @@ void FrameBuffer::Init(const vk::Device& device, const vk::PhysicalDevice& gpu, 
 		m_Descriptors.push_back(imageDescInfo);
 	}
 
-	m_Formats += formats;
+	m_Formats.insert(m_Formats.end(), formats.begin(), formats.end());
 
 	m_BufferCount = bufferCount;
 }
@@ -194,7 +194,7 @@ void FrameBuffer::Resize(const glm::vec2& size) {
 }
 
 ///Push barrier needs to be called forthis to make an effect
-void FrameBuffer::ChangeLayout(CommandBuffer& cmdBuffer, const Vector<vk::ImageLayout>& newLayouts, uint32_t frameIndex) {
+void FrameBuffer::ChangeLayout(CommandBuffer& cmdBuffer, const std::vector<vk::ImageLayout>& newLayouts, uint32_t frameIndex) {
 
 	uint32_t imageCount = (uint32_t)m_Formats.size();
 	assert(imageCount == newLayouts.size());

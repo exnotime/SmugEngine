@@ -18,7 +18,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <AssetLoader/Resources.h>
 
 #ifndef SHADER_CACHE_DIR
-//#define USE_SHADER_CACHE 1
+#define USE_SHADER_CACHE 1
 #define SHADER_CACHE_DIR "./shader/cache/"
 #endif
 

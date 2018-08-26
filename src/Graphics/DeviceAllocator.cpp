@@ -5,7 +5,7 @@ DeviceAllocator::DeviceAllocator() {
 
 }
 DeviceAllocator::~DeviceAllocator() {
-
+	vmaDestroyAllocator(m_Allocator);
 }
 void DeviceAllocator::Init(vk::Device& device, vk::PhysicalDevice& physicalDevice) {
 	VmaAllocatorCreateInfo allocatorCrateInfo = {};
@@ -160,6 +160,14 @@ void DeviceAllocator::UpdateBuffer(VkBufferHandle& handle, uint64_t size, void* 
 	}
 }
 
+void DeviceAllocator::DeAllocateBuffer(VkBufferHandle& handle) {
+	vmaDestroyBuffer(m_Allocator, handle.buffer);
+}
+
+void DeviceAllocator::DeAllocateImage(VkImage& image) {
+	vmaDestroyImage(m_Allocator, image);
+}
+
 void DeviceAllocator::ScheduleTransfers(CommandBuffer* cmdBuffer) {
 	uint32_t imageCount = (uint32_t)m_ImageCopies.size();
 	if (imageCount > 0) {
@@ -178,7 +186,7 @@ void DeviceAllocator::ScheduleTransfers(CommandBuffer* cmdBuffer) {
 	uint32_t bufferCopies = (uint32_t)m_BufferCopies.size();
 	if (bufferCopies > 0) {
 		for (uint32_t i = 0; i < bufferCopies; ++i) {
-			std::vector<vk::BufferCopy> copy = { m_BufferCopies[i].copy };
+			std::array<vk::BufferCopy, 1> copy = { m_BufferCopies[i].copy };
 			cmdBuffer->copyBuffer(m_BufferCopies[i].src, m_BufferCopies[i].dst, copy);
 		}
 		//m_BufferCopies.clear();

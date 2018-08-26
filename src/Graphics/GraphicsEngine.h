@@ -50,6 +50,7 @@ class GFX_DLL GraphicsEngine {
 	void Swap();
 	RenderQueue* GetRenderQueue();
 	RenderQueue* GetStaticQueue();
+	ResourceAllocator& GetResourceAllocator() { return m_Resources.GetResourceAllocator(); }
 	void PrintStats();
 
   private:

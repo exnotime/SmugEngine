@@ -16,8 +16,8 @@ ShadowMapProgram::~ShadowMapProgram() {
 
 void ShadowMapProgram::Init(VulkanContext& vc, DeviceAllocator& allocator) {
 	m_Device = &vc.Device;
-	Vector<vk::Format> formats;
-	Vector<vk::ImageUsageFlags> usages;
+	std::vector<vk::Format> formats;
+	std::vector<vk::ImageUsageFlags> usages;
 	formats.push_back(vk::Format::eD32Sfloat);
 	usages.push_back(vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled);
 	m_FrameBuffer.Init(vc.Device, vc.PhysicalDevice, glm::vec2(SHADOWMAP_SIZE * 2), formats, usages, 1);
@@ -156,7 +156,7 @@ void ShadowMapProgram::Render(uint32_t frameIndex, CommandBuffer& cmdBuffer, con
 	cmdBuffer.Begin(m_FrameBuffer.GetFrameBuffer(0), m_FrameBuffer.GetRenderPass());
 	static bool first = true;
 	if(first) {
-		Vector<vk::ImageLayout> newLayouts;
+		std::vector<vk::ImageLayout> newLayouts;
 		newLayouts.push_back(vk::ImageLayout::eDepthStencilAttachmentOptimal);
 		m_FrameBuffer.ChangeLayout(cmdBuffer, newLayouts, 0);
 		cmdBuffer.PushPipelineBarrier();
