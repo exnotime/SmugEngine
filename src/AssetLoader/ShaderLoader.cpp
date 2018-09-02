@@ -4,6 +4,8 @@
 #include <fstream>
 #include <Utility/Hash.h>
 #include <Utility/Memory.h>
+#include <spirv_cross/spirv_cross.hpp>
+
 using namespace smug;
 ShaderLoader::ShaderLoader() {}
 ShaderLoader::~ShaderLoader() {}
@@ -177,9 +179,29 @@ char* ShaderLoader::LoadShaders(const std::string& filename, ShaderInfo& info) {
 	return nullptr;
 }
 
+char* ReflectShaders(ShaderInfo& info, PipelineStateInfo& psInfoOut){
+
+	for (uint32_t i = 0; i < info.ShaderCount; ++i) {
+		ShaderByteCode& shader = info.Shaders[i];
+		spirv_cross::Compiler compiler((const uint32_t*)shader.ByteCode, (size_t)shader.ByteCodeSize);
+		spirv_cross::ShaderResources resources = compiler.get_shader_resources();
+		std::vector<Descriptor> descs;
+		for (auto& res : resources.sampled_images) {
+			Descriptor d;
+			d.Set = compiler.get_decoration(res.id, spv::DecorationDescriptorSet);
+			d.Slot = compiler.get_decoration(res.id, spv::DecorationBinding);
+			d.Resource = HashString((compiler.get_name(res.id)));
+		}
+	}
+	
+}
+
 LoadResult ShaderLoader::LoadAsset(const char* filename) {
-	ShaderInfo* info = new ShaderInfo();
+	ShaderInfo* info = (ShaderInfo*)malloc(sizeof(ShaderInfo));
 	char* error = LoadShaders(filename, *info);
+	if (!error) {
+
+	}
 	LoadResult res;
 	if (error) {
 		res.Error = error;

@@ -72,7 +72,7 @@ struct ASSET_DLL ModelInfo {
 };
 
 enum ASSET_DLL SHADER_KIND {
-	VERTEX, FRAGMENT, GEOMETRY, EVALUATION, CONTROL, COMPUTE, PRECOMPILED
+	VERTEX, FRAGMENT, GEOMETRY, EVALUATION, CONTROL, COMPUTE, 
 };
 
 enum ASSET_DLL SHADER_BYTECODE_TYPE {
@@ -96,4 +96,28 @@ struct ASSET_DLL ShaderInfo {
 	uint32_t ShaderCount;
 	ShaderByteCode* Shaders;
 };
+
+struct ASSET_DLL Descriptor {
+	uint32_t Slot;
+	uint32_t Set;
+	uint32_t Resource;
+	uint32_t Type;
+};
+
+struct ASSET_DLL DescriptorSetLayoutInfo {
+	Descriptor* Descriptors;
+	uint32_t DescriptorCount;
+};
+
+struct ASSET_DLL ShaderOutputInfo {
+	uint32_t* RenderTargets;
+	uint32_t RenderTargetCount;
+};
+
+struct ASSET_DLL PipelineStateInfo {
+	ShaderInfo Shader;
+	DescriptorSetLayoutInfo DescriptorSetLayout;
+	ShaderOutputInfo Output;
+};
+
 }

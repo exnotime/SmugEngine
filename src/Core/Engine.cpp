@@ -44,7 +44,7 @@ void Engine::Init() {
 	ws.HighDPI = false;
 	ws.OpenGL = true;
 	ws.Title = "Smug Engine";
-	ws.Vsync = false;
+	ws.Vsync = true;
 	ws.BorderLess = false;
 	m_Window->Initialize(ws);
 
@@ -127,7 +127,7 @@ void Engine::Init() {
 void Engine::Run() {
 	int mode = GLFW_CURSOR_DISABLED;
 	while (!glfwWindowShouldClose(m_Window->GetWindow())) {
-
+		double tick = m_GlobalTimer->Tick();
 		ImGui_ImplGlfwVulkan_NewFrame();
 
 		if (g_Input.IsKeyPushed(GLFW_KEY_F3)) {
@@ -139,10 +139,15 @@ void Engine::Run() {
 			break;
 		}
 		globals::g_Gfx->PrintStats();
-		m_MainSubSystemSet->UpdateSubSystems(m_GlobalTimer->Tick());
-		globals::g_Physics->Update(1.0f / 60.0f);
+		m_MainSubSystemSet->UpdateSubSystems(tick);
+		globals::g_Physics->Update(tick);
 		globals::g_Gfx->Render();
 		globals::g_Gfx->Swap();
+
+		char buffer[400];
+		sprintf(buffer, "Smug Engine : FPS = %f", 1.0 / tick);
+
+		glfwSetWindowTitle(m_Window->GetWindow(), buffer);
 		g_Input.Update();
 		glfwPollEvents();
 	}

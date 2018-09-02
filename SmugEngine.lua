@@ -69,9 +69,9 @@ solution "SmugEngine"
         kind "SharedLib"
         links { "assimp", "Utility" }
         configuration { "Debug" }
-                links { "angelscript64d", "as_integrationD", "shaderc_combinedD" }
+                links { "angelscript64d", "as_integrationD", "shaderc_combinedD", "spirv-cross-coreD", "spirv-cross-glslD"  }
         configuration { "Release" }
-                links { "angelscript64", "as_integration", "shaderc_combined" }
+                links { "angelscript64", "as_integration", "shaderc_combined", "spirv-cross-core", "spirv-cross-glsl" }
 
     project "Physics"
         targetname "Physics"

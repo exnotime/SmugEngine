@@ -6,6 +6,7 @@
 #include "DeviceAllocator.h"
 #include "VulkanContext.h"
 #include "Texture.h"
+#include "VkPipeline.h"
 
 //use fixed size materials for now
 //Albedo, Normal, Roughness, Metal
@@ -68,6 +69,7 @@ class ResourceHandler {
 
 	void AllocateModel(const ModelInfo& model, ResourceHandle handle);
 	void AllocateTexture(const TextureInfo& tex, ResourceHandle handle);
+	void AllocatePipelineState()
 	void ReAllocateModel(const ModelInfo& model, ResourceHandle handle);
 	void DeAllocateModel(ResourceHandle handle);
 	void DeAllocateTexture(ResourceHandle handle);
@@ -79,6 +81,7 @@ class ResourceHandler {
 	ResourceAllocator m_ResourceAllocator;
 	std::unordered_map<ResourceHandle, Model> m_Models;
 	std::unordered_map<ResourceHandle, VkTexture> m_Textures;
+	std::unordered_map<ResourceHandle, PipelineState> m_PipelineStates;
 
 	VkTexture m_DefaultAlbedo;
 	VkTexture m_DefaultNormal;

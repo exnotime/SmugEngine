@@ -73,7 +73,7 @@ void SSRender::Update(const double deltaTime) {
 		auto& entity = entities[e];
 		if ((entity.ComponentBitfield & flag) == flag) {
 			ModelComponent* mc = (ModelComponent*)globals::g_Components->GetComponent(entity, ModelComponent::Flag);
-			if (mc->Static) //it will already be on the static queue
+			if (mc->Static || !mc->Visible) //it will already be on the static queue
 				continue;
 
 			TransformComponent* tc = (TransformComponent*)globals::g_Components->GetComponent(entity, TransformComponent::Flag);
