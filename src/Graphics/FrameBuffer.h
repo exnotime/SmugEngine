@@ -1,16 +1,42 @@
 #pragma once
 #include <vulkan/vulkan.hpp>
 #include <glm/glm.hpp>
+#include <unordered_map>
 #include "VulkanContext.h"
+#include "vk_mem_alloc.h"
+#include "GraphicsExport.h" 
+
 namespace smug {
-class FrameBuffer {
+
+	struct RenderTarget {
+		uint32_t Width;
+		uint32_t Height;
+		uint32_t Depth;
+		uint32_t Name;
+		vk::Format Format;
+		vk::Image Handle;
+		vk::ImageView View;
+		vk::ImageLayout Layout;
+		VmaAllocation Memory;
+	};
+
+	struct GFX_DLL SubPass {
+		std::vector<uint32_t> RenderTargets;
+		uint32_t DepthStencilAttachment = UINT_MAX;
+	};
+
+class GFX_DLL FrameBufferManager {
   public:
-	FrameBuffer();
-	~FrameBuffer();
+	FrameBufferManager();
+	~FrameBufferManager();
 	void Init(const vk::Device& device, const vk::PhysicalDevice& gpu, const glm::vec2& size, const std::vector<vk::Format>& formats, const std::vector<vk::ImageUsageFlags>& usages, uint32_t bufferCount);
 	void Resize(const glm::vec2& size);
 	void ChangeLayout(CommandBuffer& cmdBuffer, const std::vector<vk::ImageLayout>& newLayouts, uint32_t frameIndex);
 	void SetLayouts(const std::vector<vk::ImageLayout>& newLayouts, uint32_t frameIndex);
+
+	void AllocRenderTarget(uint32_t name, uint32_t width, uint32_t height, uint32_t depth, vk::Format format, vk::ImageLayout initialLayout);
+	void CreateRenderPass(uint32_t name, std::vector<SubPass> subPasses);
+
 	//Getters
 	std::vector<vk::Image>& GetImages() {
 		return m_Images;
@@ -60,6 +86,12 @@ class FrameBuffer {
 
 
   private:
+	vk::Device m_Device;
+	VmaAllocator m_DeviceAllocator;
+	std::unordered_map<uint32_t, RenderTarget> m_RenderTargets;
+	std::unordered_map<uint32_t, vk::RenderPass> m_RenderPasses;
+	std::unordered_map<uint32_t, vk::Framebuffer> m_FrameBuffersT;
+
 	glm::vec2 m_FrameBufferSize;
 	vk::Framebuffer m_FrameBuffers[BUFFER_COUNT];
 	vk::RenderPass m_RenderPass;

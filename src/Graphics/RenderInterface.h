@@ -4,9 +4,7 @@ namespace smug {
 	//c interface for executing render commmands
 	namespace RenderInterface {
 
-		
-
-		void CreateDescriptorSetLayout(DescriptorSetLayoutInfo & info);
+		//void CreateDescriptorSetLayout(DescriptorSetLayoutInfo & info);
 		void CreatePipelineState();
 		void CreateFrameBuffer();
 

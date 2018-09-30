@@ -44,7 +44,7 @@ class ASSET_DLL AssetLoader {
 	void LoadStringPool(const char* filename);
 	void SaveStringPool(const char* filename);
 	std::string GetFilenameFromCache(ResourceHandle handle);
-
+	StringPool& GetStringPool() { return m_StringPool; };
 	static AssetLoader& GetInstance();
   private:
 	AssetLoader();

@@ -51,6 +51,8 @@ class GFX_DLL GraphicsEngine {
 	RenderQueue* GetRenderQueue();
 	RenderQueue* GetStaticQueue();
 	ResourceAllocator& GetResourceAllocator() { return m_Resources.GetResourceAllocator(); }
+	FrameBufferManager& GetFrameBufferManager() { return m_FrameBuffer; }
+
 	void PrintStats();
 
   private:
@@ -84,7 +86,7 @@ class GFX_DLL GraphicsEngine {
 	VkTexture m_SkyIrr;
 	vk::DescriptorSet m_IBLDescSet;
 
-	FrameBuffer m_FrameBuffer;
+	FrameBufferManager m_FrameBuffer;
 
 	bool m_VSync;
 	glm::vec2 m_ScreenSize;

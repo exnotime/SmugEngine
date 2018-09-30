@@ -10,7 +10,7 @@ ToneMapProgram::~ToneMapProgram() {
 
 }
 
-void ToneMapProgram::Init(vk::Device& device, const glm::vec2& screenSize, FrameBuffer& fbo, vk::DescriptorPool& descPool, vk::RenderPass& rp, DeviceAllocator& allocator) {
+void ToneMapProgram::Init(vk::Device& device, const glm::vec2& screenSize, FrameBufferManager& fbo, vk::DescriptorPool& descPool, vk::RenderPass& rp, DeviceAllocator& allocator) {
 
 	m_Pipeline.LoadPipelineFromFile(device, "shader/ToneMap.json", rp);
 	//pepare desc sets

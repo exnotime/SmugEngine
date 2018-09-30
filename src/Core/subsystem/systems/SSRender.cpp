@@ -25,6 +25,7 @@ void SSRender::Startup() {
 	const float s = 0.2f;
 	ModelComponent mc;
 	mc.ModelHandle = g_AssetLoader.LoadAsset("assets/models/sphere/sphere.obj");
+	//ResourceHandle shader = g_AssetLoader.LoadAsset("assets/shaders/filled.shader");
 	//RenderQueue* rq = globals::g_Gfx->GetStaticQueue();
 
 	for (int z = -c; z < c; z++) {

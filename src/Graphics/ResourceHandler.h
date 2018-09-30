@@ -34,7 +34,7 @@ enum MaterialChannels {
 
 struct MaterialSet {
 	uint32_t TextureCount;
-	VkImage* Textures;
+	VkImageHandle* Textures;
 	vk::DescriptorSet DescSet;
 };
 
@@ -69,7 +69,7 @@ class ResourceHandler {
 
 	void AllocateModel(const ModelInfo& model, ResourceHandle handle);
 	void AllocateTexture(const TextureInfo& tex, ResourceHandle handle);
-	void AllocatePipelineState()
+	void AllocateShader(const PipelineStateInfo& psInfo, ResourceHandle handle);
 	void ReAllocateModel(const ModelInfo& model, ResourceHandle handle);
 	void DeAllocateModel(ResourceHandle handle);
 	void DeAllocateTexture(ResourceHandle handle);

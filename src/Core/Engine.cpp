@@ -20,6 +20,7 @@
 #include "GlobalSystems.h"
 #include "Timer.h"
 #include "if_Assets.h"
+#include "if_Render.h"
 #include "entity/if_Entity.h"
 #include "components/if_Components.h"
 #include "script/ScriptEngine.h"
@@ -72,6 +73,7 @@ void Engine::Init() {
 	if_asset::RegisterInterface();
 	if_entity::RegisterEntityInterface();
 	if_component::InitComponentInterface();
+	if_render::InitInterface();
 	//set up entity manager
 	globals::g_EntityManager = new EntityManager();
 
@@ -82,6 +84,10 @@ void Engine::Init() {
 	globals::g_Components->AddComponentType(100, sizeof(RigidBodyComponent), RigidBodyComponent::Flag, "RigidBodyComponent");
 	globals::g_Components->AddComponentType(100, sizeof(ScriptComponent), ScriptComponent::Flag, "ScriptComponent");
 	globals::g_Components->AddComponentType(3, sizeof(CameraComponent), CameraComponent::Flag, "CameraComponent");
+
+
+	AngelScript::asIScriptModule* mod = g_ScriptEngine.CompileScriptToModule("script/LoadingTest.as");
+	g_ScriptEngine.ExecuteModule(mod, "void Load()");
 
 	m_MainSubSystemSet = new SubSystemSet();
 	m_MainSubSystemSet->AddSubSystem(new SSCamera());
@@ -94,9 +100,6 @@ void Engine::Init() {
 	m_GlobalTimer->Reset();
 
 	m_ProfilerTimer = new Timer();
-
-	AngelScript::asIScriptModule* mod = g_ScriptEngine.CompileScriptToModule("script/LoadingTest.as");
-	g_ScriptEngine.ExecuteModule(mod, "void Load()");
 
 	m_ImguiCtx = ImGui::CreateContext();
 	ImGui_ImplGlfwVulkan_Init_Data* imguiData = globals::g_Gfx->GetImguiInit();

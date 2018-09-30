@@ -1,4 +1,5 @@
 #include "DeviceAllocator.h"
+
 using namespace smug;
 
 DeviceAllocator::DeviceAllocator() {
@@ -15,24 +16,26 @@ void DeviceAllocator::Init(vk::Device& device, vk::PhysicalDevice& physicalDevic
 
 	m_Device = &device;
 }
-void DeviceAllocator::AllocateImage(VkImageCreateInfo* createInfo, VkImage* image, uint64_t size, void* data) {
+VkImageHandle DeviceAllocator::AllocateImage(VkImageCreateInfo* createInfo, uint64_t size, void* data) {
 	VkImageLayout finalLayout = createInfo->initialLayout;
 	createInfo->initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
-	VmaMemoryRequirements memReqs = {};
-	memReqs.usage = VMA_MEMORY_USAGE_GPU_ONLY;
-	VkResult vkres = vmaCreateImage(m_Allocator, createInfo, &memReqs, image, nullptr, nullptr);
+	VmaAllocationCreateInfo allocInfo = {};
+	allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+
+	VkImageHandle handle;
+	VkResult vkres = vmaCreateImage(m_Allocator, createInfo, &allocInfo, &handle.image, &handle.memory, nullptr);
 	if (vkres != VK_SUCCESS) {
 		printf("Error allocating memory for image\n");
-		return;
+		return handle;
 	}
 	if (data) {
 		//create intermediate texture to copy from
-		memReqs.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
-		VkMappedMemoryRange memMap;
+		VmaAllocationInfo info;
+		VmaAllocation memMap;
 		VkBuffer intImage;
 		VkMemoryRequirements vkMemReqs;
-		vkGetImageMemoryRequirements(*m_Device, *image, &vkMemReqs);
+		vkGetImageMemoryRequirements(*m_Device, handle.image, &vkMemReqs);
 
 		VkBufferCreateInfo bufferCreateInfo = {};
 		bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -41,16 +44,24 @@ void DeviceAllocator::AllocateImage(VkImageCreateInfo* createInfo, VkImage* imag
 		bufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 		bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-		VkResult vkres = vmaCreateBuffer(m_Allocator, &bufferCreateInfo, &memReqs, &intImage, &memMap, nullptr);
+		allocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+		allocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+		VkResult vkres = vmaCreateBuffer(m_Allocator, &bufferCreateInfo, &allocInfo, &intImage, &memMap, &info);
 		if (vkres != VK_SUCCESS) {
 			printf("Error allocating memory for intermediate image\n");
-			return;
+			return handle;
 		}
-		void* ptr;
-		vmaMapMemory(m_Allocator, &memMap, &ptr);
+		
+
+		void* ptr = nullptr;
+		vmaMapMemory(m_Allocator, memMap, &ptr);
 		memcpy(ptr, data, size);
-		vkFlushMappedMemoryRanges(*m_Device, 1, &memMap);
-		vmaUnmapMemory(m_Allocator, &memMap);
+		vk::MappedMemoryRange range;
+		range.memory = info.deviceMemory;
+		range.offset = info.offset;
+		range.size = info.size;
+		m_Device->flushMappedMemoryRanges(1, &range);
+		vmaUnmapMemory(m_Allocator, memMap);
 
 		ImageTransfer transfer;
 		uint64_t bufferOffset = 0;
@@ -77,10 +88,13 @@ void DeviceAllocator::AllocateImage(VkImageCreateInfo* createInfo, VkImage* imag
 		}
 
 		transfer.src = intImage;
-		transfer.dst = *image;
+		transfer.dst = handle.image;
 		transfer.finalLayout = finalLayout;
+		transfer.memory = memMap;
 		m_ImageCopies.push_back(transfer);
 	}
+
+	return handle;
 }
 
 VkBufferHandle DeviceAllocator::AllocateBuffer(const VkBufferUsageFlags usage, uint64_t size, void * data) {
@@ -93,7 +107,8 @@ VkBufferHandle DeviceAllocator::AllocateBuffer(const VkBufferUsageFlags usage, u
 	createInfo.usage = usage | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 	createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-	VmaMemoryRequirements memReqs = {};
+	
+	VmaAllocationCreateInfo memReqs = {};
 	memReqs.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 	VkResult vkres = vmaCreateBuffer(m_Allocator, &createInfo, &memReqs, &ret.buffer, &ret.memory, nullptr);
 	if (vkres != VK_SUCCESS) {
@@ -101,21 +116,27 @@ VkBufferHandle DeviceAllocator::AllocateBuffer(const VkBufferUsageFlags usage, u
 		return ret;
 	}
 	if (data) {
+		VmaAllocationInfo info;
 		BufferTransfer transfer;
 		memReqs.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+		memReqs.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
 		createInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 		VkMappedMemoryRange memoryRange;
-		vkres = vmaCreateBuffer(m_Allocator, &createInfo, &memReqs, &transfer.src, &memoryRange, nullptr);
+		vkres = vmaCreateBuffer(m_Allocator, &createInfo, &memReqs, &transfer.src, &transfer.memory, &info);
 		if (vkres != VK_SUCCESS) {
 			printf("Error allocating memory for intermediate buffer\n");
 			return ret;
 		}
 
-		void* ptr;
-		vmaMapMemory(m_Allocator, &memoryRange, &ptr);
+		void* ptr = nullptr;
+		vmaMapMemory(m_Allocator, transfer.memory, &ptr);
 		memcpy(ptr, data, size);
-		vkFlushMappedMemoryRanges(*m_Device, 1, &memoryRange);
-		vmaUnmapMemory(m_Allocator, &memoryRange);
+		vk::MappedMemoryRange range;
+		range.memory = info.deviceMemory;
+		range.offset = info.offset;
+		range.size = info.size;
+		m_Device->flushMappedMemoryRanges(1, &range);
+		vmaUnmapMemory(m_Allocator, transfer.memory);
 
 		transfer.dst = ret.buffer;
 		transfer.copy.dstOffset = 0;
@@ -128,6 +149,7 @@ VkBufferHandle DeviceAllocator::AllocateBuffer(const VkBufferUsageFlags usage, u
 
 void DeviceAllocator::UpdateBuffer(VkBufferHandle& handle, uint64_t size, void* data) {
 	if (data) {
+		VmaAllocationInfo info;
 		BufferTransfer transfer;
 		VkBufferCreateInfo createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -136,21 +158,24 @@ void DeviceAllocator::UpdateBuffer(VkBufferHandle& handle, uint64_t size, void* 
 		createInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 		createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-		VmaMemoryRequirements memReqs = {};
-
+		VmaAllocationCreateInfo memReqs = {};
 		memReqs.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
-		VkMappedMemoryRange memoryRange;
-		VkResult vkres = vmaCreateBuffer(m_Allocator, &createInfo, &memReqs, &transfer.src, &memoryRange, nullptr);
+		memReqs.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+		VkResult vkres = vmaCreateBuffer(m_Allocator, &createInfo, &memReqs, &transfer.src, &transfer.memory, &info);
 		if (vkres != VK_SUCCESS) {
 			printf("Error allocating memory for intermediate buffer\n");
 			return;
 		}
-
-		void* ptr;
-		vmaMapMemory(m_Allocator, &memoryRange, &ptr);
+		void* ptr = nullptr;
+		vmaMapMemory(m_Allocator, transfer.memory, &ptr);
 		memcpy(ptr, data, size);
-		vkFlushMappedMemoryRanges(*m_Device, 1, &memoryRange);
-		vmaUnmapMemory(m_Allocator, &memoryRange);
+
+		vk::MappedMemoryRange range;
+		range.memory = info.deviceMemory;
+		range.offset = info.offset;
+		range.size = info.size;
+		m_Device->flushMappedMemoryRanges(1, &range);
+		vmaUnmapMemory(m_Allocator, transfer.memory);
 
 		transfer.dst = handle.buffer;
 		transfer.copy.dstOffset = 0;
@@ -161,11 +186,11 @@ void DeviceAllocator::UpdateBuffer(VkBufferHandle& handle, uint64_t size, void* 
 }
 
 void DeviceAllocator::DeAllocateBuffer(VkBufferHandle& handle) {
-	vmaDestroyBuffer(m_Allocator, handle.buffer);
+	vmaDestroyBuffer(m_Allocator, handle.buffer, handle.memory);
 }
 
-void DeviceAllocator::DeAllocateImage(VkImage& image) {
-	vmaDestroyImage(m_Allocator, image);
+void DeviceAllocator::DeAllocateImage(VkImageHandle& handle) {
+	vmaDestroyImage(m_Allocator, handle.image, handle.memory);
 }
 
 void DeviceAllocator::ScheduleTransfers(CommandBuffer* cmdBuffer) {
@@ -196,10 +221,10 @@ void DeviceAllocator::ScheduleTransfers(CommandBuffer* cmdBuffer) {
 
 void DeviceAllocator::Clear() {
 	for (auto& buffer : m_BufferCopies) {
-		vmaDestroyBuffer(m_Allocator, buffer.src);
+		vmaDestroyBuffer(m_Allocator, buffer.src, buffer.memory);
 	}
 	for (auto& buffer : m_ImageCopies) {
-		vmaDestroyBuffer(m_Allocator, buffer.src);
+		vmaDestroyBuffer(m_Allocator, buffer.src, buffer.memory);
 	}
 	m_BufferCopies.clear();
 	m_ImageCopies.clear();

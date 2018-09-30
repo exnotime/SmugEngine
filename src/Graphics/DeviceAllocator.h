@@ -1,24 +1,31 @@
 #pragma once
-#include "vk_mem_alloc.h"
 #include <vector>
 #include "VulkanContext.h"
+#include "vk_mem_alloc.h"
 namespace smug {
 struct ImageTransfer {
 	VkBuffer src;
 	VkImage dst;
 	std::vector<vk::BufferImageCopy> copies;
 	VkImageLayout finalLayout;
+	VmaAllocation memory;
 };
 
 struct BufferTransfer {
 	VkBuffer src;
 	VkBuffer dst;
 	VkBufferCopy copy;
+	VmaAllocation memory;
 };
 
 struct VkBufferHandle {
-	VkMappedMemoryRange memory;
+	VmaAllocation memory;
 	VkBuffer buffer;
+};
+
+struct VkImageHandle {
+	VkImage image;
+	VmaAllocation memory;
 };
 
 class CommandBuffer;
@@ -27,11 +34,11 @@ class DeviceAllocator {
 	DeviceAllocator();
 	~DeviceAllocator();
 	void Init(vk::Device& device, vk::PhysicalDevice& physicalDevice);
-	void AllocateImage(VkImageCreateInfo* createInfo, VkImage* image, uint64_t size = 0, void* data = nullptr);
+	VkImageHandle AllocateImage(VkImageCreateInfo* createInfo, uint64_t size = 0, void* data = nullptr);
 	VkBufferHandle AllocateBuffer(const VkBufferUsageFlags usage, uint64_t size = 0, void * data = nullptr);
 	void UpdateBuffer(VkBufferHandle& handle, uint64_t size, void* data = nullptr);
 	void DeAllocateBuffer(VkBufferHandle& handle);
-	void DeAllocateImage(VkImage& image);
+	void DeAllocateImage(VkImageHandle& handle);
 	void ScheduleTransfers(CommandBuffer* cmdBuffer);
 	void Clear();
 	void PrintStats();

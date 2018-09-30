@@ -1,6 +1,7 @@
 #include "ScriptEngine.h"
 #include "scriptstdstring/scriptstdstring.h"
 #include "scriptbuilder/scriptbuilder.h"
+
 #include "scripthelper/scripthelper.h"
 #include "scriptmatrix.h"
 #include <angelscript-integration/angelscript-integration.h>
@@ -60,6 +61,7 @@ void ScriptEngine::Init() {
 	m_Engine = AngelScript::asCreateScriptEngine();
 	m_Engine->SetMessageCallback(asFUNCTION(MessageCallback), nullptr, AngelScript::asCALL_CDECL);
 	RegisterStdString(m_Engine);
+	RegisterScriptArray(m_Engine, true);
 	m_Engine->RegisterGlobalFunction("void print(const string &in)", AngelScript::asFUNCTION(Print), AngelScript::asCALL_CDECL);
 	AngelScriptIntegration::init_glm(m_Engine, AngelScriptIntegration::GlmFlags::NO_SWIZZLE);
 	//glm integration has no matrix type

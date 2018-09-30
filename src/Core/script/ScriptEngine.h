@@ -2,6 +2,7 @@
 #include <angelscript.h>
 #include <string>
 #include <vector>
+#include "scriptarray/scriptarray.h"
 #define g_ScriptEngine ScriptEngine::GetInstance()
 namespace smug {
 class ScriptEngine {

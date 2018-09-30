@@ -18,14 +18,14 @@ class ShadowMapProgram : public RenderProgram {
 	glm::vec4 GetShadowSplits() {
 		return m_ShadowSplits;
 	}
-	FrameBuffer& GetFrameBuffer() {
+	FrameBufferManager& GetFrameBuffer() {
 		return m_FrameBuffer;
 	}
 
 	void Recompile() { m_State.ReloadPipelineFromFile(*m_Device, "shader/shadowmap.json", m_FrameBuffer.GetRenderPass()); }
   private:
 	PipelineState m_State;
-	FrameBuffer m_FrameBuffer;
+	FrameBufferManager m_FrameBuffer;
 	VkBufferHandle m_UniformBuffer;
 	vk::DescriptorSet m_DescSet;
 	glm::mat4 m_LightViewProjs[4];

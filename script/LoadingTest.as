@@ -7,6 +7,8 @@ uint planeEntity;
 
 void Load(){
 	print("Loading from script is possible!!\n");
+	array<string> rts = {"HDR", "DepthStencil", "GBuffer0_AlbedoMatIndex", "GBuffer1_Normal_AO"};
+	BindRenderTargets(rts);
 	koopaModel = LoadModel("assets/models/KoopaTroopa/Koopa.obj");
 	LoadModel("assets/models/sphere/sphere.obj");
 

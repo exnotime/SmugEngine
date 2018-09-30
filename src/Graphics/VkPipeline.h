@@ -20,13 +20,16 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <unordered_map>
 #include <vulkan/vulkan.hpp>
 
+
 namespace smug {
+struct PipelineStateInfo;
 
 class PipelineState {
   public:
 	PipelineState();
 	~PipelineState();
 	void LoadPipelineFromFile(const vk::Device& device, const std::string& filename, vk::RenderPass rp);
+	void LoadPipelineFromInfo(const vk::Device& device, const PipelineStateInfo& psInfo);
 	void ReloadPipelineFromFile(const vk::Device& device, const std::string& filename, vk::RenderPass rp);
 	void SetDefaultVertexState(const vk::PipelineVertexInputStateCreateInfo& vertexState);
 	void SetDefaultMulitSampleState(const vk::PipelineMultisampleStateCreateInfo& msState);

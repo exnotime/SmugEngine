@@ -4,7 +4,7 @@
 #include <json.hpp>
 #include "VkShader.h"
 #include "PipelineCommon.h"
-
+#include <AssetLoader/AssetLoader.h>
 using nlohmann::json;
 using namespace smug;
 
@@ -441,6 +441,126 @@ void PipelineState::LoadPipelineFromFile(const vk::Device& device, const std::st
 	if (multisampleStateInfo) delete multisampleStateInfo;
 	if (tesselationstate) delete tesselationstate;
 }
+
+vk::ShaderStageFlagBits ShaderKindToVkStage(SHADER_KIND k) {
+	switch (k)
+	{
+	case smug::VERTEX:
+		return vk::ShaderStageFlagBits::eVertex;
+		break;
+	case smug::FRAGMENT:
+		return vk::ShaderStageFlagBits::eFragment;
+		break;
+	case smug::GEOMETRY:
+		return vk::ShaderStageFlagBits::eGeometry;
+		break;
+	case smug::EVALUATION:
+		return vk::ShaderStageFlagBits::eTessellationEvaluation;
+		break;
+	case smug::CONTROL:
+		return vk::ShaderStageFlagBits::eTessellationControl;
+		break;
+	case smug::COMPUTE:
+		return vk::ShaderStageFlagBits::eCompute;
+		break;
+	}
+	return vk::ShaderStageFlagBits::eCompute;
+
+}
+
+void PipelineState::LoadPipelineFromInfo(const vk::Device& device, const PipelineStateInfo& psInfo) {
+	vk::GraphicsPipelineCreateInfo pipelineCreateInfo;
+
+	vk::PipelineLayoutCreateInfo layoutCreateInfo;
+	std::vector<vk::DescriptorSetLayout> setLayouts;
+	std::unordered_map<uint32_t, std::vector<vk::DescriptorSetLayoutBinding>> bindings;
+
+	for (uint32_t i = 0; i < psInfo.DescriptorCount; ++i) {
+		Descriptor& desc = psInfo.Descriptors[i];
+		vk::DescriptorSetLayoutBinding bind;
+		bind.binding = desc.Bindpoint;
+		bind.descriptorCount = desc.Count;
+		bind.descriptorType = (vk::DescriptorType)desc.Type;
+		bind.stageFlags = vk::ShaderStageFlagBits::eAll;
+		bool found = false;
+		for (auto& desc : bindings[desc.Set]) {
+			if (desc == bind) {
+				found = true;
+				break;
+			}
+		}
+		if(!found)
+			bindings[desc.Set].push_back(bind);
+	}
+	for (uint32_t i = 0; i < bindings.size(); ++i) {
+		vk::DescriptorSetLayoutCreateInfo info;
+		info.bindingCount = bindings[i].size();
+		info.pBindings = bindings[i].data();
+		setLayouts.push_back(device.createDescriptorSetLayout(info));
+	}
+	layoutCreateInfo.pSetLayouts = setLayouts.data();
+	layoutCreateInfo.setLayoutCount = setLayouts.size();
+	layoutCreateInfo.pushConstantRangeCount = 1;
+	vk::PushConstantRange pc;
+	pc.offset = psInfo.PushConstants.Offset;
+	pc.size = psInfo.PushConstants.Size;
+	pc.stageFlags = vk::ShaderStageFlagBits::eAll;
+	layoutCreateInfo.pPushConstantRanges = &pc;
+	m_PipelineLayout = device.createPipelineLayout(layoutCreateInfo);
+
+	std::vector<vk::PipelineShaderStageCreateInfo> shaderStages;
+	for (uint32_t i = 0; i < psInfo.Shader.ShaderCount; ++i) {
+		vk::ShaderModuleCreateInfo moduleInfo;
+		moduleInfo.codeSize = psInfo.Shader.Shaders[i].ByteCodeSize;
+		moduleInfo.pCode = (uint32_t*)psInfo.Shader.Shaders[i].ByteCode;
+		vk::PipelineShaderStageCreateInfo shaderInfo;
+		shaderInfo.module = device.createShaderModule(moduleInfo);
+		shaderInfo.stage = ShaderKindToVkStage(psInfo.Shader.Shaders[i].Kind);
+		shaderInfo.pName = "shader";
+		shaderStages.push_back(shaderInfo);
+	}
+	
+
+	pipelineCreateInfo.layout = m_PipelineLayout;
+	pipelineCreateInfo.pStages = shaderStages.data();
+	pipelineCreateInfo.stageCount = shaderStages.size();
+	pipelineCreateInfo.subpass = 0;
+	pipelineCreateInfo.basePipelineHandle = nullptr;
+	pipelineCreateInfo.basePipelineIndex = 0;
+	
+	std::vector<vk::DynamicState> dynamicStates;
+	dynamicStates.push_back(vk::DynamicState::eViewport);
+	dynamicStates.push_back(vk::DynamicState::eScissor);
+	dynamicStates.push_back(vk::DynamicState::eBlendConstants);
+	vk::PipelineDynamicStateCreateInfo dynamicStateCreateInfo;
+	dynamicStateCreateInfo.dynamicStateCount = (uint32_t)dynamicStates.size();
+	dynamicStateCreateInfo.pDynamicStates = dynamicStates.data();
+
+	vk::PipelineInputAssemblyStateCreateInfo inputAssemblyInfo;
+	inputAssemblyInfo.topology = vk::PrimitiveTopology::eTriangleList;
+	inputAssemblyInfo.primitiveRestartEnable = false;
+
+	auto blendState = GetDefaultColorBlendState();
+	auto blendattachmentState = GetDefaultColorBlendAttachmentState();
+	auto dsState = GetDefaultDepthStencilstate();
+	auto rasterState = GetDefaultRasterState();
+	auto msState = GetDefaultMultiSampleState();
+	pipelineCreateInfo.pColorBlendState = &blendState;
+	pipelineCreateInfo.renderPass = nullptr;
+	pipelineCreateInfo.pMultisampleState = &msState;
+	pipelineCreateInfo.pDepthStencilState = &dsState;
+	pipelineCreateInfo.pDynamicState = &dynamicStateCreateInfo;
+	pipelineCreateInfo.pViewportState = nullptr;
+	pipelineCreateInfo.pInputAssemblyState = &inputAssemblyInfo;
+	pipelineCreateInfo.pRasterizationState = &rasterState;
+	pipelineCreateInfo.pVertexInputState = &m_DefaultVertexState;
+	pipelineCreateInfo.pTessellationState = nullptr;
+
+	m_Pipeline = device.createGraphicsPipeline(nullptr,pipelineCreateInfo);
+
+
+}
+
 
 void PipelineState::ReloadPipelineFromFile(const vk::Device& device, const std::string& filename, vk::RenderPass rp) {
 	m_DescSetLayouts.clear();

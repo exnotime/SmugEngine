@@ -5,11 +5,15 @@
 #include <Utility/Hash.h>
 #include <Utility/Memory.h>
 #include <spirv_cross/spirv_cross.hpp>
+#include <vulkan/vulkan.h>
 
 using namespace smug;
 ShaderLoader::ShaderLoader() {}
 ShaderLoader::~ShaderLoader() {}
 
+#define USE_SHADERC
+
+#ifdef USE_SHADERC
 ShaderByteCode* CompileShader(const std::string& file, SHADER_KIND kind, const std::string& entryPoint, SHADER_LANGUAGE lang, bool debug) {
 	//load shader file
 	struct stat fileBuf;
@@ -118,6 +122,59 @@ ShaderByteCode* CompileShader(const std::string& file, SHADER_KIND kind, const s
 
 	return bc;
 }
+#endif
+#ifdef USE_GLSLANGVALIDATOR
+ShaderByteCode* CompileShader(const std::string& file, SHADER_KIND kind, const std::string& entryPoint, SHADER_LANGUAGE lang, bool debug){
+	//use the program glslangvalidator
+	std::string command;
+	command += "%VULKAN_SDK%/Bin/glslangValidator.exe -V ";
+	switch (kind) {
+	case smug::VERTEX:
+		command += "-S vert -DVERTEX";
+		break;
+	case smug::FRAGMENT:
+		command += "-S frag -DFRAGMENT";
+		break;
+	case smug::GEOMETRY:
+		command += "-S geom -DGEOMETRY";
+		break;
+	case smug::EVALUATION:
+		command += "-S tese -DEVALUATION";
+		break;
+	case smug::CONTROL:
+		command += "-S tesc -DCONTROL";
+		break;
+	case smug::COMPUTE:
+		command += "-S comp -DCOMPUTE";
+		break;
+	}
+	command += " -e " + entryPoint;
+	if (debug)
+		command += " -g ";
+	command += " -I./shader";
+	command += " -o ./temp.spv";
+	command += " ./" + file;
+
+	system(command.c_str());
+	FILE* fin = fopen("./temp.spv", "rb");
+	if (fin) {
+		fseek(fin, 0, SEEK_END);
+		size_t size = ftell(fin);
+		rewind(fin);
+		ShaderByteCode* bc = new ShaderByteCode();
+		bc->Kind = kind;
+		bc->SrcLanguage = lang;
+		bc->Type = SPIRV;
+		bc->ByteCode = malloc(size);
+		bc->ByteCodeSize = size;
+		fread(bc->ByteCode, sizeof(uint8_t), size, fin);
+		fclose(fin);
+		return bc;
+	}
+	fclose(fin);
+	return nullptr;
+}
+#endif
 
 char* ShaderLoader::LoadShaders(const std::string& filename, ShaderInfo& info) {
 	using namespace nlohmann;
@@ -144,7 +201,7 @@ char* ShaderLoader::LoadShaders(const std::string& filename, ShaderInfo& info) {
 		for (int i = 0; i < COMPUTE + 1; ++i) {
 			if (shaders.find(shader_types[i]) != shaders.end()) {
 				json shader = shaders[shader_types[i]];
-				std::string entry;
+				std::string entry = "main";
 				SHADER_LANGUAGE lang = GLSL;
 
 				if (shader.find("EntryPoint") != shader.end())
@@ -180,34 +237,107 @@ char* ShaderLoader::LoadShaders(const std::string& filename, ShaderInfo& info) {
 }
 
 char* ReflectShaders(ShaderInfo& info, PipelineStateInfo& psInfoOut){
-
+	std::vector<Descriptor> descs;
+	std::vector<uint32_t> renderTargets;
 	for (uint32_t i = 0; i < info.ShaderCount; ++i) {
 		ShaderByteCode& shader = info.Shaders[i];
-		spirv_cross::Compiler compiler((const uint32_t*)shader.ByteCode, (size_t)shader.ByteCodeSize);
-		spirv_cross::ShaderResources resources = compiler.get_shader_resources();
-		std::vector<Descriptor> descs;
+		//since the fuckers who wrote spirv-cross cant write a destructor that does not crash i am just gonna leak this shit until it gets fixed.
+		spirv_cross::Compiler* compiler = new spirv_cross::Compiler((const uint32_t*)shader.ByteCode, (size_t)shader.ByteCodeSize / sizeof(uint32_t));
+		spirv_cross::ShaderResources resources = compiler->get_shader_resources();
+		Descriptor d;
+		d.Stage = shader.Kind;
 		for (auto& res : resources.sampled_images) {
-			Descriptor d;
-			d.Set = compiler.get_decoration(res.id, spv::DecorationDescriptorSet);
-			d.Slot = compiler.get_decoration(res.id, spv::DecorationBinding);
-			d.Resource = HashString((compiler.get_name(res.id)));
+			d.Set = compiler->get_decoration(res.id, spv::DecorationDescriptorSet);
+			d.Bindpoint = compiler->get_decoration(res.id, spv::DecorationBinding);
+			d.Count = compiler->get_type(res.type_id).array.size() > 0 ? compiler->get_type(res.type_id).array[0] : 1;
+			d.Resource = HashString((compiler->get_name(res.id)));
+			d.Type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			descs.push_back(d);
+		}
+		for (auto& res : resources.separate_images) {
+			d.Set = compiler->get_decoration(res.id, spv::DecorationDescriptorSet);
+			d.Bindpoint = compiler->get_decoration(res.id, spv::DecorationBinding);
+			d.Count = compiler->get_type(res.type_id).array.size() > 0 ? compiler->get_type(res.type_id).array[0] : 1;
+			d.Resource = HashString((compiler->get_name(res.id)));
+			d.Type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+			descs.push_back(d);
+		}
+		for (auto& res : resources.separate_samplers) {
+			d.Set = compiler->get_decoration(res.id, spv::DecorationDescriptorSet);
+			d.Bindpoint = compiler->get_decoration(res.id, spv::DecorationBinding);
+			d.Count = compiler->get_type(res.type_id).array.size() > 0 ? compiler->get_type(res.type_id).array[0] : 1;
+			d.Resource = HashString((compiler->get_name(res.id)));
+			d.Type = VK_DESCRIPTOR_TYPE_SAMPLER;
+			descs.push_back(d);
+		}
+		for (auto& res : resources.uniform_buffers) {
+			d.Set = compiler->get_decoration(res.id, spv::DecorationDescriptorSet);
+			d.Bindpoint = compiler->get_decoration(res.id, spv::DecorationBinding);
+			d.Count = compiler->get_type(res.type_id).array.size() > 0 ? compiler->get_type(res.type_id).array[0] : 1;
+			d.Resource = HashString((compiler->get_name(res.id)));
+			d.Type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			descs.push_back(d);
+		}
+		for (auto& res : resources.storage_buffers) {
+			d.Set = compiler->get_decoration(res.id, spv::DecorationDescriptorSet);
+			d.Bindpoint = compiler->get_decoration(res.id, spv::DecorationBinding);
+			d.Count = compiler->get_type(res.type_id).array.size() > 0 ? compiler->get_type(res.type_id).array[0] : 1;
+			d.Resource = HashString((compiler->get_name(res.id)));
+			d.Type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+			descs.push_back(d);
+		}
+		for (auto& res : resources.storage_images) {
+			d.Set = compiler->get_decoration(res.id, spv::DecorationDescriptorSet);
+			d.Bindpoint = compiler->get_decoration(res.id, spv::DecorationBinding);
+			d.Count = compiler->get_type(res.type_id).array.size() > 0 ? compiler->get_type(res.type_id).array[0] : 1;
+			d.Resource = HashString((compiler->get_name(res.id)));
+			d.Type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+			descs.push_back(d);
+		}
+		for (auto& res : resources.push_constant_buffers) {
+			psInfoOut.PushConstants.Size = 0;
+			psInfoOut.PushConstants.Offset = UINT32_MAX;
+			auto ranges = compiler->get_active_buffer_ranges(res.id);
+			for (auto& r : ranges) {
+				psInfoOut.PushConstants.Size += r.range;
+				psInfoOut.PushConstants.Offset = glm::min(psInfoOut.PushConstants.Offset, (uint32_t)r.offset);
+			}
+		}
+		//fragment shader outputs through framebuffers
+		if (shader.Kind == SHADER_KIND::FRAGMENT) {
+			for (auto& res : resources.stage_outputs) {
+				renderTargets.push_back(HashString((compiler->get_name(res.id))));
+			}
 		}
 	}
-	
+	if (!renderTargets.empty()) {
+		psInfoOut.RenderTargets = (uint32_t*)malloc(sizeof(uint32_t) * renderTargets.size());
+		memcpy(psInfoOut.RenderTargets, renderTargets.data(), sizeof(uint32_t) * renderTargets.size());
+		psInfoOut.RenderTargetCount = renderTargets.size();
+	}
+	if (!descs.empty()) {
+		psInfoOut.Descriptors = (Descriptor*)malloc(sizeof(Descriptor) * descs.size());
+		memcpy(psInfoOut.Descriptors, descs.data(), sizeof(Descriptor) * descs.size());
+		psInfoOut.DescriptorCount = descs.size();
+	}
+	psInfoOut.Shader = info;
+
+	return nullptr;
 }
 
 LoadResult ShaderLoader::LoadAsset(const char* filename) {
 	ShaderInfo* info = (ShaderInfo*)malloc(sizeof(ShaderInfo));
 	char* error = LoadShaders(filename, *info);
+	PipelineStateInfo* psInfo = (PipelineStateInfo*)malloc(sizeof(PipelineStateInfo));
 	if (!error) {
-
+		error = ReflectShaders(*info, *psInfo);
 	}
 	LoadResult res;
 	if (error) {
 		res.Error = error;
 	} else {
 		res.Hash = HashString(filename);
-		res.Data = info;
+		res.Data = psInfo;
 		res.Type = RT_SHADER;
 	}
 	return res;
@@ -224,9 +354,11 @@ void ShaderLoader::UnloadAsset(void* asset) {
 }
 
 void ShaderLoader::SerializeAsset(FileBuffer* buffer, LoadResult* asset)  {
-	//serialize shader
-	ShaderInfo& si = *(ShaderInfo*)asset->Data;
-	uint32_t offset = sizeof(uint32_t) + sizeof(ShaderByteCode) * si.ShaderCount;
+	PipelineStateInfo& pi = *(PipelineStateInfo*)asset->Data;
+	ShaderInfo& si = pi.Shader;
+	//ps state = psInfo + shaders + descriptors + rendertargets
+	//serialize shaders
+	uint32_t offset = sizeof(PipelineStateInfo) + sizeof(uint32_t) + sizeof(ShaderByteCode) * si.ShaderCount;
 	std::vector<ShaderByteCode> byteCodes;
 	for (uint32_t i = 0; i < si.ShaderCount; ++i) {
 		ShaderByteCode bc = si.Shaders[i];
@@ -236,7 +368,12 @@ void ShaderLoader::SerializeAsset(FileBuffer* buffer, LoadResult* asset)  {
 		offset += si.Shaders[i].DependencyCount * sizeof(uint32_t);
 		byteCodes.push_back(bc);
 	}
+	PipelineStateInfo psInfo = pi;
+	psInfo.Descriptors = (Descriptor*)offset;
+	offset += sizeof(Descriptor) * pi.DescriptorCount;
+	psInfo.RenderTargets = (uint32_t*)offset;
 
+	buffer->Write(sizeof(PipelineStateInfo), &psInfo, asset->Hash);
 	buffer->Write(sizeof(uint32_t), (void*)&si.ShaderCount, asset->Hash);
 	buffer->Write(sizeof(ShaderByteCode) * byteCodes.size(), (void*)byteCodes.data(), asset->Hash);
 
@@ -244,26 +381,39 @@ void ShaderLoader::SerializeAsset(FileBuffer* buffer, LoadResult* asset)  {
 		buffer->Write(si.Shaders[i].ByteCodeSize, (void*)si.Shaders[i].ByteCode, asset->Hash);
 		buffer->Write(sizeof(uint32_t) * si.Shaders[i].DependencyCount, (void*)si.Shaders[i].DependenciesHashes, asset->Hash);
 	}
+	//serialize descriptors
+	buffer->Write(sizeof(Descriptor) * pi.DescriptorCount, pi.Descriptors, asset->Hash);
+	//serialize render targets
+	buffer->Write(sizeof(uint32_t) * pi.RenderTargetCount, pi.RenderTargets, asset->Hash);
+
 }
 
 DeSerializedResult ShaderLoader::DeSerializeAsset(void* assetBuffer) {
-	ShaderInfo* source = (ShaderInfo*)assetBuffer;
-	ShaderInfo* dest = new ShaderInfo();
+	PipelineStateInfo* source = (PipelineStateInfo*)assetBuffer;
+	PipelineStateInfo* dest = new PipelineStateInfo();
+	ShaderInfo& sourceShader = source->Shader;
+	//deserialize shaders
+	ShaderByteCode* destByteCode = (ShaderByteCode*)malloc(sizeof(ShaderByteCode) * sourceShader.ShaderCount);
+	uint32_t offset = sizeof(PipelineStateInfo) + sizeof(uint32_t);
+	ShaderByteCode* sourceByteCode = (ShaderByteCode*)PointerAdd(assetBuffer, offset);
 
-	ShaderByteCode* destByteCode = (ShaderByteCode*)malloc(sizeof(ShaderByteCode) * source->ShaderCount);
-	ShaderByteCode* sourceByteCode = (ShaderByteCode*)PointerAdd(assetBuffer, sizeof(uint32_t));
+	memcpy(destByteCode, sourceByteCode, sizeof(ShaderByteCode) * sourceShader.ShaderCount);
 
-	memcpy(destByteCode, sourceByteCode, sizeof(ShaderByteCode) * source->ShaderCount);
-
-	for (uint32_t i = 0; i < source->ShaderCount; ++i) {
+	for (uint32_t i = 0; i < sourceShader.ShaderCount; ++i) {
 		destByteCode[i].ByteCode = malloc(sourceByteCode[i].ByteCodeSize);
 		memcpy(destByteCode[i].ByteCode, PointerAdd(assetBuffer, (uint32_t)sourceByteCode[i].ByteCode), sourceByteCode[i].ByteCodeSize);
 
 		destByteCode[i].DependenciesHashes = (uint32_t*)malloc(sourceByteCode[i].DependencyCount * sizeof(uint32_t));
 		memcpy(destByteCode[i].DependenciesHashes, PointerAdd(assetBuffer,(uint32_t)sourceByteCode[i].DependenciesHashes), sourceByteCode[i].DependencyCount * sizeof(uint32_t));
 	}
-	dest->ShaderCount = source->ShaderCount;
-	dest->Shaders = destByteCode;
+	dest->Shader.ShaderCount = sourceShader.ShaderCount;
+	dest->Shader.Shaders = destByteCode;
+	//deserialize descriptors
+	dest->Descriptors = (Descriptor*)malloc(sizeof(Descriptor) * source->DescriptorCount);
+	memcpy(dest->Descriptors, PointerAdd(assetBuffer, (uint32_t)source->Descriptors), sizeof(Descriptor) * source->DescriptorCount);
+	//deserialize render targets
+	dest->RenderTargets = (uint32_t*)malloc(sizeof(uint32_t) * source->RenderTargetCount);
+	memcpy(dest->RenderTargets, PointerAdd(assetBuffer, (uint32_t)source->RenderTargets), sizeof(uint32_t) * source->RenderTargetCount);
 
 	DeSerializedResult res;
 	res.Data = dest;

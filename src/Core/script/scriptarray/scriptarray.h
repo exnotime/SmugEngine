@@ -69,6 +69,8 @@ class CScriptArray {
 
 	// Compare two arrays
 	bool operator==(const CScriptArray &) const;
+	//returns object at i
+	void* operator[](int i) { return this->At(i); }
 
 	// Array manipulation
 	void InsertAt(asUINT index, void *value);

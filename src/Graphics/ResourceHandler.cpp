@@ -22,6 +22,10 @@ void AllocateAssetCallback(const void* data, void* userData, const std::string& 
 		ModelInfo* info = (ModelInfo*)data;
 		((ResourceHandler*)userData)->AllocateModel(*info, CreateHandle(HashString(filename), type));
 	}
+	if (type == RESOURCE_TYPE::RT_SHADER) {
+		PipelineStateInfo* info = (PipelineStateInfo*)data;
+		((ResourceHandler*)userData)->AllocateShader(*info, CreateHandle(HashString(filename), type));
+	}
 }
 
 void DeAllocateAssetCallback(ResourceHandle handle, void* userData) {
@@ -214,6 +218,12 @@ void ResourceHandler::AllocateTexture(const TextureInfo& tex, ResourceHandle han
 	VkTexture texture;
 	texture.Init(tex, m_DeviceAllocator, *m_Device);
 	m_Textures[handle] = texture;
+}
+
+void ResourceHandler::AllocateShader(const PipelineStateInfo& psInfo, ResourceHandle handle) {
+	PipelineState ps;
+	ps.LoadPipelineFromInfo(*m_Device, psInfo);
+	m_PipelineStates[handle] = ps;
 }
 
 void ResourceHandler::ReAllocateModel(const ModelInfo& model, ResourceHandle handle) {

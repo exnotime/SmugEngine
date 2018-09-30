@@ -47,14 +47,14 @@ void VkTexture::Init(const std::string& filename, DeviceAllocator* allocator, co
 		return;
 	}
 
-	allocator->AllocateImage(&imageInfo, &m_Image, dataSize, data);
+	m_Image = allocator->AllocateImage(&imageInfo, dataSize, data);
 	//create view
 	VkImageViewCreateInfo viewInfo = {};
 	viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 	viewInfo.pNext = nullptr;
 	viewInfo.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
 	viewInfo.format = imageInfo.format;
-	viewInfo.image = m_Image;
+	viewInfo.image = m_Image.image;
 	viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 	viewInfo.subresourceRange.baseArrayLayer = 0;
 	viewInfo.subresourceRange.baseMipLevel = 0;
@@ -105,14 +105,14 @@ void VkTexture::Init(const TextureInfo& texInfo, DeviceAllocator* allocator, con
 	imageInfo.mipLevels = texInfo.MipCount;
 
 	//allocate memory
-	allocator->AllocateImage(&imageInfo, &m_Image, texInfo.LinearSize, texInfo.Data);
+	m_Image = allocator->AllocateImage(&imageInfo, texInfo.LinearSize, texInfo.Data);
 	//create view
 	VkImageViewCreateInfo viewInfo = {};
 	viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 	viewInfo.pNext = nullptr;
 	viewInfo.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
 	viewInfo.format = imageInfo.format;
-	viewInfo.image = m_Image;
+	viewInfo.image = m_Image.image;
 	viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 	viewInfo.subresourceRange.baseArrayLayer = 0;
 	viewInfo.subresourceRange.baseMipLevel = 0;

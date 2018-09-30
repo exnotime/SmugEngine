@@ -2,7 +2,7 @@ solution "SmugAssetCompiler"
     configurations { "Debug", "Release" }
         flags{ "NoPCH" }
         local vulkan_dir = os.getenv("VULKAN_SDK");
-        libdirs { "lib", vulkan_dir .. "/bin", vulkan_dir .. "/lib", "lib/physx" }
+        libdirs { "lib", vulkan_dir .. "/bin", vulkan_dir .. "/lib", "lib/physx", "lib/spirv_cross" }
         includedirs { "include", vulkan_dir .. "/include"}
         platforms{"x64" }
 
@@ -41,23 +41,23 @@ solution "SmugAssetCompiler"
         configuration { "Release" }
                 links { "angelscript64", "as_integration", "shaderc_combined" }
 
-    project "SmugAssetLoader"
-    	targetname "AssetLoader"
-    	defines { "ASSET_EXPORT"}
-    	debugdir ""
-    	location (location_path)
-    	language("C++")
-    	files { "src/Assetloader/**"}
-    	includedirs { "include", "src" }
+    project "AssetLoader"
+        targetname "AssetLoader"
+        defines { "ASSET_EXPORT"}
+        debugdir ""
+        location (location_path)
+        language("C++")
+        files { "src/Assetloader/**"}
+        includedirs { "include", "src" }
         kind "SharedLib"
         links { "assimp", "Utility" }
         configuration { "Debug" }
-                links { "angelscript64d", "as_integrationD", "shaderc_combinedD" }
+                links { "angelscript64d", "as_integrationD", "shaderc_combinedD", "spirv-cross-coreD", "spirv-cross-glslD"  }
         configuration { "Release" }
-                links { "angelscript64", "as_integration", "shaderc_combined" }
+                links { "angelscript64", "as_integration", "shaderc_combined", "spirv-cross-core", "spirv-cross-glsl" }
     	
 
-    project "SmugUtility"
+    project "Utility"
         targetname "Utility"
         defines {}
         debugdir ""
