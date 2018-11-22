@@ -64,8 +64,11 @@ static vk::ImageAspectFlags LayoutToAspectMask(vk::ImageLayout layout) {
 	        layout == vk::ImageLayout::eGeneral || layout == vk::ImageLayout::ePresentSrcKHR || layout == vk::ImageLayout::eTransferDstOptimal ||
 	        layout == vk::ImageLayout::eTransferSrcOptimal) {
 		return vk::ImageAspectFlagBits::eColor;
-	} else if (layout == vk::ImageLayout::eDepthStencilAttachmentOptimal || layout == vk::ImageLayout::eDepthStencilReadOnlyOptimal) {
+	}
+	else if (layout == vk::ImageLayout::eDepthStencilAttachmentOptimal) {
 		return vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil;
+	}else if (layout == vk::ImageLayout::eDepthStencilReadOnlyOptimal){
+		return vk::ImageAspectFlagBits::eDepth;
 	} else {
 		return vk::ImageAspectFlagBits::eMetadata;
 	}
@@ -83,7 +86,7 @@ class CommandBuffer : public vk::CommandBuffer {
 	}
 
 	~CommandBuffer() {
-
+		int i = 0;
 	}
 
 	void Begin(const vk::Framebuffer& frameBuffer, const vk::RenderPass& renderPass) {
@@ -133,7 +136,9 @@ class VulkanCommandBufferFactory {
 
 	}
 	~VulkanCommandBufferFactory() {
-
+		for (auto cb : m_CommandBuffers) {
+			delete cb;
+		}
 	}
 
 	void Init(vk::Device device, int queueFamilyIndex, uint32_t bufferCount) {
@@ -150,7 +155,7 @@ class VulkanCommandBufferFactory {
 
 		auto& buffers = device.allocateCommandBuffers(bufferInfo);
 		for (uint32_t i = 0; i < buffers.size(); ++i) {
-			m_CommandBuffers.push_back(CommandBuffer(buffers[i]));
+			m_CommandBuffers.push_back(new CommandBuffer(buffers[i]));
 		}
 		m_ResetBuffers.insert(m_ResetBuffers.begin(), m_CommandBuffers.begin(), m_CommandBuffers.end());
 	}
@@ -158,28 +163,28 @@ class VulkanCommandBufferFactory {
 	void Reset(vk::Device device, int frameIndex) {
 		while (!m_UsedBuffers.empty()) {
 			auto& buffer = m_UsedBuffers.front();
-			buffer.Reset();
+			buffer->Reset();
 			m_UsedBuffers.pop_front();
 			m_ResetBuffers.push_back(buffer);
 		}
 		device.resetCommandPool(m_CmdPools[frameIndex], vk::CommandPoolResetFlagBits::eReleaseResources);
 	}
 
-	CommandBuffer& GetNextBuffer() {
-		CommandBuffer& buffer = m_ResetBuffers.front();
+	CommandBuffer* GetNextBuffer() {
+		CommandBuffer* buffer = m_ResetBuffers.front();
 		m_ResetBuffers.pop_front();
 		return buffer;
 	}
 
-	void EndBuffer(CommandBuffer& buffer) {
-		buffer.end();
+	void EndBuffer(CommandBuffer* buffer) {
+		buffer->end();
 		m_UsedBuffers.push_back(buffer);
 	}
 
   private:
-	std::vector<CommandBuffer> m_CommandBuffers;
-	std::deque<CommandBuffer> m_ResetBuffers;
-	std::deque<CommandBuffer> m_UsedBuffers;
+	std::vector<CommandBuffer*> m_CommandBuffers;
+	std::deque<CommandBuffer*> m_ResetBuffers;
+	std::deque<CommandBuffer*> m_UsedBuffers;
 	vk::CommandPool m_CmdPools[BUFFER_COUNT];
 };
 

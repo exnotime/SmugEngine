@@ -3,6 +3,5 @@ solution/
 data/
 lib/
 AS_DEBUG/
-imgui.ini
+./imgui.ini
 shader/cache/
-

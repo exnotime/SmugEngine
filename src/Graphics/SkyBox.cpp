@@ -69,7 +69,7 @@ void SkyBox::Init(const vk::Device& device, const vk::PhysicalDevice& physDev, c
 	device.updateDescriptorSets(writeDescs, nullptr);
 }
 
-void SkyBox::PrepareUniformBuffer(CommandBuffer cmdBuffer, DeviceAllocator& allocator, const glm::mat4& viewProj, const glm::mat4& world) {
+void SkyBox::PrepareUniformBuffer(CommandBuffer* cmdBuffer, DeviceAllocator& allocator, const glm::mat4& viewProj, const glm::mat4& world) {
 	struct perFrameBuffer {
 		glm::mat4 vp;
 		glm::mat4 w;
@@ -77,14 +77,20 @@ void SkyBox::PrepareUniformBuffer(CommandBuffer cmdBuffer, DeviceAllocator& allo
 	pfb.vp = viewProj;
 	pfb.w = world;
 	allocator.UpdateBuffer(m_UBO, sizeof(perFrameBuffer), &pfb);
-	allocator.ScheduleTransfers(&cmdBuffer);
+	allocator.ScheduleTransfers(cmdBuffer);
 }
 
-void SkyBox::Render(CommandBuffer cmdBuffer) {
-	cmdBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipeline());
+void SkyBox::Render(CommandBuffer* cmdBuffer) {
+	cmdBuffer->bindPipeline(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipeline());
 	vk::DeviceSize offset = 0;
 	vk::Buffer buf(m_VBO.buffer);//vulkan.hpp!!! why?!
-	cmdBuffer.bindVertexBuffers(0, 1, &buf, &offset);
-	cmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipelineLayout(), 0, 1, &m_DescSet, 0, nullptr);
-	cmdBuffer.draw(36, 1, 0, 0);
+	cmdBuffer->bindVertexBuffers(0, 1, &buf, &offset);
+	cmdBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipelineLayout(), 0, 1, &m_DescSet, 0, nullptr);
+	cmdBuffer->draw(36, 1, 0, 0);
+}
+
+void SkyBox::DeInit(DeviceAllocator& allocator) {
+	allocator.DeAllocateBuffer(m_UBO);
+	allocator.DeAllocateBuffer(m_VBO);
+	allocator.DeAllocateImage(m_Texture.GetImageHandle());
 }

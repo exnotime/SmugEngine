@@ -9,7 +9,6 @@ ResourceHandler::ResourceHandler() {
 
 }
 ResourceHandler::~ResourceHandler() {
-	Clear();
 }
 
 void AllocateAssetCallback(const void* data, void* userData, const std::string& filename, const RESOURCE_TYPE type) {
@@ -49,7 +48,7 @@ void ReAllocateAssetCallback(const void* data, void* userData, ResourceHandle ha
 	}
 }
 
-void ResourceHandler::Init(vk::Device* device, const vk::PhysicalDevice& physDev, MemoryBudget budget, DeviceAllocator& deviceAlloc) {
+void ResourceHandler::Init(vk::Device* device, const vk::PhysicalDevice& physDev, MemoryBudget budget, DeviceAllocator& deviceAlloc, FrameBufferManager& fbManager) {
 	m_DeviceAllocator = &deviceAlloc;
 
 	m_ResourceAllocator.AllocResource = &AllocateAssetCallback;
@@ -112,11 +111,20 @@ void ResourceHandler::Init(vk::Device* device, const vk::PhysicalDevice& physDev
 	m_DefaultMetal.Init(texInfo, m_DeviceAllocator, *device);
 	free(texInfo.Data);
 
+	m_FrameBufferManager = &fbManager;
 	m_Device = device;
 }
 
 const Model& ResourceHandler::GetModel(ResourceHandle handle) const {
 	return m_Models.find(handle)->second;
+}
+
+const PipelineState& ResourceHandler::GetPipelineState(ResourceHandle handle) const {
+	return m_PipelineStates.find(handle)->second;
+}
+
+const VkBufferHandle& ResourceHandler::GetBuffer(ResourceHandle handle) const {
+	return m_Buffers.find(handle)->second;
 }
 
 void ResourceHandler::AllocateModel(const ModelInfo& model, ResourceHandle handle) {
@@ -222,8 +230,22 @@ void ResourceHandler::AllocateTexture(const TextureInfo& tex, ResourceHandle han
 
 void ResourceHandler::AllocateShader(const PipelineStateInfo& psInfo, ResourceHandle handle) {
 	PipelineState ps;
-	ps.LoadPipelineFromInfo(*m_Device, psInfo);
+	//create renderpass if needed
+	vk::RenderPass rp = nullptr;
+	if (psInfo.RenderTargetCount > 0) {
+		SubPass sp;
+		for (uint32_t i = 0; i < psInfo.RenderTargetCount; ++i) {
+			sp.RenderTargets.push_back(psInfo.RenderTargets[i]);
+		}
+		sp.DepthStencilAttachment = psInfo.DepthStencil;
+		rp = m_FrameBufferManager->CreateRenderPass(0xDEAD1331,{ sp });
+	}
+	ps.LoadPipelineFromInfo(*m_Device, psInfo, rp);
 	m_PipelineStates[handle] = ps;
+}
+
+void ResourceHandler::AllocateBuffer(uint64_t size, int usage, ResourceHandle handle) {
+	m_Buffers[handle] = m_DeviceAllocator->AllocateBuffer(usage, size, nullptr);
 }
 
 void ResourceHandler::ReAllocateModel(const ModelInfo& model, ResourceHandle handle) {
@@ -231,6 +253,9 @@ void ResourceHandler::ReAllocateModel(const ModelInfo& model, ResourceHandle han
 	AllocateModel(model, handle);
 }
 
+void ResourceHandler::UpdateBuffer(ResourceHandle buffer, size_t size, void* data) {
+	m_DeviceAllocator->UpdateBuffer(m_Buffers[buffer], size, data);
+}
 
 void ResourceHandler::DeAllocateModel(ResourceHandle handle) {
 	auto& model = m_Models.find(handle);
@@ -250,12 +275,25 @@ void ResourceHandler::DeAllocateModel(ResourceHandle handle) {
 				}
 			}
 		}
+		delete[] m.Meshes;
 	}
 	m_Models.erase(handle);
 }
 
 void ResourceHandler::DeAllocateTexture(ResourceHandle handle) {
-	
+	auto& tex = m_Textures.find(handle);
+	if (tex != m_Textures.end()){
+		m_DeviceAllocator->DeAllocateImage(tex->second.GetImageHandle());
+		m_Textures.erase(handle);
+	}
+}
+
+void ResourceHandler::DeAllocateBuffer(ResourceHandle handle) {
+	auto& buffer = m_Buffers.find(handle);
+	if (buffer != m_Buffers.end()) {
+		m_DeviceAllocator->DeAllocateBuffer(m_Buffers[handle]);
+		m_Buffers.erase(handle);
+	}
 }
 
 void ResourceHandler::ScheduleTransfer(CommandBuffer& cmdBuffer) {
@@ -263,7 +301,19 @@ void ResourceHandler::ScheduleTransfer(CommandBuffer& cmdBuffer) {
 }
 
 void ResourceHandler::Clear() {
+	for (auto& texture : m_Textures) {
+		m_DeviceAllocator->DeAllocateImage(texture.second.GetImageHandle());
+	}
+
 	for (auto& m : m_Models) {
+		m_DeviceAllocator->DeAllocateBuffer(m.second.IndexBuffer);
+		for (int i = 0; i < 4; ++i) {
+			m_DeviceAllocator->DeAllocateBuffer(m.second.VertexBuffers[i]);
+		}
 		SAFE_DELETE(m.second.Meshes);
 	}
+	m_DeviceAllocator->DeAllocateImage(m_DefaultAlbedo.GetImageHandle());
+	m_DeviceAllocator->DeAllocateImage(m_DefaultMetal.GetImageHandle());
+	m_DeviceAllocator->DeAllocateImage(m_DefaultNormal.GetImageHandle());
+	m_DeviceAllocator->DeAllocateImage(m_DefaultRoughness.GetImageHandle());
 }

@@ -91,7 +91,7 @@ void SSRender::Update(const double deltaTime) {
 		}
 	}
 	ImGui::Begin("Timing");
-	float t = m_Timer.Reset() * 1000.0f;
+	double t = m_Timer.Reset() * 1000.0;
 	ImGui::Text("SSRender: %f ms", t);
 	ImGui::End();
 }

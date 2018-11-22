@@ -77,6 +77,10 @@ void ToneMapProgram::Init(vk::Device& device, const glm::vec2& screenSize, Frame
 	device.updateDescriptorSets(BUFFER_COUNT + 2, writeSet, 0, nullptr);
 }
 
+void ToneMapProgram::DeInit(DeviceAllocator& allocator) {
+	allocator.DeAllocateBuffer(m_Buffer);
+}
+
 void ToneMapProgram::Update(DeviceAllocator& allocator) {
 	static ToneMapUniformData data = {1.0f, 1.0f / 1.6f};
 

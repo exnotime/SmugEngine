@@ -8,10 +8,14 @@ DeviceAllocator::DeviceAllocator() {
 DeviceAllocator::~DeviceAllocator() {
 	vmaDestroyAllocator(m_Allocator);
 }
+
 void DeviceAllocator::Init(vk::Device& device, vk::PhysicalDevice& physicalDevice) {
 	VmaAllocatorCreateInfo allocatorCrateInfo = {};
 	allocatorCrateInfo.device = device;
 	allocatorCrateInfo.physicalDevice = physicalDevice;
+	//VmaRecordSettings recordSettings;
+	//recordSettings.pFilePath = "./vmadata.csv";
+	//allocatorCrateInfo.pRecordSettings = &recordSettings;
 	vmaCreateAllocator(&allocatorCrateInfo, &m_Allocator);
 
 	m_Device = &device;
@@ -29,6 +33,7 @@ VkImageHandle DeviceAllocator::AllocateImage(VkImageCreateInfo* createInfo, uint
 		printf("Error allocating memory for image\n");
 		return handle;
 	}
+	m_ImageCounter++;
 	if (data) {
 		//create intermediate texture to copy from
 		VmaAllocationInfo info;
@@ -51,7 +56,7 @@ VkImageHandle DeviceAllocator::AllocateImage(VkImageCreateInfo* createInfo, uint
 			printf("Error allocating memory for intermediate image\n");
 			return handle;
 		}
-		
+		m_BufferCounter++;
 
 		void* ptr = nullptr;
 		vmaMapMemory(m_Allocator, memMap, &ptr);
@@ -92,8 +97,9 @@ VkImageHandle DeviceAllocator::AllocateImage(VkImageCreateInfo* createInfo, uint
 		transfer.finalLayout = finalLayout;
 		transfer.memory = memMap;
 		m_ImageCopies.push_back(transfer);
+		m_BufferSet.insert(intImage);
 	}
-
+	m_ImageSet.insert(handle.image);
 	return handle;
 }
 
@@ -115,13 +121,13 @@ VkBufferHandle DeviceAllocator::AllocateBuffer(const VkBufferUsageFlags usage, u
 		printf("Error allocating memory for buffer\n");
 		return ret;
 	}
+	m_BufferCounter++;
 	if (data) {
 		VmaAllocationInfo info;
 		BufferTransfer transfer;
 		memReqs.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
 		memReqs.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
 		createInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-		VkMappedMemoryRange memoryRange;
 		vkres = vmaCreateBuffer(m_Allocator, &createInfo, &memReqs, &transfer.src, &transfer.memory, &info);
 		if (vkres != VK_SUCCESS) {
 			printf("Error allocating memory for intermediate buffer\n");
@@ -143,7 +149,10 @@ VkBufferHandle DeviceAllocator::AllocateBuffer(const VkBufferUsageFlags usage, u
 		transfer.copy.srcOffset = 0;
 		transfer.copy.size = size;
 		m_BufferCopies.push_back(transfer);
+		m_BufferCounter++;
+		m_BufferSet.insert(transfer.src);
 	}
+	m_BufferSet.insert(ret.buffer);
 	return ret;
 }
 
@@ -182,15 +191,21 @@ void DeviceAllocator::UpdateBuffer(VkBufferHandle& handle, uint64_t size, void* 
 		transfer.copy.srcOffset = 0;
 		transfer.copy.size = size;
 		m_BufferCopies.push_back(transfer);
+		m_BufferCounter++;
+		m_BufferSet.insert(transfer.src);
 	}
 }
 
 void DeviceAllocator::DeAllocateBuffer(VkBufferHandle& handle) {
 	vmaDestroyBuffer(m_Allocator, handle.buffer, handle.memory);
+	m_BufferCounter--;
+	m_BufferSet.erase(handle.buffer);
 }
 
 void DeviceAllocator::DeAllocateImage(VkImageHandle& handle) {
 	vmaDestroyImage(m_Allocator, handle.image, handle.memory);
+	m_ImageCounter--;
+	m_ImageSet.erase(handle.image);
 }
 
 void DeviceAllocator::ScheduleTransfers(CommandBuffer* cmdBuffer) {
@@ -222,9 +237,13 @@ void DeviceAllocator::ScheduleTransfers(CommandBuffer* cmdBuffer) {
 void DeviceAllocator::Clear() {
 	for (auto& buffer : m_BufferCopies) {
 		vmaDestroyBuffer(m_Allocator, buffer.src, buffer.memory);
+		m_BufferSet.erase(buffer.src);
+		m_BufferCounter--;
 	}
 	for (auto& buffer : m_ImageCopies) {
 		vmaDestroyBuffer(m_Allocator, buffer.src, buffer.memory);
+		m_BufferSet.erase(buffer.src);
+		m_BufferCounter--;
 	}
 	m_BufferCopies.clear();
 	m_ImageCopies.clear();

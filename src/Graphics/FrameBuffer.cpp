@@ -1,5 +1,5 @@
 #include "FrameBuffer.h"
-
+#include <Utility/Hash.h>
 using namespace smug;
 
 FrameBufferManager::FrameBufferManager() {
@@ -8,6 +8,10 @@ FrameBufferManager::FrameBufferManager() {
 
 FrameBufferManager::~FrameBufferManager() {
 
+	for (auto&  rt : m_RenderTargets) {
+		vmaDestroyImage(m_DeviceAllocator, rt.second.Handle, rt.second.Memory);
+	}
+	vmaDestroyAllocator(m_DeviceAllocator);
 }
 
 bool IsDepthStencil(vk::Format f) {
@@ -29,7 +33,7 @@ void FrameBufferManager::Init(const vk::Device& device, const vk::PhysicalDevice
 	m_FrameBufferSize = size;
 	m_FormatCount = (uint32_t)formats.size();
 	//init image and views
-	for (int i = 0; i < bufferCount; i++) {
+	for (uint32_t i = 0; i < bufferCount; i++) {
 		for (uint32_t f = 0; f < m_FormatCount; ++f) {
 			vk::ImageCreateInfo imageInfo;
 			imageInfo.arrayLayers = 1;
@@ -50,7 +54,7 @@ void FrameBufferManager::Init(const vk::Device& device, const vk::PhysicalDevice
 	//init memory
 	uint64_t memSize = 0;
 	uint32_t memBits = 0;
-	uint32_t imageCount = m_Images.size();
+	uint32_t imageCount = (uint32_t)m_Images.size();
 	for (uint32_t i = 0; i < imageCount; ++i) {
 		auto memReq = device.getImageMemoryRequirements(m_Images[i]);
 		memBits |= memReq.memoryTypeBits;
@@ -72,7 +76,7 @@ void FrameBufferManager::Init(const vk::Device& device, const vk::PhysicalDevice
 
 	uint32_t image = 0;
 	uint64_t memOffset = 0;
-	for (int i = 0; i < bufferCount; i++) {
+	for (uint32_t i = 0; i < bufferCount; i++) {
 		for (uint32_t f = 0; f < m_FormatCount; ++f) {
 			auto memReq = device.getImageMemoryRequirements(m_Images[image]);
 			memOffset = (memOffset + (memReq.alignment - 1)) & ~(memReq.alignment - 1); //handle alignment
@@ -144,17 +148,17 @@ void FrameBufferManager::Init(const vk::Device& device, const vk::PhysicalDevice
 	//init framebuffer
 	vk::FramebufferCreateInfo framebufferInfo;
 	framebufferInfo.attachmentCount = (uint32_t)formats.size();
-	framebufferInfo.height = size.y;
-	framebufferInfo.width = size.x;
+	framebufferInfo.height = (uint32_t)size.y;
+	framebufferInfo.width = (uint32_t)size.x;
 	framebufferInfo.layers = 1;
 	framebufferInfo.renderPass = m_RenderPass;
-	for (int i = 0; i < bufferCount; i++) {
+	for (uint32_t i = 0; i < bufferCount; i++) {
 		framebufferInfo.pAttachments = &m_ImageViews[i * framebufferInfo.attachmentCount];
 		m_FrameBuffers[i] = device.createFramebuffer(framebufferInfo);
 	}
 
 	//Init descriptors
-	for (int i = 0; i < m_FormatCount; ++i) {
+	for (uint32_t i = 0; i < m_FormatCount; ++i) {
 		vk::DescriptorImageInfo imageDescInfo = {};
 		if (usages[i] & vk::ImageUsageFlagBits::eSampled) {
 			imageDescInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
@@ -207,7 +211,7 @@ void FrameBufferManager::Resize(const glm::vec2& size) {
 	//TODO
 }
 
-///Push barrier needs to be called forthis to make an effect
+///Push barrier needs to be called for this to make an effect
 void FrameBufferManager::ChangeLayout(CommandBuffer& cmdBuffer, const std::vector<vk::ImageLayout>& newLayouts, uint32_t frameIndex) {
 
 	uint32_t imageCount = (uint32_t)m_Formats.size();
@@ -215,9 +219,6 @@ void FrameBufferManager::ChangeLayout(CommandBuffer& cmdBuffer, const std::vecto
 	assert(frameIndex < m_BufferCount);
 
 	for (uint32_t i = 0; i < imageCount; ++i) {
-		//if (m_CurrentLayouts[frameIndex * imageCount + i] == newLayouts[i]) {
-		//	continue;
-		//}
 		cmdBuffer.ImageBarrier(m_Images[frameIndex * imageCount + i], m_CurrentLayouts[frameIndex * imageCount + i], newLayouts[i]);
 		m_CurrentLayouts[frameIndex * imageCount + i] = newLayouts[i];
 	}
@@ -245,7 +246,7 @@ void FrameBufferManager::AllocRenderTarget(uint32_t name, uint32_t width, uint32
 	imageInfo.arrayLayers = 1;
 	imageInfo.format = format;
 	imageInfo.imageType = vk::ImageType::e2D;
-	imageInfo.initialLayout = initialLayout;
+	imageInfo.initialLayout = vk::ImageLayout::eUndefined;
 	imageInfo.mipLevels = 1;
 	imageInfo.samples = vk::SampleCountFlagBits::e1;
 	imageInfo.sharingMode = vk::SharingMode::eExclusive;
@@ -263,23 +264,23 @@ void FrameBufferManager::AllocRenderTarget(uint32_t name, uint32_t width, uint32
 	}
 	rt.Handle = m_Device.createImage(imageInfo);
 
-	VmaAllocationCreateInfo allocInfo;
-	allocInfo.flags = VmaAllocationCreateFlagBits::VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
+	VmaAllocationCreateInfo allocInfo = {};
 	allocInfo.preferredFlags = VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-	allocInfo.usage = VmaMemoryUsage::VMA_MEMORY_USAGE_GPU_ONLY; //For now no readbacks on rendertargets
+	allocInfo.usage = VmaMemoryUsage::VMA_MEMORY_USAGE_GPU_ONLY;
 	VmaAllocationInfo info;
 	if (vmaAllocateMemoryForImage(m_DeviceAllocator, rt.Handle, &allocInfo, &rt.Memory, &info)) {
 		printf("Error! Could not allocate memory for render target %u\n", name);
 		return;
 	}
+	vmaBindImageMemory(m_DeviceAllocator, rt.Memory, rt.Handle);
+
 	vk::ImageViewCreateInfo viewInfo;
 	viewInfo.components = { vk::ComponentSwizzle::eR, vk::ComponentSwizzle::eG, vk::ComponentSwizzle::eB, vk::ComponentSwizzle::eA };
 	viewInfo.format = format;
 	viewInfo.image = rt.Handle;
 	if (IsDepthStencil(format)) {
 		viewInfo.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eDepth;
-	}
-	else {
+	} else {
 		viewInfo.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
 	}
 	viewInfo.subresourceRange.baseArrayLayer = 0;
@@ -293,7 +294,12 @@ void FrameBufferManager::AllocRenderTarget(uint32_t name, uint32_t width, uint32
 	m_RenderTargets[name] = rt;
 }
 
-void FrameBufferManager::CreateRenderPass(uint32_t name, std::vector<SubPass> subPasses) {
+vk::RenderPass FrameBufferManager::CreateRenderPass(uint32_t name, std::vector<SubPass> subPasses) {
+	//create hash and see if we already have a renderpass that matches
+	std::vector<uint32_t> subpassHashes;
+	uint32_t rpHash;
+	MurmurHash3_x86_32(subpassHashes.data(), sizeof(uint32_t) * subpassHashes.size(),0xBEEFC0DE, (void*)&rpHash);
+
 	std::vector<vk::AttachmentDescription> attachments;
 	std::unordered_map<uint32_t, uint32_t> nameToIndex;
 	std::vector<std::vector<vk::AttachmentReference>> attachmentRefs;
@@ -311,7 +317,7 @@ void FrameBufferManager::CreateRenderPass(uint32_t name, std::vector<SubPass> su
 				a.stencilLoadOp = vk::AttachmentLoadOp::eDontCare;
 				a.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
 				a.format = m_RenderTargets[rt].Format;
-				nameToIndex[rt] = attachments.size();
+				nameToIndex[rt] = (uint32_t)attachments.size();
 				attachments.push_back(a);
 			}
 		}
@@ -324,7 +330,7 @@ void FrameBufferManager::CreateRenderPass(uint32_t name, std::vector<SubPass> su
 			a.stencilLoadOp = vk::AttachmentLoadOp::eDontCare;
 			a.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
 			a.format = m_RenderTargets[sp.DepthStencilAttachment].Format;
-			nameToIndex[sp.DepthStencilAttachment] = attachments.size();
+			nameToIndex[sp.DepthStencilAttachment] = (uint32_t)attachments.size();
 			attachments.push_back(a);
 		}
 	}
@@ -341,7 +347,7 @@ void FrameBufferManager::CreateRenderPass(uint32_t name, std::vector<SubPass> su
 			ref.layout = vk::ImageLayout::eUndefined;
 			attachmentRefs[subPassIndex].push_back(ref);
 		}
-		spDesc.colorAttachmentCount = sp.RenderTargets.size();
+		spDesc.colorAttachmentCount = (uint32_t)sp.RenderTargets.size();
 		spDesc.pDepthStencilAttachment = attachmentRefs[subPassIndex].data();
 		if (sp.DepthStencilAttachment != UINT_MAX) {
 			vk::AttachmentReference ref;
@@ -354,15 +360,14 @@ void FrameBufferManager::CreateRenderPass(uint32_t name, std::vector<SubPass> su
 	}
 
 	vk::RenderPassCreateInfo renderPassInfo;
-	renderPassInfo.attachmentCount = attachments.size();
+	renderPassInfo.attachmentCount = (uint32_t)attachments.size();
 	renderPassInfo.dependencyCount = 0;
 	renderPassInfo.pAttachments = attachments.data();
 	renderPassInfo.pDependencies = nullptr;
 	renderPassInfo.pSubpasses = subPassesDescs.data();
-	renderPassInfo.subpassCount = subPassesDescs.size();
+	renderPassInfo.subpassCount = (uint32_t)subPassesDescs.size();
 
 	m_RenderPasses[name] = m_Device.createRenderPass(renderPassInfo);
-
 
 	uint32_t w = 0, h = 0, d = 0;
 	std::vector<vk::ImageView> fbViews;
@@ -380,7 +385,7 @@ void FrameBufferManager::CreateRenderPass(uint32_t name, std::vector<SubPass> su
 	}
 
 	vk::FramebufferCreateInfo fbInfo;
-	fbInfo.attachmentCount = fbViews.size();
+	fbInfo.attachmentCount = (uint32_t)fbViews.size();
 	fbInfo.pAttachments = fbViews.data();
 	fbInfo.width = w;
 	fbInfo.height = h;
@@ -388,4 +393,5 @@ void FrameBufferManager::CreateRenderPass(uint32_t name, std::vector<SubPass> su
 	fbInfo.renderPass = m_RenderPasses[name];
 	m_FrameBuffersT[name] = m_Device.createFramebuffer(fbInfo);
 
+	return m_RenderPasses[name];
 }

@@ -1,6 +1,6 @@
 #include "ShaderLoader.h"
 #include <json.hpp>
-#include <shader_ccompiler/shaderc.h>
+#include <shaderc/shaderc.h>
 #include <fstream>
 #include <Utility/Hash.h>
 #include <Utility/Memory.h>
@@ -11,7 +11,7 @@ using namespace smug;
 ShaderLoader::ShaderLoader() {}
 ShaderLoader::~ShaderLoader() {}
 
-#define USE_SHADERC
+#define USE_GLSLANGVALIDATOR
 
 #ifdef USE_SHADERC
 ShaderByteCode* CompileShader(const std::string& file, SHADER_KIND kind, const std::string& entryPoint, SHADER_LANGUAGE lang, bool debug) {
@@ -239,6 +239,11 @@ char* ShaderLoader::LoadShaders(const std::string& filename, ShaderInfo& info) {
 char* ReflectShaders(ShaderInfo& info, PipelineStateInfo& psInfoOut){
 	std::vector<Descriptor> descs;
 	std::vector<uint32_t> renderTargets;
+	psInfoOut.DescriptorCount = 0;
+	psInfoOut.RenderTargetCount = 0;
+	psInfoOut.PushConstants.Offset = 0;
+	psInfoOut.PushConstants.Size = 0;
+
 	for (uint32_t i = 0; i < info.ShaderCount; ++i) {
 		ShaderByteCode& shader = info.Shaders[i];
 		//since the fuckers who wrote spirv-cross cant write a destructor that does not crash i am just gonna leak this shit until it gets fixed.
@@ -313,12 +318,12 @@ char* ReflectShaders(ShaderInfo& info, PipelineStateInfo& psInfoOut){
 	if (!renderTargets.empty()) {
 		psInfoOut.RenderTargets = (uint32_t*)malloc(sizeof(uint32_t) * renderTargets.size());
 		memcpy(psInfoOut.RenderTargets, renderTargets.data(), sizeof(uint32_t) * renderTargets.size());
-		psInfoOut.RenderTargetCount = renderTargets.size();
+		psInfoOut.RenderTargetCount = (uint32_t)renderTargets.size();
 	}
 	if (!descs.empty()) {
 		psInfoOut.Descriptors = (Descriptor*)malloc(sizeof(Descriptor) * descs.size());
 		memcpy(psInfoOut.Descriptors, descs.data(), sizeof(Descriptor) * descs.size());
-		psInfoOut.DescriptorCount = descs.size();
+		psInfoOut.DescriptorCount = (uint32_t)descs.size();
 	}
 	psInfoOut.Shader = info;
 

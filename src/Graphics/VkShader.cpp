@@ -24,9 +24,9 @@ const char* StageString(SHADER_KIND stage) {
 	else
 		return "";
 }
+#define USE_GLSLANG_VALIDATOR
 
-
-
+#ifdef USE_SHADERC
 vk::ShaderModule smug::LoadShader(const vk::Device& device, const std::string& filename, SHADER_KIND stage, const std::string& entryPoint, SHADER_LANGUAGE language) {
 	//read file ending and figure out shader type
 	size_t lastDot = filename.find_last_of('.');
@@ -159,7 +159,7 @@ vk::ShaderModule smug::LoadShader(const vk::Device& device, const std::string& f
 	vk::ShaderModule module = device.createShaderModule(shaderInfo);
 	//TEST:
 	DescriptorSetLayout layout;
-	layout.InitFromSpirV(shaderInfo.pCode, shaderInfo.codeSize);
+	layout.InitFromSpirV(shaderInfo.pCode, (uint32_t)shaderInfo.codeSize);
 	//save to cache
 	FILE* fout = fopen(cacheName.c_str(), "wb");
 	if (fout) {
@@ -172,3 +172,84 @@ vk::ShaderModule smug::LoadShader(const vk::Device& device, const std::string& f
 	shaderc_compiler_release(compiler);
 	return module;
 }
+#endif
+
+#ifdef USE_GLSLANG_VALIDATOR
+vk::ShaderModule smug::LoadShader(const vk::Device& device, const std::string& file, SHADER_KIND kind, const std::string& entryPoint, SHADER_LANGUAGE lang) {
+	//use the program glslangvalidator
+	std::string command;
+	command += "%VULKAN_SDK%/Bin/glslangValidator.exe -V ";
+	switch (kind) {
+	case smug::VERTEX:
+		command += "-S vert -DVERTEX";
+		break;
+	case smug::FRAGMENT:
+		command += "-S frag -DFRAGMENT";
+		break;
+	case smug::GEOMETRY:
+		command += "-S geom -DGEOMETRY";
+		break;
+	case smug::EVALUATION:
+		command += "-S tese -DEVALUATION";
+		break;
+	case smug::CONTROL:
+		command += "-S tesc -DCONTROL";
+		break;
+	case smug::COMPUTE:
+		command += "-S comp -DCOMPUTE";
+		break;
+	case smug::MESH:
+		command += "-S mesh -DMESH";
+		break;
+	case smug::TASK:
+		command += "-S task -DTASK";
+		break;
+	case smug::RAY_GEN:
+		command += "-S rgen -DRAY_GEN";
+		break;
+	case smug::RAY_ANY_HIT:
+		command += "-S rahit -DRAY_ANY_HIT";
+		break;
+	case smug::RAY_CLOSEST_HIT:
+		command += "-S rchit -DRAY_CLOSEST_HIT";
+		break;
+	case smug::RAY_MISS:
+		command += "-S rmiss -DRAY_MISS";
+		break;
+	case smug::RAY_INTERSECTION:
+		command += "-S rint -DRAY_INTERSECTION";
+		break;
+	case smug::RAY_CALLABLE:
+		command += "-S rcall -DRAY_CALLABLE";
+		break;
+	}
+	command += " -e " + entryPoint;
+
+
+	command += " -I./shader";
+	command += " -o ./temp.spv";
+	command += " ./" + file;
+
+	system(command.c_str());
+	vk::ShaderModule module = nullptr;
+	FILE* fin = fopen("./temp.spv", "rb");
+	if (fin) {
+		fseek(fin, 0, SEEK_END);
+		size_t size = ftell(fin);
+		rewind(fin);
+		uint8_t* buffer = (uint8_t*)malloc(size);
+		fread(buffer, sizeof(uint8_t), size, fin);
+		fclose(fin);
+
+		vk::ShaderModuleCreateInfo shaderInfo;
+		shaderInfo.codeSize = size;
+		shaderInfo.pCode = reinterpret_cast<const uint32_t*>(buffer);
+		module = device.createShaderModule(shaderInfo);
+		free(buffer);
+	}
+	fclose(fin);
+	system("rm ./temp.spv");
+	
+	return module;
+}
+#endif

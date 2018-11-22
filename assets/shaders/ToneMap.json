@@ -1,0 +1,6 @@
+{
+    "Shaders":
+    {
+        "Compute":{"Source":"assets/shaders/ToneMap.comp", "EntryPoint":"main", "Language":"GLSL"}
+    }
+}

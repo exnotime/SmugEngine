@@ -19,7 +19,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <string>
 #include <unordered_map>
 #include <vulkan/vulkan.hpp>
-
+#include <AssetLoader/Resources.h>
 
 namespace smug {
 struct PipelineStateInfo;
@@ -29,27 +29,28 @@ class PipelineState {
 	PipelineState();
 	~PipelineState();
 	void LoadPipelineFromFile(const vk::Device& device, const std::string& filename, vk::RenderPass rp);
-	void LoadPipelineFromInfo(const vk::Device& device, const PipelineStateInfo& psInfo);
+	void LoadPipelineFromInfo(const vk::Device& device, const PipelineStateInfo& psInfo, vk::RenderPass rp);
 	void ReloadPipelineFromFile(const vk::Device& device, const std::string& filename, vk::RenderPass rp);
 	void SetDefaultVertexState(const vk::PipelineVertexInputStateCreateInfo& vertexState);
 	void SetDefaultMulitSampleState(const vk::PipelineMultisampleStateCreateInfo& msState);
 
 	std::vector<vk::DescriptorSetLayout>& GetDescriptorSetLayouts();
-	vk::Pipeline GetPipeline();
-	vk::PipelineLayout GetPipelineLayout();
+	vk::Pipeline GetPipeline() const;
+	vk::PipelineLayout GetPipelineLayout() const;
 
   private:
 	std::vector<vk::ShaderModule> m_Shaders;
 	int m_ShaderBits;
 
 	vk::Pipeline m_Pipeline;
+	std::vector<Descriptor> m_Descriptors;
 	std::vector<vk::DescriptorSetLayout> m_DescSetLayouts;
 	vk::PipelineLayout m_PipelineLayout;
 
 	vk::PipelineVertexInputStateCreateInfo m_DefaultVertexState;
 	bool m_DefaultVertexStateSet;
 
-	vk::PipelineMultisampleStateCreateInfo m_DefaultMultiSampleState;;
+	vk::PipelineMultisampleStateCreateInfo m_DefaultMultiSampleState;
 	bool m_DefaultMultiSampleStateSet;
 
   public:

@@ -14,8 +14,8 @@ namespace smug {
 		int octaves = 6;
 		float lacunarity = 2.0f;
 		float gain = 0.5;
-		float offset = 1.0f;
-		float scale = 0.5;
+		glm::vec3 scale = glm::vec3(0.1f);
+		glm::vec3 offset = glm::vec3(0);
 		uint8_t threshold = 128;
 	};
 
@@ -42,6 +42,8 @@ namespace smug {
 		ResourceHandle m_VoxelModelHandle;
 		uint8_t* m_Voxels;
 		uint32_t m_VoxelEntityUID;
+		uint32_t m_WorldEntityUID;
+		ProcVars m_ProcVars;
 	};
 }
 

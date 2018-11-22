@@ -1,6 +1,0 @@
-forfiles.exe /p "." /m *.vert /C "cmd.exe /C compiletospv.bat @file"
-forfiles.exe /p "." /m *.frag /C "cmd.exe /C compiletospv.bat @file"
-forfiles.exe /p "." /m *.geom /C "cmd.exe /C compiletospv.bat @file"
-forfiles.exe /p "." /m *.tesc /C "cmd.exe /C compiletospv.bat @file"
-forfiles.exe /p "." /m *.tese /C "cmd.exe /C compiletospv.bat @file"
-forfiles.exe /p "." /m *.comp /C "cmd.exe /C compiletospv.bat @file"

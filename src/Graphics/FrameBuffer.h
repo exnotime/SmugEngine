@@ -2,6 +2,7 @@
 #include <vulkan/vulkan.hpp>
 #include <glm/glm.hpp>
 #include <unordered_map>
+#include <unordered_set>
 #include "VulkanContext.h"
 #include "vk_mem_alloc.h"
 #include "GraphicsExport.h" 
@@ -35,7 +36,7 @@ class GFX_DLL FrameBufferManager {
 	void SetLayouts(const std::vector<vk::ImageLayout>& newLayouts, uint32_t frameIndex);
 
 	void AllocRenderTarget(uint32_t name, uint32_t width, uint32_t height, uint32_t depth, vk::Format format, vk::ImageLayout initialLayout);
-	void CreateRenderPass(uint32_t name, std::vector<SubPass> subPasses);
+	vk::RenderPass CreateRenderPass(uint32_t name, std::vector<SubPass> subPasses);
 
 	//Getters
 	std::vector<vk::Image>& GetImages() {

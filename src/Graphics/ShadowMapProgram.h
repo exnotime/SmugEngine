@@ -10,6 +10,7 @@ class ShadowMapProgram : public RenderProgram {
 	ShadowMapProgram();
 	~ShadowMapProgram();
 	virtual void Init(VulkanContext& vc, DeviceAllocator& allocator);
+	void DeInit(DeviceAllocator& allocator);
 	void Update(DeviceAllocator& allocator, RenderQueue& rq);
 	void Render(uint32_t frameIndex, CommandBuffer& cmdBuffer, const RenderQueue& rq, const ResourceHandler& resources);
 	glm::mat4 GetShadowMatrix(int i) {

@@ -22,8 +22,8 @@ void WriteScopeToFile(std::ofstream& fout, Scope& scope) {
 		//write out function header
 		fout << VariableTypeNames[scope.ReturnVariable.Type];
 		fout << " " << scope.Name << "(";
-		uint32_t inputVarCount = scope.InputVariables.size();
-		for (int i = 0; i < inputVarCount; ++i) {
+		uint32_t inputVarCount = (uint32_t)scope.InputVariables.size();
+		for (uint32_t i = 0; i < inputVarCount; ++i) {
 			fout << VariableTypeNames[scope.InputVariables[i].Type] << " " << scope.InputVariables[i].Name;
 			if (i != inputVarCount - 1) {
 				fout << ", ";
@@ -33,8 +33,8 @@ void WriteScopeToFile(std::ofstream& fout, Scope& scope) {
 	}
 
 	//write out local variables
-	uint32_t localVarCount = scope.LocalVariables.size();
-	for (int i = 0; i < localVarCount; ++i) {
+	uint32_t localVarCount = (uint32_t)scope.LocalVariables.size();
+	for (uint32_t i = 0; i < localVarCount; ++i) {
 		auto& var = scope.LocalVariables[i];
 		fout << VariableTypeNames[var.Type] << " " << var.Name;
 		if (var.Array) {
@@ -45,7 +45,7 @@ void WriteScopeToFile(std::ofstream& fout, Scope& scope) {
 			if (var.Array) {
 				fout << "[" << std::endl;
 			}
-			for (int k = 0; k < var.ArrayCount; ++k) {
+			for (uint32_t k = 0; k < var.ArrayCount; ++k) {
 				switch (var.Type) {
 				case VAR_INT:
 					fout << ((int*)(var.Data))[k];
@@ -91,7 +91,7 @@ void ScriptWriter::WriteToFile(const char* file) {
 	std::ofstream fout;
 	fout.open(file, std::ofstream::out | std::ofstream::binary);
 	if (fout.is_open()) {
-		uint32_t scopeCount = m_Scopes.size();
+		uint32_t scopeCount = (uint32_t)m_Scopes.size();
 		for (uint32_t i = 0; i < scopeCount; ++i) {
 			WriteScopeToFile(fout, m_Scopes[i]);
 		}
@@ -174,7 +174,7 @@ void ScriptWriter::CloseFunction() {
 }
 
 void* ScriptWriter::AllocateVariable(uint32_t size) {
-	int oldSize = m_VariableData.size();
+	int oldSize = (uint32_t)m_VariableData.size();
 	void* end = (void*)(m_VariableData.data() + oldSize);
 	m_VariableData.resize(oldSize + size);
 	return end;

@@ -96,7 +96,7 @@ void RenderDepthStencilStateEditor(vk::PipelineDepthStencilStateCreateInfo& dept
 			currentIndex = i;
 		i++;
 	}
-	ImGui::Combo("Compare op", &currentIndex, compareOPslabels.data(), compareOPslabels.size());
+	ImGui::Combo("Compare op", &currentIndex, compareOPslabels.data(), (uint32_t)compareOPslabels.size());
 	depthInfo.depthCompareOp = ToCompareOp[compareOPslabels[currentIndex]];
 	ImGui::Checkbox("Enable depth write", (bool*)&depthInfo.depthWriteEnable);
 	ImGui::Checkbox("Enable depth bounds", (bool*)&depthInfo.depthBoundsTestEnable);
@@ -116,8 +116,8 @@ void RenderDepthStencilStateEditor(vk::PipelineDepthStencilStateCreateInfo& dept
 			backIndex = i;
 		i++;
 	}
-	ImGui::Combo("Front Stencil op", &frontIndex, stencilOpLabels.data(), stencilOpLabels.size());
-	ImGui::Combo("Back Stencil op", &backIndex, stencilOpLabels.data(), stencilOpLabels.size());
+	ImGui::Combo("Front Stencil op", &frontIndex, stencilOpLabels.data(), (uint32_t)stencilOpLabels.size());
+	ImGui::Combo("Back Stencil op", &backIndex, stencilOpLabels.data(), (uint32_t)stencilOpLabels.size());
 	depthInfo.front = ToStencilOp[stencilOpLabels[frontIndex]];
 	depthInfo.back = ToStencilOp[stencilOpLabels[backIndex]];
 }
@@ -133,7 +133,7 @@ void RenderRasterizerStateEditor(vk::PipelineRasterizationStateCreateInfo& raste
 			cullIndex = i;
 		i++;
 	}
-	ImGui::Combo("Cull mode", &cullIndex, cullModelabels.data(), cullModelabels.size());
+	ImGui::Combo("Cull mode", &cullIndex, cullModelabels.data(), (uint32_t)cullModelabels.size());
 	rasterInfo.cullMode = ToCullMode[cullModelabels[cullIndex]];
 	//front face
 	std::vector<const char*> frontFacelabels;
@@ -145,7 +145,7 @@ void RenderRasterizerStateEditor(vk::PipelineRasterizationStateCreateInfo& raste
 			frontFaceIndex = i;
 		i++;
 	}
-	ImGui::Combo("Front face", &frontFaceIndex, frontFacelabels.data(), frontFacelabels.size());
+	ImGui::Combo("Front face", &frontFaceIndex, frontFacelabels.data(), (uint32_t)frontFacelabels.size());
 	rasterInfo.frontFace = ToFrontFace[frontFacelabels[frontFaceIndex]];
 	//polygon mode
 	std::vector<const char*> polygonModeLabels;
@@ -157,7 +157,7 @@ void RenderRasterizerStateEditor(vk::PipelineRasterizationStateCreateInfo& raste
 			polygonIndex = i;
 		i++;
 	}
-	ImGui::Combo("Polygon mode", &polygonIndex, polygonModeLabels.data(), polygonModeLabels.size());
+	ImGui::Combo("Polygon mode", &polygonIndex, polygonModeLabels.data(), (uint32_t)polygonModeLabels.size());
 	rasterInfo.polygonMode = ToPolygonMode[polygonModeLabels[polygonIndex]];
 	ImGui::Checkbox("Enable discard", (bool*)&rasterInfo.rasterizerDiscardEnable);
 	ImGui::InputFloat("LineWidth", &rasterInfo.lineWidth);
@@ -168,7 +168,7 @@ void RenderRasterizerStateEditor(vk::PipelineRasterizationStateCreateInfo& raste
 }
 
 int RenderAttachmentStatesChooser(std::vector<vk::PipelineColorBlendAttachmentState>& states, int activeAttachment) {
-	uint32_t stateCount = states.size();
+	uint32_t stateCount = (uint32_t)states.size();
 	for (int i = 0; i < stateCount; i++) {
 		ImGui::Text("Attachment %d", i);
 		ImGui::SameLine();
@@ -222,18 +222,18 @@ void RenderAttachmentStateEditor(vk::PipelineColorBlendAttachmentState& attachme
 	}
 
 
-	ImGui::Combo("Alpha Blend Op", &alphaOpIndex, blendOplabels.data(), blendOplabels.size());
+	ImGui::Combo("Alpha Blend Op", &alphaOpIndex, blendOplabels.data(), (uint32_t)blendOplabels.size());
 	attachmentState.alphaBlendOp = ToBlendOp[blendOplabels[alphaOpIndex]];
-	ImGui::Combo("Src alpha blend factor ", &srcAlphaIndex, blendFactorLabels.data(), blendFactorLabels.size());
+	ImGui::Combo("Src alpha blend factor ", &srcAlphaIndex, blendFactorLabels.data(), (uint32_t)blendFactorLabels.size());
 	attachmentState.srcAlphaBlendFactor = ToBlendFactor[blendFactorLabels[srcAlphaIndex]];
-	ImGui::Combo("Dst alpha blend factor ", &dstAlphaIndex, blendFactorLabels.data(), blendFactorLabels.size());
+	ImGui::Combo("Dst alpha blend factor ", &dstAlphaIndex, blendFactorLabels.data(), (uint32_t)blendFactorLabels.size());
 	attachmentState.dstAlphaBlendFactor = ToBlendFactor[blendFactorLabels[dstAlphaIndex]];
 
-	ImGui::Combo("Color Blend Op", &colorOpIndex, blendOplabels.data(), blendOplabels.size());
+	ImGui::Combo("Color Blend Op", &colorOpIndex, blendOplabels.data(), (uint32_t)blendOplabels.size());
 	attachmentState.colorBlendOp = ToBlendOp[blendOplabels[colorOpIndex]];
-	ImGui::Combo("Src color blend factor ", &srcColorIndex, blendFactorLabels.data(), blendFactorLabels.size());
+	ImGui::Combo("Src color blend factor ", &srcColorIndex, blendFactorLabels.data(), (uint32_t)blendFactorLabels.size());
 	attachmentState.srcColorBlendFactor = ToBlendFactor[blendFactorLabels[srcColorIndex]];
-	ImGui::Combo("Dst color blend factor ", &dstColorIndex, blendFactorLabels.data(), blendFactorLabels.size());
+	ImGui::Combo("Dst color blend factor ", &dstColorIndex, blendFactorLabels.data(), (uint32_t)blendFactorLabels.size());
 	attachmentState.dstColorBlendFactor = ToBlendFactor[blendFactorLabels[dstColorIndex]];
 
 }

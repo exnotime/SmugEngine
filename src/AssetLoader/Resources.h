@@ -15,7 +15,8 @@ enum RESOURCE_TYPE : uint32_t {
 	RT_SHADER = 0x4,
 	RT_ANIMATION = 0x8,
 	RT_SKELETON = 0x10,
-	RT_SCRIPT = 0x20
+	RT_SCRIPT = 0x20,
+	RT_BUFFER = 0x40
 };
 
 typedef ASSET_DLL uint64_t ResourceHandle; //first 32 bits say type, second 32 bits say resource hash
@@ -72,7 +73,7 @@ struct ASSET_DLL ModelInfo {
 };
 
 enum ASSET_DLL SHADER_KIND {
-	VERTEX, FRAGMENT, GEOMETRY, EVALUATION, CONTROL, COMPUTE, PRECOMPILED
+	VERTEX, FRAGMENT, GEOMETRY, EVALUATION, CONTROL, COMPUTE, MESH, TASK, RAY_GEN, RAY_INTERSECTION, RAY_ANY_HIT, RAY_CLOSEST_HIT, RAY_MISS, RAY_CALLABLE,  PRECOMPILED
 };
 
 enum ASSET_DLL SHADER_BYTECODE_TYPE {
@@ -118,7 +119,7 @@ struct ASSET_DLL PipelineStateInfo {
 	uint32_t DescriptorCount;
 	uint32_t* RenderTargets;
 	uint32_t RenderTargetCount;
-	
+	uint32_t DepthStencil = UINT_MAX;
 };
 
 }

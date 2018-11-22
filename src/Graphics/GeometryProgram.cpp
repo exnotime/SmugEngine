@@ -24,7 +24,7 @@ void GeometryProgram::Render(CommandBuffer& cmdBuffer, const RenderQueue& rq, co
 	sets.push_back(GetDescriptorSet("PerFrame"));
 	sets.push_back(GetDescriptorSet("IBL"));
 	sets.push_back(rq.GetDescriptorSet());
-	cmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_PipelineState.GetPipelineLayout(), 0, sets.size(), sets.data(), 0, nullptr);
+	cmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_PipelineState.GetPipelineLayout(), 0, (uint32_t)sets.size(), sets.data(), 0, nullptr);
 
 	//auto& models = rq.GetModels();
 	//for (auto& m : models) {

@@ -134,7 +134,10 @@ ResourceHandle AssetLoader::LoadAsset(const char* filename) {
 ResourceHandle AssetLoader::LoadGeneratedModel(ModelInfo& modelInfo, const char* name) {
 	m_Allocator.AllocResource(&modelInfo, m_Allocator.UserData, name, RT_MODEL);
 	uint32_t hash = HashString(name);
-	return CreateHandle(hash, RT_MODEL);
+	 ResourceHandle h = CreateHandle(hash, RT_MODEL);
+	 m_ResourceCache[hash] = h;
+	 m_ResourceData[h] = nullptr;
+	return h;
 }
 
 void AssetLoader::UpdateModel(ResourceHandle handle, ModelInfo& modelInfo) {
@@ -155,8 +158,11 @@ void AssetLoader::UnloadAsset(ResourceHandle h) {
 		if (loader.loader->IsTypeSupported(type)) {
 			auto data = m_ResourceData.find(h);
 			if (data != m_ResourceData.end()) {
-				loader.loader->UnloadAsset(data->second);
+				if (data->second) {
+					loader.loader->UnloadAsset(data->second);
+				}
 			}
+			m_Allocator.DeAllocResource(h, m_Allocator.UserData);
 		}
 	}
 	m_ResourceData.erase(h);

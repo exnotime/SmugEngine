@@ -37,9 +37,9 @@ solution "SmugAssetCompiler"
 		includedirs { "include", "src" }
 		links { "AssetLoader", "Utility", "vulkan-1" }
         configuration { "Debug" }
-                links { "angelscript64d", "as_integrationD", "shaderc_combinedD" }
+                links { "angelscript64d", "as_integrationD" }
         configuration { "Release" }
-                links { "angelscript64", "as_integration", "shaderc_combined" }
+                links { "angelscript64", "as_integration" }
 
     project "AssetLoader"
         targetname "AssetLoader"
@@ -52,9 +52,9 @@ solution "SmugAssetCompiler"
         kind "SharedLib"
         links { "assimp", "Utility" }
         configuration { "Debug" }
-                links { "angelscript64d", "as_integrationD", "shaderc_combinedD", "spirv-cross-coreD", "spirv-cross-glslD"  }
+                links { "angelscript64d", "as_integrationD", "spirv-cross-coreD", "spirv-cross-glslD"  }
         configuration { "Release" }
-                links { "angelscript64", "as_integration", "shaderc_combined", "spirv-cross-core", "spirv-cross-glsl" }
+                links { "angelscript64", "as_integration", "spirv-cross-core", "spirv-cross-glsl" }
     	
 
     project "Utility"

@@ -10,6 +10,8 @@
 #include "ToneMapProgram.h"
 #include "ShadowMapProgram.h"
 #include "PipelineStateEditor.h"
+#include "RenderPipeline.h"
+#include "RaytracingProgram.h"
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
@@ -52,7 +54,8 @@ class GFX_DLL GraphicsEngine {
 	RenderQueue* GetStaticQueue();
 	ResourceAllocator& GetResourceAllocator() { return m_Resources.GetResourceAllocator(); }
 	FrameBufferManager& GetFrameBufferManager() { return m_FrameBuffer; }
-
+	RenderPipeline& GetRenderPipeline() { return m_RenderPipeline; }
+	ResourceHandler& GetResourceHandler() { return m_Resources; }
 	void PrintStats();
 
   private:
@@ -100,6 +103,8 @@ class GFX_DLL GraphicsEngine {
 	ResourceHandler m_Resources;
 	PerFrameStatistics m_Stats;
 	DeviceAllocator m_DeviceAllocator;
+	RenderPipeline m_RenderPipeline;
+	RaytracingProgram m_RaytracingProgram;
 
 #ifdef USE_IMGUI
   public:

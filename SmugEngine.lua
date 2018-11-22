@@ -39,9 +39,9 @@ solution "SmugEngine"
 		includedirs { "include", "src" }
 		links {  "Graphics", "AssetLoader", "Physics", "glfw3", "vulkan-1", "Utility" }
         configuration { "Debug" }
-                links { "angelscript64d", "as_integrationD", "shaderc_combinedD" }
+                links { "angelscript64d", "as_integrationD" }
         configuration { "Release" }
-                links { "angelscript64", "as_integration", "shaderc_combined" }
+                links { "angelscript64", "as_integration" }
 
     project "Graphics"
     	targetname "Graphics"
@@ -54,9 +54,9 @@ solution "SmugEngine"
     	kind "StaticLib"
     	links { "vulkan-1", "AssetLoader", "glfw3", "Utility"}
     	configuration { "Debug" }
-                links { "shaderc_combinedD", "spirv-cross-coreD", "spirv-cross-glslD"  }
+                links { "spirv-cross-coreD", "spirv-cross-glslD"  }
         configuration { "Release" }
-                links { "shaderc_combined", "spirv-cross-core", "spirv-cross-glsl"}
+                links { "spirv-cross-core", "spirv-cross-glsl"}
 
     project "AssetLoader"
     	targetname "AssetLoader"
@@ -69,9 +69,9 @@ solution "SmugEngine"
         kind "SharedLib"
         links { "assimp", "Utility" }
         configuration { "Debug" }
-                links { "angelscript64d", "as_integrationD", "shaderc_combinedD", "spirv-cross-coreD", "spirv-cross-glslD"  }
+                links { "angelscript64d", "as_integrationD", "spirv-cross-coreD", "spirv-cross-glslD"  }
         configuration { "Release" }
-                links { "angelscript64", "as_integration", "shaderc_combined", "spirv-cross-core", "spirv-cross-glsl" }
+                links { "angelscript64", "as_integration", "spirv-cross-core", "spirv-cross-glsl" }
 
     project "Physics"
         targetname "Physics"

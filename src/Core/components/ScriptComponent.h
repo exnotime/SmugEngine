@@ -6,10 +6,10 @@ A script file can contain multiple functions
 At load we check if it contains several pre-defined functions and store them in a bitmask
 */
 enum FunctionBits {
-	UPDATE = 0x1, //called at update every frame
-	RENDER = 0x2, //called before render every frame
-	LOAD = 0x4,   //called at load time
-	INIT = 0x8    //called after load
+	SCRIPT_FUNC_UPDATE = 0x1, //called at update every frame
+	SCRIPT_FUNC_RENDER = 0x2, //called before render every frame
+	SCRIPT_FUNC_LOAD = 0x4,   //called at load time
+	SCRIPT_FUNC_INIT = 0x8    //called after load
 };
 
 struct ScriptComponent {
@@ -21,16 +21,16 @@ struct ScriptComponent {
 static void CreateScriptComponent(const char* filename, ScriptComponent& sc) {
 	sc.Module = g_ScriptEngine.CompileScriptToModule(filename);
 	if (sc.Module->GetFunctionByDecl("void Update(float)")) {
-		sc.FunctionBitMask |= UPDATE;
+		sc.FunctionBitMask |= SCRIPT_FUNC_UPDATE;
 	}
 	if (sc.Module->GetFunctionByDecl("void Render()")) {
-		sc.FunctionBitMask |= RENDER;
+		sc.FunctionBitMask |= SCRIPT_FUNC_RENDER;
 	}
 	if (sc.Module->GetFunctionByDecl("void Load()")) {
-		sc.FunctionBitMask |= LOAD;
+		sc.FunctionBitMask |= SCRIPT_FUNC_LOAD;
 	}
 	if (sc.Module->GetFunctionByDecl("void Init()")) {
-		sc.FunctionBitMask |= INIT;
+		sc.FunctionBitMask |= SCRIPT_FUNC_INIT;
 	}
 }
 }

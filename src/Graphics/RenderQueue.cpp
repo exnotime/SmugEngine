@@ -1,16 +1,21 @@
 #include "RenderQueue.h"
+#include "Utility/Hash.h"
 using namespace smug;
 RenderQueue::RenderQueue() {
 }
 
 RenderQueue::~RenderQueue() {
+
 }
 
-void RenderQueue::Init(DeviceAllocator& memory) {
+void RenderQueue::Init(ResourceHandler& resources, int index) {
+	m_Resources = &resources;
 	//allocate gpu memory for shader inputs
-	m_Buffer = memory.AllocateBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, 1024 * 1024, nullptr);
+	std::string bufferName = "ShaderInputBuffer_" + index;
+	m_Buffer = CreateHandle(HashString(bufferName), RT_BUFFER);
+	resources.AllocateBuffer(sizeof(ShaderInput) * 1024, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, m_Buffer);
 
-	m_Cameras.reserve(10);
+	m_Cameras.reserve(4);
 	m_Inputs.reserve(1024);
 }
 
@@ -42,8 +47,11 @@ void RenderQueue::ScheduleTransfer(DeviceAllocator& memory) {
 	}
 
 	if (m_Inputs.size() > 0) {
-		memory.UpdateBuffer(m_Buffer, m_Inputs.size() * sizeof(ShaderInput), m_Inputs.data());
+		m_Resources->UpdateBuffer(m_Buffer, m_Inputs.size() * sizeof(ShaderInput), m_Inputs.data());
 		m_Inputs.clear();
 	}
+}
 
+void RenderQueue::Destroy(ResourceHandler& resources) {
+	resources.DeAllocateBuffer(m_Buffer);
 }

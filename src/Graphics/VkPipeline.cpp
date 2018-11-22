@@ -14,7 +14,16 @@ enum SHADER_TYPES {
 	GEOMETRY_SHADER,
 	EVALUATION_SHADER,
 	CONTROL_SHADER,
-	COMPUTE_SHADER
+	COMPUTE_SHADER,
+	MESH_SHADER,
+	TASK_SHADER,
+	RAY_GEN_SHADER,
+	RAY_INTERSECTION_SHADER,
+	RAY_ANY_HIT_SHADER,
+	RAY_CLOSEST_HIT_SHADER,
+	RAY_MISS_SHADER,
+	RAY_CALLABLE_SHADER,
+	SHADER_TYPE_COUNT
 };
 
 PipelineState::PipelineState() {
@@ -185,13 +194,12 @@ void PipelineState::LoadPipelineFromFile(const vk::Device& device, const std::st
 	if (root.find("Shaders") != root.end()) {
 		json shaders = root["Shaders"];
 
-		std::string shader_types[] = { "Vertex", "Fragment", "Geometry", "EVALUATION", "Control", "Compute" };
-		for (int i = 0; i < COMPUTE_SHADER + 1; ++i) {
+		std::string shader_types[] = { "Vertex", "Fragment", "Geometry", "EVALUATION", "Control", "Compute", "Mesh", "Task", "RayGen", "RayInt", "RayAnyHit", "RayClosestHit", "RayMiss", "RayCall" };
+		for (int i = 0; i < SHADER_TYPE_COUNT; ++i) {
 			if (shaders.find(shader_types[i]) != shaders.end()) {
 				json shader = shaders[shader_types[i]];
 				std::string entry;
 				SHADER_LANGUAGE lang = GLSL;
-
 				if (shader.find("EntryPoint") != shader.end()) {
 					entry = shader["EntryPoint"];
 				} else {
@@ -468,10 +476,8 @@ vk::ShaderStageFlagBits ShaderKindToVkStage(SHADER_KIND k) {
 
 }
 
-void PipelineState::LoadPipelineFromInfo(const vk::Device& device, const PipelineStateInfo& psInfo) {
-	vk::GraphicsPipelineCreateInfo pipelineCreateInfo;
-
-	vk::PipelineLayoutCreateInfo layoutCreateInfo;
+void PipelineState::LoadPipelineFromInfo(const vk::Device& device, const PipelineStateInfo& psInfo, vk::RenderPass rp) {
+	vk::PipelineLayoutCreateInfo layoutCreateInfo = {};
 	std::vector<vk::DescriptorSetLayout> setLayouts;
 	std::unordered_map<uint32_t, std::vector<vk::DescriptorSetLayoutBinding>> bindings;
 
@@ -500,13 +506,19 @@ void PipelineState::LoadPipelineFromInfo(const vk::Device& device, const Pipelin
 	}
 	layoutCreateInfo.pSetLayouts = setLayouts.data();
 	layoutCreateInfo.setLayoutCount = setLayouts.size();
-	layoutCreateInfo.pushConstantRangeCount = 1;
-	vk::PushConstantRange pc;
-	pc.offset = psInfo.PushConstants.Offset;
-	pc.size = psInfo.PushConstants.Size;
-	pc.stageFlags = vk::ShaderStageFlagBits::eAll;
-	layoutCreateInfo.pPushConstantRanges = &pc;
+	
+	if (psInfo.PushConstants.Size > 0) {
+		layoutCreateInfo.pushConstantRangeCount = 1;
+		vk::PushConstantRange pc;
+		pc.offset = psInfo.PushConstants.Offset;
+		pc.size = psInfo.PushConstants.Size;
+		pc.stageFlags = vk::ShaderStageFlagBits::eAll;
+		layoutCreateInfo.pPushConstantRanges = &pc;
+	}
+	
 	m_PipelineLayout = device.createPipelineLayout(layoutCreateInfo);
+
+	//create descriptor sets
 
 	std::vector<vk::PipelineShaderStageCreateInfo> shaderStages;
 	for (uint32_t i = 0; i < psInfo.Shader.ShaderCount; ++i) {
@@ -516,11 +528,19 @@ void PipelineState::LoadPipelineFromInfo(const vk::Device& device, const Pipelin
 		vk::PipelineShaderStageCreateInfo shaderInfo;
 		shaderInfo.module = device.createShaderModule(moduleInfo);
 		shaderInfo.stage = ShaderKindToVkStage(psInfo.Shader.Shaders[i].Kind);
-		shaderInfo.pName = "shader";
+		shaderInfo.pName = "main";
 		shaderStages.push_back(shaderInfo);
 	}
 	
+	if (psInfo.Shader.Shaders[0].Kind == COMPUTE) {
+		vk::ComputePipelineCreateInfo pipelineInfo = {};
+		pipelineInfo.layout = m_PipelineLayout;
+		pipelineInfo.stage = shaderStages[0];
+		m_Pipeline = device.createComputePipeline(nullptr, pipelineInfo);
+		return;
+	}
 
+	vk::GraphicsPipelineCreateInfo pipelineCreateInfo;
 	pipelineCreateInfo.layout = m_PipelineLayout;
 	pipelineCreateInfo.pStages = shaderStages.data();
 	pipelineCreateInfo.stageCount = shaderStages.size();
@@ -546,7 +566,7 @@ void PipelineState::LoadPipelineFromInfo(const vk::Device& device, const Pipelin
 	auto rasterState = GetDefaultRasterState();
 	auto msState = GetDefaultMultiSampleState();
 	pipelineCreateInfo.pColorBlendState = &blendState;
-	pipelineCreateInfo.renderPass = nullptr;
+	pipelineCreateInfo.renderPass = rp;
 	pipelineCreateInfo.pMultisampleState = &msState;
 	pipelineCreateInfo.pDepthStencilState = &dsState;
 	pipelineCreateInfo.pDynamicState = &dynamicStateCreateInfo;
@@ -556,9 +576,7 @@ void PipelineState::LoadPipelineFromInfo(const vk::Device& device, const Pipelin
 	pipelineCreateInfo.pVertexInputState = &m_DefaultVertexState;
 	pipelineCreateInfo.pTessellationState = nullptr;
 
-	m_Pipeline = device.createGraphicsPipeline(nullptr,pipelineCreateInfo);
-
-
+	m_Pipeline = device.createGraphicsPipeline(nullptr, pipelineCreateInfo);
 }
 
 
@@ -585,11 +603,11 @@ std::vector<vk::DescriptorSetLayout>& PipelineState::GetDescriptorSetLayouts() {
 	return m_DescSetLayouts;
 }
 
-vk::Pipeline PipelineState::GetPipeline() {
+vk::Pipeline PipelineState::GetPipeline() const  {
 	return m_Pipeline;
 }
 
-vk::PipelineLayout PipelineState::GetPipelineLayout() {
+vk::PipelineLayout PipelineState::GetPipelineLayout() const  {
 	return m_PipelineLayout;
 }
 

@@ -16,6 +16,9 @@ class VkTexture {
 	vk::Image GetImage() {
 		return m_Image.image;
 	}
+	VkImageHandle GetImageHandle() {
+		return m_Image;
+	}
 
   private:
 	int m_Width;

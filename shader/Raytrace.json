@@ -1,0 +1,15 @@
+{
+    "Shaders":
+    {
+        "RayGen":{"Source":"shader/RayGen.glsl", "EntryPoint":"main", "Language":"GLSL"},
+        "RayClosestHit":{"Source":"shader/RayClosestHit.glsl", "EntryPoint":"main", "Language":"GLSL"}
+    },
+    "DescriptorSetLayouts":
+    [
+        [
+            {"Binding":0, "Count":1, "Type":"StorageImage"},
+            {"Binding":2, "Count":1, "Type":"UniformBuffer"},
+            {"Binding":3, "Count":1, "Type":"AccelerationStructure"}
+        ]
+    ]
+}

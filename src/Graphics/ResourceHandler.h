@@ -7,6 +7,7 @@
 #include "VulkanContext.h"
 #include "Texture.h"
 #include "VkPipeline.h"
+#include "FrameBuffer.h"
 
 //use fixed size materials for now
 //Albedo, Normal, Roughness, Metal
@@ -61,27 +62,33 @@ class ResourceHandler {
   public:
 	ResourceHandler();
 	~ResourceHandler();
-	void Init(vk::Device* device, const vk::PhysicalDevice& physDev, MemoryBudget budget, DeviceAllocator& deviceAlloc);
+	void Init(vk::Device* device, const vk::PhysicalDevice& physDev, MemoryBudget budget, DeviceAllocator& deviceAlloc, FrameBufferManager& fbManager);
 	void ScheduleTransfer(CommandBuffer& cmdBuffer);
 	void Clear();
 
 	const Model& GetModel(ResourceHandle handle) const;
+	const PipelineState& GetPipelineState(ResourceHandle handle) const;
+	const VkBufferHandle& GetBuffer(ResourceHandle handle) const;
 
 	void AllocateModel(const ModelInfo& model, ResourceHandle handle);
 	void AllocateTexture(const TextureInfo& tex, ResourceHandle handle);
 	void AllocateShader(const PipelineStateInfo& psInfo, ResourceHandle handle);
+	void AllocateBuffer(uint64_t size, int usage, ResourceHandle handle);
 	void ReAllocateModel(const ModelInfo& model, ResourceHandle handle);
+	void UpdateBuffer(ResourceHandle buffer, size_t size, void* data);
 	void DeAllocateModel(ResourceHandle handle);
 	void DeAllocateTexture(ResourceHandle handle);
+	void DeAllocateBuffer(ResourceHandle handle);
 	ResourceAllocator& GetResourceAllocator() { return m_ResourceAllocator; }
   private:
 	vk::Device* m_Device;
 	DeviceAllocator* m_DeviceAllocator;
-
+	FrameBufferManager* m_FrameBufferManager;
 	ResourceAllocator m_ResourceAllocator;
 	std::unordered_map<ResourceHandle, Model> m_Models;
 	std::unordered_map<ResourceHandle, VkTexture> m_Textures;
 	std::unordered_map<ResourceHandle, PipelineState> m_PipelineStates;
+	std::unordered_map<ResourceHandle, VkBufferHandle> m_Buffers;
 
 	VkTexture m_DefaultAlbedo;
 	VkTexture m_DefaultNormal;

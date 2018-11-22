@@ -1,8 +1,9 @@
 #pragma once
 
-///This class is the interface between the graphics engine and the game engine
-///Fetch the renderqueue for the current frame from the graphics engine
+///This class is the interface between the graphics engine and the game engine for fast path of models, lights and decals
+///Fetch the renderqueue for the current frame from the graphics engine and dispatch renderqueue to the graphics engine to render everything
 #include "GraphicsObjects.h"
+#include "ResourceHandler.h"
 #include "VulkanContext.h"
 #include "DeviceAllocator.h"
 #include <AssetLoader/Resources.h>
@@ -10,6 +11,7 @@
 #include <map>
 #include <glm/glm.hpp>
 #include <Utility/Vector.h>
+
 namespace smug {
 struct ShaderInput {
 	glm::mat4x4 Transform;
@@ -26,11 +28,12 @@ class GFX_DLL RenderQueue {
   public:
 	RenderQueue();
 	~RenderQueue();
-	void Init(DeviceAllocator& memory);
+	void Init(ResourceHandler& resources, int index);
 	void Clear();
 	void AddCamera(const CameraData& cd);
 	void AddModel(ResourceHandle handle, const glm::mat4& transform, const glm::vec4& tint);
 	void ScheduleTransfer(DeviceAllocator& memory);
+	void Destroy(ResourceHandler& resources);
 
 	const std::vector<CameraData>& GetCameras() const {
 		return m_Cameras;
@@ -43,7 +46,7 @@ class GFX_DLL RenderQueue {
 	}
 
 	const VkBufferHandle& GetUniformBuffer() const {
-		return m_Buffer;
+		return m_Resources->GetBuffer(m_Buffer);
 	}
 	void SetDescSet(vk::DescriptorSet set) {
 		m_DescSet = set;
@@ -52,12 +55,12 @@ class GFX_DLL RenderQueue {
 		return m_DescSet;
 	}
 
-
   private:
 	std::vector<CameraData> m_Cameras;
 	std::vector<ShaderInput> m_Inputs;
 	std::map<ResourceHandle, ModelInstance> m_Models;
 	vk::DescriptorSet m_DescSet;
-	VkBufferHandle m_Buffer;
+	ResourceHandle m_Buffer;
+	ResourceHandler* m_Resources;
 };
 }

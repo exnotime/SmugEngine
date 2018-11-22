@@ -4,7 +4,7 @@ namespace smug {
 class SubSystem {
   public:
 	SubSystem() {}
-	~SubSystem() {}
+	virtual ~SubSystem() {}
 
 	virtual void Startup() = 0;
 	virtual void Shutdown() = 0;

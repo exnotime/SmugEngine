@@ -31,7 +31,7 @@ void ShadowMapProgram::Init(VulkanContext& vc, DeviceAllocator& allocator) {
 	descAllocInfo.descriptorPool = vc.DescriptorPool;
 	std::vector<vk::DescriptorSetLayout>& descLayouts = m_State.GetDescriptorSetLayouts();
 	descAllocInfo.pSetLayouts = descLayouts.data();
-	descAllocInfo.descriptorSetCount = descLayouts.size();
+	descAllocInfo.descriptorSetCount = (uint32_t)descLayouts.size();
 
 	m_DescSet = vc.Device.allocateDescriptorSets(descAllocInfo)[0];
 	//fill in descriptor set
@@ -51,6 +51,10 @@ void ShadowMapProgram::Init(VulkanContext& vc, DeviceAllocator& allocator) {
 
 	m_BoxHandle = g_AssetLoader.LoadAsset("assets/models/cube/cube.obj");
 
+}
+
+void ShadowMapProgram::DeInit(DeviceAllocator& allocator) {
+	allocator.DeAllocateBuffer(m_UniformBuffer);
 }
 
 void ShadowMapProgram::Update(DeviceAllocator& allocator, RenderQueue& rq) {

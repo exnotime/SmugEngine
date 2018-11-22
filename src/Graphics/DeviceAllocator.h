@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <set>
 #include "VulkanContext.h"
 #include "vk_mem_alloc.h"
 namespace smug {
@@ -45,7 +46,12 @@ class DeviceAllocator {
   private:
 	std::vector<ImageTransfer> m_ImageCopies;
 	std::vector<BufferTransfer> m_BufferCopies;
+	std::set<VkBuffer> m_BufferSet;
+	std::set<VkImage> m_ImageSet;
 	VmaAllocator m_Allocator;
 	vk::Device* m_Device;
+
+	uint32_t m_ImageCounter = 0;
+	uint32_t m_BufferCounter = 0;
 };
 }

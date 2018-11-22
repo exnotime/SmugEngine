@@ -17,14 +17,14 @@ SSLevel::SSLevel(){
 }
 
 SSLevel::~SSLevel(){
-
+	int i = 0;
 }
 
 void SSLevel::Startup() {
 	//Gen level
-	ProcVars vars;
+	m_ProcVars.scale = glm::vec3(0.1f);
 	m_Voxels = nullptr;
-	GenerateWorld(vars);
+	GenerateWorld(m_ProcVars);
 	if (m_Indices.size() > 0) {
 		m_ModelHandle = g_AssetLoader.LoadGeneratedModel(m_WorldModel, "Voxels");
 		m_VoxelModelHandle = g_AssetLoader.LoadGeneratedModel(m_VoxelModel, "VoxelCubes");
@@ -42,6 +42,7 @@ void SSLevel::Startup() {
 		mc.Visible = true;
 		mc.Tint = glm::vec4(0.4f, 0.5f, 0.4f, 1.0f);
 		globals::g_Components->CreateComponent(&mc, e, ModelComponent::Flag);
+		m_WorldEntityUID = e.UID;
 		//voxel world entity
 		Entity& voxelEntity = globals::g_EntityManager->CreateEntity();
 		globals::g_Components->CreateComponent(&tc, voxelEntity, TransformComponent::Flag);
@@ -55,21 +56,20 @@ void SSLevel::Startup() {
 
 void SSLevel::Update(const double deltaTime) {
 	ImGui::Begin("ProcGen");
-	static ProcVars vars;
-	ImGui::InputInt("Width", &vars.width);
-	ImGui::InputInt("Height", &vars.height);
-	ImGui::InputInt("Depth", &vars.depth);
-	ImGui::DragFloat("Lacunarity", &vars.lacunarity,0.001, 0.0, 100.0f);
-	ImGui::DragFloat("Gain", &vars.gain, 0.001, 0.0, 100.0f);
-	ImGui::DragFloat("Offset", &vars.offset, 0.001, 0.0, 100.0f);
-	ImGui::DragFloat("Scale", &vars.scale, 0.001, 0.0, 100.0f);
-	ImGui::InputInt("Octaves", &vars.octaves);
-	int threshold = vars.threshold;
+	ImGui::InputInt("Width", &m_ProcVars.width);
+	ImGui::InputInt("Height", &m_ProcVars.height);
+	ImGui::InputInt("Depth", &m_ProcVars.depth);
+	ImGui::DragFloat("Lacunarity", &m_ProcVars.lacunarity, 0.001f, 0.0f, 100.0f);
+	ImGui::DragFloat("Gain", &m_ProcVars.gain, 0.001f, 0.0f, 100.0f);
+	ImGui::DragFloat3("Offset", &m_ProcVars.offset[0], 0.001f, 0.0f, 100.0f);
+	ImGui::DragFloat3("Scale", &m_ProcVars.scale[0], 0.001f, 0.0f, 100.0f);
+	ImGui::InputInt("Octaves", &m_ProcVars.octaves);
+	int threshold = m_ProcVars.threshold;
 	ImGui::InputInt("Threshold", &threshold);
-	vars.threshold = threshold;
+	m_ProcVars.threshold = threshold;
 
 	if (ImGui::Button("Rebuild voxel map")) {
-		GenerateWorld(vars);
+		GenerateWorld(m_ProcVars);
 		if (m_Indices.size() > 0) {
 			g_AssetLoader.UpdateModel(m_ModelHandle, m_WorldModel);
 			g_AssetLoader.UpdateModel(m_VoxelModelHandle, m_VoxelModel);
@@ -79,13 +79,22 @@ void SSLevel::Update(const double deltaTime) {
 		Entity& m_VoxelEnity = globals::g_EntityManager->GetEntity(m_VoxelEntityUID);
 		ModelComponent* mc = (ModelComponent*)globals::g_Components->GetComponent(m_VoxelEnity, ModelComponent::Flag);
 		mc->Visible = !mc->Visible;
+
 	}
 
+	Entity& worldEntity = globals::g_EntityManager->GetEntity(m_WorldEntityUID);
+	TransformComponent* tc = (TransformComponent*)globals::g_Components->GetComponent(worldEntity, TransformComponent::Flag);
+	ImGui::DragFloat("WorldScale", &tc->Scale[0], 0.1f);
+	tc->Scale[1] = tc->Scale[2] = tc->Scale[0];
+	ImGui::DragFloat3("WorldOffset", &tc->Position[0], 0.1f);
+	Entity& m_VoxelEnity = globals::g_EntityManager->GetEntity(m_VoxelEntityUID);
+	TransformComponent* tc2 = (TransformComponent*)globals::g_Components->GetComponent(m_VoxelEnity, TransformComponent::Flag);
+	tc2->Position = tc->Position;
+	tc2->Scale = tc->Scale;
 	ImGui::End();
 }
 
 void SSLevel::Shutdown() {
-	free(m_Voxels);
 }
 
 void SSLevel::GenerateWorld(ProcVars vars) {
@@ -95,16 +104,13 @@ void SSLevel::GenerateWorld(ProcVars vars) {
 	m_VoxelIndices.clear();
 
 	const int size2 = vars.width * vars.height;
-	if (m_Voxels) free(m_Voxels);
 	m_Voxels = (uint8_t*)malloc(vars.width * vars.height * vars.depth * sizeof(uint8_t));
 	memset(m_Voxels, 0x0, vars.width * vars.height * vars.depth * sizeof(uint8_t));
-	const glm::vec3 inv_size = glm::vec3(1.0f / (float)vars.width, 1.0f / (float)vars.height, 1.0f / (float)vars.depth);
 	for (int z = 0; z < vars.depth; ++z) {
 		for (int y = 0; y < vars.height; ++y) {
 			for (int x = 0; x < vars.width; ++x) {
-				glm::vec3 pos = glm::vec3(0, 1, 0) + glm::vec3(x, y, z) * inv_size * glm::vec3(vars.scale);
-
-				float p = stb_perlin_ridge_noise3(pos.x, pos.y, pos.z, vars.lacunarity, vars.gain, vars.offset, vars.octaves, vars.width, vars.height, vars.depth);
+				glm::vec3 pos = (glm::vec3(x, y, z) + vars.offset) * vars.scale;
+				float p = stb_perlin_turbulence_noise3(pos.x, pos.y, pos.z, vars.lacunarity, vars.gain, vars.octaves, vars.width, vars.height, vars.depth);
 				//p = p + stb_perlin_fbm_noise3(x / (float)width, 1.0f, z / (float)depth, 2.0f, 0.5f, 6, width, height, depth);
 				m_Voxels[z * size2 + y * vars.height + x] = (p * 255U);
 			}
@@ -166,10 +172,10 @@ void SSLevel::GenerateWorld(ProcVars vars) {
 		v.Tangent = glm::normalize(tangent);
 	}
 
-	m_Mesh.IndexCount = m_Indices.size();
+	m_Mesh.IndexCount = (uint32_t)m_Indices.size();
 	m_Mesh.Indices = (uint32_t*)m_Indices.data();
 	m_Mesh.Material = 0;
-	m_Mesh.VertexCount = m_Vertices.size();
+	m_Mesh.VertexCount = (uint32_t)m_Vertices.size();
 	m_Mesh.Vertices = (Vertex*)m_Vertices.data();
 
 	m_WorldModel.MaterialCount = 0;
@@ -185,7 +191,7 @@ void SSLevel::GenerateWorld(ProcVars vars) {
 	par_shapes_unweld(cubeMesh, true);
 	par_shapes_compute_normals(cubeMesh);
 	std::vector<Vertex> verts;
-	for (uint32_t i = 0; i < cubeMesh->npoints; i++) {
+	for (int i = 0; i < cubeMesh->npoints; i++) {
 		Vertex v;
 		v.Position = glm::vec3(cubeMesh->points[i * 3 + 0], cubeMesh->points[i * 3 + 1], cubeMesh->points[i * 3 + 2]);
 		glm::vec3 normal = glm::vec3(cubeMesh->normals[i * 3], cubeMesh->normals[i * 3 + 1], cubeMesh->normals[i * 3 + 2]);
@@ -207,7 +213,7 @@ void SSLevel::GenerateWorld(ProcVars vars) {
 		verts.push_back(v);
 	}
 	std::vector<uint32_t> indices;
-	for (uint32_t i = 0; i < cubeMesh->ntriangles; i++) {
+	for (int i = 0; i < cubeMesh->ntriangles; i++) {
 		indices.push_back(cubeMesh->triangles[i * 3 + 0]);
 		indices.push_back(cubeMesh->triangles[i * 3 + 1]);
 		indices.push_back(cubeMesh->triangles[i * 3 + 2]);
@@ -217,7 +223,7 @@ void SSLevel::GenerateWorld(ProcVars vars) {
 		for (int y = 0; y < vars.height; ++y) {
 			for (int x = 0; x < vars.width; ++x) {
 				if (m_Voxels[z * size2 + y * vars.height + x] > vars.threshold) {
-					uint32_t indexOffset = m_VoxelIndices.size();
+					uint32_t indexOffset = (uint32_t)m_VoxelIndices.size();
 					for (auto& v : verts) {
 						Vertex vert = v;
 						vert.Position = v.Position + glm::vec3(x, y, z);
@@ -231,15 +237,16 @@ void SSLevel::GenerateWorld(ProcVars vars) {
 		}
 	}
 
-	m_VoxelMesh.IndexCount = m_VoxelIndices.size();
+	m_VoxelMesh.IndexCount = (uint32_t)m_VoxelIndices.size();
 	m_VoxelMesh.Indices = (uint32_t*)m_VoxelIndices.data();
 	m_VoxelMesh.Material = 0;
-	m_VoxelMesh.VertexCount = m_VoxelVertices.size();
+	m_VoxelMesh.VertexCount = (uint32_t)m_VoxelVertices.size();
 	m_VoxelMesh.Vertices = (Vertex*)m_VoxelVertices.data();
 
 	m_VoxelModel.MaterialCount = 0;
 	m_VoxelModel.MeshCount = 1;
 	m_VoxelModel.Materials = nullptr;
 	m_VoxelModel.Meshes = &m_VoxelMesh;
-
+	free(m_Voxels);
+	m_Voxels = nullptr;
 }

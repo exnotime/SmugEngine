@@ -1,7 +1,6 @@
 #include "GraphicsEngine.h"
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
-#include <vulkan/vulkan.h>
 #include "Vertex.h"
 #include "Core/Timer.h"
 #include "Core/Input.h"
@@ -13,6 +12,20 @@ GraphicsEngine::GraphicsEngine() {
 }
 
 GraphicsEngine::~GraphicsEngine() {
+	m_DeviceAllocator.Clear();
+	for (int i = 0; i < BUFFER_COUNT; ++i) {
+		m_RenderQueues[i].Destroy(m_Resources);
+	}
+	m_StaticRenderQueue.Destroy(m_Resources);
+	
+	m_Resources.Clear();
+	m_DeviceAllocator.DeAllocateBuffer(m_PerFrameBuffer);
+	m_DeviceAllocator.DeAllocateImage(m_IBLTex.GetImageHandle());
+	m_DeviceAllocator.DeAllocateImage(m_SkyIrr.GetImageHandle());
+	m_DeviceAllocator.DeAllocateImage(m_SkyRad.GetImageHandle());
+	m_SkyBox.DeInit(m_DeviceAllocator);
+	m_ShadowProgram.DeInit(m_DeviceAllocator);
+	m_ToneMapping.DeInit(m_DeviceAllocator);
 }
 
 VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDebugCallback(
@@ -123,6 +136,7 @@ void GraphicsEngine::CreateContext() {
 	deviceExtensions.push_back("VK_KHR_maintenance1");
 	deviceExtensions.push_back("VK_KHR_sampler_mirror_clamp_to_edge");
 	deviceExtensions.push_back("VK_KHR_shader_draw_parameters");
+	deviceExtensions.push_back("VK_NV_ray_tracing");
 	//device layers
 #if defined(_DEBUG) && defined(USE_DEBUG_LAYER)
 	devicelayers.push_back("VK_LAYER_LUNARG_standard_validation");
@@ -132,6 +146,7 @@ void GraphicsEngine::CreateContext() {
 	features.samplerAnisotropy = VK_TRUE;
 	features.multiDrawIndirect = VK_TRUE;
 	features.multiViewport = VK_TRUE;
+	features.wideLines = VK_TRUE;
 
 	vk::DeviceCreateInfo deviceInfo;
 	deviceInfo.queueCreateInfoCount = 1;
@@ -304,36 +319,37 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 
 	m_PerFrameBuffer = m_DeviceAllocator.AllocateBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(PerFrameBuffer), nullptr);
 
+	MemoryBudget memBudget;
+	memBudget.GeometryBudget = 0;
+	memBudget.MaterialBudget = 0;
+	m_Resources.Init(&VK_DEVICE, VK_PHYS_DEVICE, memBudget, m_DeviceAllocator, m_FrameBuffer);
+
 	for (int q = 0; q < BUFFER_COUNT; ++q) {
-		m_RenderQueues[q].Init(m_DeviceAllocator);
+		m_RenderQueues[q].Init(m_Resources, q);
 	}
-	m_StaticRenderQueue.Init(m_DeviceAllocator);
+	m_StaticRenderQueue.Init(m_Resources, BUFFER_COUNT);
 
 	vk::DescriptorPoolCreateInfo descPoolInfo;
 	descPoolInfo.maxSets = 16 * 1024;
 	std::vector<vk::DescriptorPoolSize> poolSizes;
 	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eSampler, 50));
-	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eCombinedImageSampler, 10000));
-	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eSampledImage, 1000));
-	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eStorageImage, 1000));
+	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eCombinedImageSampler, 1000));
+	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eSampledImage, 100));
+	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eStorageImage, 100));
 	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eStorageTexelBuffer, 10));
-	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eUniformBuffer, 10000));
-	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eStorageBuffer, 10000));
-	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eUniformBufferDynamic, 1000));
-	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eStorageBufferDynamic, 1000));
+	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eUniformBuffer, 100));
+	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eStorageBuffer, 100));
+	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eUniformBufferDynamic, 100));
+	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eStorageBufferDynamic, 100));
 	poolSizes.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eInputAttachment, 10));
 	descPoolInfo.pPoolSizes = poolSizes.data();
 	descPoolInfo.poolSizeCount = (uint32_t)poolSizes.size();
 	VK_DESC_POOL = VK_DEVICE.createDescriptorPool(descPoolInfo);
 
-	MemoryBudget memBudget;
-	memBudget.GeometryBudget = 0;
-	memBudget.MaterialBudget = 0;
-	m_Resources.Init(&VK_DEVICE, VK_PHYS_DEVICE, memBudget, m_DeviceAllocator);
-
 	//tonemapping
 	m_ToneMapping.Init(VK_DEVICE, m_ScreenSize, m_FrameBuffer, VK_DESC_POOL, m_RenderPass, m_DeviceAllocator);
 	m_ShadowProgram.Init(m_VKContext, m_DeviceAllocator);
+	//m_RaytracingProgram.Init(VK_DEVICE, m_VKContext.Instance);
 
 	{
 		//uniform set
@@ -430,23 +446,21 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 
 	m_SkyBox.Init(VK_DEVICE, VK_PHYS_DEVICE, "assets/textures/skybox.dds", m_Viewport, m_FrameBuffer.GetRenderPass(), m_DeviceAllocator);
 	//prepare initial transfer
-	CommandBuffer& cmdBuffer = m_CmdBufferFactory.GetNextBuffer();
-	cmdBuffer.Begin(nullptr, nullptr);
+	CommandBuffer* cmdBuffer = m_CmdBufferFactory.GetNextBuffer();
+	cmdBuffer->Begin(nullptr, nullptr);
 
 	for (int i = 0; i < BUFFER_COUNT; i++) {
-		cmdBuffer.ImageBarrier(m_VKSwapChain.Images[i], vk::ImageLayout::eUndefined, vk::ImageLayout::ePresentSrcKHR);
+		cmdBuffer->ImageBarrier(m_VKSwapChain.Images[i], vk::ImageLayout::eUndefined, vk::ImageLayout::ePresentSrcKHR);
 
 		std::vector<vk::ImageLayout> layouts;
 		layouts.push_back(vk::ImageLayout::eColorAttachmentOptimal);
 		layouts.push_back(vk::ImageLayout::eDepthStencilAttachmentOptimal);
-		m_FrameBuffer.ChangeLayout(cmdBuffer, layouts, i);
+		m_FrameBuffer.ChangeLayout(*cmdBuffer, layouts, i);
 	}
-
-	//cmdBuffer.PushPipelineBarrier();
-	m_DeviceAllocator.ScheduleTransfers(&cmdBuffer);
+	m_DeviceAllocator.ScheduleTransfers(cmdBuffer);
 	m_CmdBufferFactory.EndBuffer(cmdBuffer);
 
-	m_vkQueue.Submit(cmdBuffer);
+	m_vkQueue.Submit(*cmdBuffer);
 	VK_DEVICE.waitIdle();
 
 	pipelineEditor.Init(VK_DEVICE);
@@ -468,7 +482,6 @@ void GraphicsEngine::RenderModels(RenderQueue& rq, CommandBuffer& cmdBuffer) {
 		const vk::Buffer vertexBuffers[4] = { model.VertexBuffers[0].buffer, model.VertexBuffers[1].buffer,
 		                                      model.VertexBuffers[2].buffer, model.VertexBuffers[3].buffer
 		                                    };
-
 		const vk::DeviceSize offsets[4] = { 0,0,0,0 };
 		cmdBuffer.bindVertexBuffers(0, 4, vertexBuffers, offsets);
 		cmdBuffer.bindIndexBuffer(model.IndexBuffer.buffer, 0, vk::IndexType::eUint32);
@@ -537,34 +550,34 @@ void GraphicsEngine::Render() {
 
 		m_CmdBufferFactory.Reset(VK_DEVICE, VK_FRAME_INDEX);
 
-		CommandBuffer cmdBuffer = m_CmdBufferFactory.GetNextBuffer();
-		cmdBuffer.Begin(nullptr, nullptr);
-		m_DeviceAllocator.ScheduleTransfers(&cmdBuffer);
+		CommandBuffer* cmdBuffer = m_CmdBufferFactory.GetNextBuffer();
+		cmdBuffer->Begin(nullptr, nullptr);
+		m_DeviceAllocator.ScheduleTransfers(cmdBuffer);
 		m_SkyBox.PrepareUniformBuffer(cmdBuffer, m_DeviceAllocator, cd.ProjView, glm::translate(cd.Position));
 		m_CmdBufferFactory.EndBuffer(cmdBuffer);
 
-		m_vkQueue.Submit(cmdBuffer, nullptr, m_TransferComplete, nullptr);
+		m_vkQueue.Submit(*cmdBuffer, nullptr, m_TransferComplete, nullptr);
 
 	}
 
 	std::vector<vk::CommandBuffer> cmdBuffers;
 	//render pass
 	{
-		CommandBuffer& cmdBuffer = m_CmdBufferFactory.GetNextBuffer();
+		CommandBuffer* cmdBuffer = m_CmdBufferFactory.GetNextBuffer();
 
-		m_ShadowProgram.Render(VK_FRAME_INDEX, cmdBuffer, rq, m_Resources);
+		m_ShadowProgram.Render(VK_FRAME_INDEX, *cmdBuffer, rq, m_Resources);
 		m_CmdBufferFactory.EndBuffer(cmdBuffer);
-		cmdBuffers.push_back(cmdBuffer);
+		cmdBuffers.push_back(*cmdBuffer);
 
 		cmdBuffer = m_CmdBufferFactory.GetNextBuffer();
-		cmdBuffer.Begin(m_FrameBuffer.GetFrameBuffer(VK_FRAME_INDEX), m_FrameBuffer.GetRenderPass());
+		cmdBuffer->Begin(m_FrameBuffer.GetFrameBuffer(VK_FRAME_INDEX), m_FrameBuffer.GetRenderPass());
 
 		std::vector<vk::ImageLayout> newLayouts;
 		newLayouts.push_back(vk::ImageLayout::eColorAttachmentOptimal);
 		newLayouts.push_back(vk::ImageLayout::eDepthStencilAttachmentOptimal);
 
-		m_FrameBuffer.ChangeLayout(cmdBuffer, newLayouts, VK_FRAME_INDEX);
-		cmdBuffer.PushPipelineBarrier();
+		m_FrameBuffer.ChangeLayout(*cmdBuffer, newLayouts, VK_FRAME_INDEX);
+		cmdBuffer->PushPipelineBarrier();
 
 		vk::RenderPassBeginInfo renderPassInfo;
 		renderPassInfo.framebuffer = m_FrameBuffer.GetFrameBuffer(VK_FRAME_INDEX);
@@ -582,31 +595,31 @@ void GraphicsEngine::Render() {
 		renderPassInfo.clearValueCount = 2;
 		renderPassInfo.pClearValues = clearValues;
 		renderPassInfo.renderArea = { 0, 0, (uint32_t)m_FrameBuffer.GetSize().x, (uint32_t)m_FrameBuffer.GetSize().y };
-		cmdBuffer.beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
-		cmdBuffer.setViewport(0, 1, &m_Viewport);
-		cmdBuffer.setScissor(0, 1, &m_Scissor);
+		cmdBuffer->beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
+		cmdBuffer->setViewport(0, 1, &m_Viewport);
+		cmdBuffer->setScissor(0, 1, &m_Scissor);
 		//skybox
 		m_SkyBox.Render(cmdBuffer);
 		//render here
-		cmdBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipeline());
+		cmdBuffer->bindPipeline(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipeline());
 
-		RenderModels(m_StaticRenderQueue, cmdBuffer);
-		RenderModels(rq, cmdBuffer);
+		RenderModels(m_StaticRenderQueue, *cmdBuffer);
+		RenderModels(rq, *cmdBuffer);
 
-		cmdBuffer.endRenderPass();
+		cmdBuffer->endRenderPass();
 
 		m_CmdBufferFactory.EndBuffer(cmdBuffer);
-		cmdBuffers.push_back(cmdBuffer);
+		cmdBuffers.push_back(*cmdBuffer);
 
 		m_vkQueue.Submit(cmdBuffers, { m_TransferComplete, m_ImageAquiredSemaphore }, { m_RenderCompleteSemaphore }, nullptr);
 	}
 	//Perform tonemapping and render Imgui
 	{
-		CommandBuffer& cmdBuffer = m_CmdBufferFactory.GetNextBuffer();
-		cmdBuffer.Begin(m_VKSwapChain.FrameBuffers[VK_FRAME_INDEX], m_RenderPass);
+		CommandBuffer* cmdBuffer = m_CmdBufferFactory.GetNextBuffer();
+		cmdBuffer->Begin(m_VKSwapChain.FrameBuffers[VK_FRAME_INDEX], m_RenderPass);
 		// dont trust the renderpass inital layout
-		cmdBuffer.ImageBarrier(m_VKSwapChain.Images[VK_FRAME_INDEX], vk::ImageLayout::ePresentSrcKHR, vk::ImageLayout::eColorAttachmentOptimal);
-		cmdBuffer.PushPipelineBarrier();
+		cmdBuffer->ImageBarrier(m_VKSwapChain.Images[VK_FRAME_INDEX], vk::ImageLayout::ePresentSrcKHR, vk::ImageLayout::eColorAttachmentOptimal);
+		cmdBuffer->PushPipelineBarrier();
 
 		vk::RenderPassBeginInfo rpBeginInfo;
 		rpBeginInfo.clearValueCount = 1;
@@ -626,20 +639,20 @@ void GraphicsEngine::Render() {
 		newLayouts.push_back(vk::ImageLayout::eShaderReadOnlyOptimal);
 		newLayouts.push_back(vk::ImageLayout::eDepthStencilReadOnlyOptimal);
 
-		m_FrameBuffer.ChangeLayout(cmdBuffer, newLayouts, VK_FRAME_INDEX);
-		cmdBuffer.PushPipelineBarrier();
-		cmdBuffer.beginRenderPass(rpBeginInfo, vk::SubpassContents::eInline);
-		cmdBuffer.setViewport(0, 1, &m_Viewport);
-		cmdBuffer.setScissor(0, 1, &m_Scissor);
+		m_FrameBuffer.ChangeLayout(*cmdBuffer, newLayouts, VK_FRAME_INDEX);
+		cmdBuffer->PushPipelineBarrier();
+		cmdBuffer->beginRenderPass(rpBeginInfo, vk::SubpassContents::eInline);
+		cmdBuffer->setViewport(0, 1, &m_Viewport);
+		cmdBuffer->setScissor(0, 1, &m_Scissor);
 		//transfer from fbo to back buffer
-		m_ToneMapping.Render(cmdBuffer, m_Viewport, VK_FRAME_INDEX);
+		m_ToneMapping.Render(*cmdBuffer, m_Viewport, VK_FRAME_INDEX);
 		//render imgui on top
-		ImGui_ImplGlfwVulkan_Render(cmdBuffer);
-		cmdBuffer.endRenderPass();
+		ImGui_ImplGlfwVulkan_Render(*cmdBuffer);
+		cmdBuffer->endRenderPass();
 
 		m_CmdBufferFactory.EndBuffer(cmdBuffer);
 
-		m_vkQueue.Submit(cmdBuffer, m_RenderCompleteSemaphore, m_ImguiComplete, m_Fence[VK_FRAME_INDEX]);
+		m_vkQueue.Submit(*cmdBuffer, m_RenderCompleteSemaphore, m_ImguiComplete, m_Fence[VK_FRAME_INDEX]);
 	}
 }
 
@@ -672,12 +685,12 @@ RenderQueue* GraphicsEngine::GetStaticQueue() {
 }
 
 void GraphicsEngine::TransferToGPU() {
-	CommandBuffer& cmdBuffer = m_CmdBufferFactory.GetNextBuffer();
-	cmdBuffer.Begin(nullptr, nullptr);
-	m_Resources.ScheduleTransfer(cmdBuffer);
+	CommandBuffer* cmdBuffer = m_CmdBufferFactory.GetNextBuffer();
+	cmdBuffer->Begin(nullptr, nullptr);
+	m_Resources.ScheduleTransfer(*cmdBuffer);
 	m_CmdBufferFactory.EndBuffer(cmdBuffer);
 	m_StaticRenderQueue.ScheduleTransfer(m_DeviceAllocator);
-	m_vkQueue.Submit(cmdBuffer);
+	m_vkQueue.Submit(*cmdBuffer);
 	VK_DEVICE.waitIdle();
 }
 
@@ -706,15 +719,15 @@ void GraphicsEngine::CreateImguiFont(ImGuiContext* imguiCtx) {
 	ImGui::SetCurrentContext(imguiCtx);
 	//upload font texture
 	{
-		CommandBuffer& cmdBuffer = m_CmdBufferFactory.GetNextBuffer();
+		CommandBuffer* cmdBuffer = m_CmdBufferFactory.GetNextBuffer();
 		vk::CommandBufferBeginInfo begin_info = {};
 		begin_info.flags |= vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
-		cmdBuffer.begin(&begin_info);
+		cmdBuffer->begin(&begin_info);
 
-		ImGui_ImplGlfwVulkan_CreateFontsTexture(cmdBuffer);
+		ImGui_ImplGlfwVulkan_CreateFontsTexture(*cmdBuffer);
 
 		m_CmdBufferFactory.EndBuffer(cmdBuffer);
-		m_vkQueue.Submit(cmdBuffer);
+		m_vkQueue.Submit(*cmdBuffer);
 
 		vkDeviceWaitIdle(VK_DEVICE);
 		ImGui_ImplGlfwVulkan_InvalidateFontUploadObjects();

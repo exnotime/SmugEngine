@@ -105,7 +105,7 @@ void Engine::Init() {
 	ImGui_ImplGlfwVulkan_Init_Data* imguiData = globals::g_Gfx->GetImguiInit();
 	ImGui_ImplGlfwVulkan_Init(m_Window->GetWindow(), false, imguiData);
 	globals::g_Gfx->CreateImguiFont(m_ImguiCtx);
-
+	delete imguiData;
 	//assets need to be loaded before this
 	globals::g_Gfx->TransferToGPU();
 
