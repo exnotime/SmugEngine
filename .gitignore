@@ -1,7 +1,6 @@
 bin/
 solution/
 data/
-lib/
 AS_DEBUG/
 ./imgui.ini
 shader/cache/
