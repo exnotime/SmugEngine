@@ -14,7 +14,7 @@ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN 
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 #pragma once
-#include <vulkan/vulkan.hpp>
+#include "volk.h"
 #include <AssetLoader/Resources.h>
 
 #ifndef SHADER_CACHE_DIR
@@ -25,5 +25,5 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 namespace smug {
-vk::ShaderModule LoadShader(const vk::Device& device, const std::string& filename, SHADER_KIND stage, const std::string& entryPoint = "main", SHADER_LANGUAGE language = GLSL);
+VkShaderModule LoadShader(const VkDevice& device, const std::string& filename, SHADER_KIND stage, const std::string& entryPoint = "main", SHADER_LANGUAGE language = GLSL);
 };

@@ -1,4 +1,5 @@
 #include "ToneMapProgram.h"
+#include "Vertex.h"
 #include <Imgui/imgui.h>
 
 using namespace smug;
@@ -10,41 +11,48 @@ ToneMapProgram::~ToneMapProgram() {
 
 }
 
-void ToneMapProgram::Init(vk::Device& device, const glm::vec2& screenSize, FrameBufferManager& fbo, vk::DescriptorPool& descPool, vk::RenderPass& rp, DeviceAllocator& allocator) {
-
+void ToneMapProgram::Init(VkDevice& device, const glm::vec2& screenSize, FrameBufferManager& fbo, VkDescriptorPool& descPool, VkRenderPass& rp, DeviceAllocator& allocator) {
+	VkPipelineVertexInputStateCreateInfo vertexInfo = {};
+	vertexInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+	vertexInfo.pNext = nullptr;
+	m_Pipeline.SetDefaultVertexState(vertexInfo);
 	m_Pipeline.LoadPipelineFromFile(device, "shader/ToneMap.json", rp);
 	//pepare desc sets
-	vk::DescriptorSetAllocateInfo setAllocInfo;
+	VkDescriptorSetAllocateInfo setAllocInfo;
+	setAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	setAllocInfo.pNext = nullptr;
 	setAllocInfo.descriptorPool = descPool;
 	setAllocInfo.descriptorSetCount = 1;
 	setAllocInfo.pSetLayouts = m_Pipeline.GetDescriptorSetLayouts().data();
 
 	for (uint32_t i = 0; i < BUFFER_COUNT; i++) {
-		m_DescSet[i] = device.allocateDescriptorSets(setAllocInfo)[0];
+		vkAllocateDescriptorSets(device, &setAllocInfo, &m_DescSet[i]);
 	}
 
-	vk::SamplerCreateInfo sampInfo = {};
-	sampInfo.addressModeU = vk::SamplerAddressMode::eRepeat;
-	sampInfo.addressModeV = vk::SamplerAddressMode::eRepeat;
-	sampInfo.addressModeW = vk::SamplerAddressMode::eRepeat;
+	VkSamplerCreateInfo sampInfo = {};
+	sampInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+	sampInfo.pNext = nullptr;
+	sampInfo.addressModeU = VkSamplerAddressMode::VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	sampInfo.addressModeV = VkSamplerAddressMode::VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	sampInfo.addressModeW = VkSamplerAddressMode::VK_SAMPLER_ADDRESS_MODE_REPEAT;
 	sampInfo.anisotropyEnable = false;
 	sampInfo.maxAnisotropy = 1.0f;
-	sampInfo.borderColor = vk::BorderColor::eFloatOpaqueBlack;
+	sampInfo.borderColor = VkBorderColor::VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
 	sampInfo.compareEnable = false;
-	sampInfo.compareOp = vk::CompareOp::eNever;
-	sampInfo.magFilter = vk::Filter::eNearest;
-	sampInfo.minFilter = vk::Filter::eNearest;
+	sampInfo.compareOp = VkCompareOp::VK_COMPARE_OP_NEVER;
+	sampInfo.magFilter = VkFilter::VK_FILTER_NEAREST;
+	sampInfo.minFilter = VkFilter::VK_FILTER_NEAREST;
 	sampInfo.maxLod = 1.0f;
 	sampInfo.minLod = 0.0f;
 	sampInfo.mipLodBias = 0.0f;
-	sampInfo.mipmapMode = vk::SamplerMipmapMode::eNearest;
+	sampInfo.mipmapMode = VkSamplerMipmapMode::VK_SAMPLER_MIPMAP_MODE_NEAREST;
 	sampInfo.unnormalizedCoordinates = false;
-	m_Sampler = device.createSampler(sampInfo);
+	vkCreateSampler(device, &sampInfo, nullptr, &m_Sampler);
 
 	//each framebuffer texture + uniform buffer
-	vk::WriteDescriptorSet writeSet[BUFFER_COUNT + 2];
-	vk::DescriptorImageInfo imageInfo[BUFFER_COUNT];
-	vk::DescriptorBufferInfo bufferInfo;
+	VkWriteDescriptorSet writeSet[1 + 2];
+	VkDescriptorImageInfo imageInfo[1];
+	VkDescriptorBufferInfo bufferInfo;
 
 	//allocate memory for buffer
 	m_Buffer = allocator.AllocateBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(ToneMapUniformData));
@@ -52,29 +60,33 @@ void ToneMapProgram::Init(vk::Device& device, const glm::vec2& screenSize, Frame
 	bufferInfo.range = VK_WHOLE_SIZE;
 	bufferInfo.buffer = m_Buffer.buffer;
 
-	for (uint32_t i = 0; i < BUFFER_COUNT; i++) {
-		imageInfo[i].imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+	for (uint32_t i = 0; i < 1; i++) {
+		imageInfo[i].imageLayout = VkImageLayout::VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		imageInfo[i].sampler = m_Sampler;
 		imageInfo[i].imageView = fbo.GetView(0, i);
 
+		writeSet[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		writeSet[i].pNext = nullptr;
 		writeSet[i].descriptorCount = 1;
-		writeSet[i].descriptorType = vk::DescriptorType::eCombinedImageSampler;
+		writeSet[i].descriptorType = VkDescriptorType::VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		writeSet[i].dstArrayElement = 0;
 		writeSet[i].dstBinding = 0;
 		writeSet[i].pImageInfo = &imageInfo[i];
 		writeSet[i].dstSet = m_DescSet[i];
 	}
 
-	for (uint32_t i = 0; i < BUFFER_COUNT; i++) {
-		writeSet[BUFFER_COUNT + i].descriptorCount = 1;
-		writeSet[BUFFER_COUNT + i].descriptorType = vk::DescriptorType::eUniformBuffer;
-		writeSet[BUFFER_COUNT + i].dstArrayElement = 0;
-		writeSet[BUFFER_COUNT + i].dstBinding = 1;
-		writeSet[BUFFER_COUNT + i].dstSet = m_DescSet[i];
-		writeSet[BUFFER_COUNT + i].pBufferInfo = &bufferInfo;
+	for (uint32_t i = 0; i < 2; i++) {
+		writeSet[1 + i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		writeSet[1 + i].pNext = nullptr;
+		writeSet[1 + i].descriptorCount = 1;
+		writeSet[1 + i].descriptorType = VkDescriptorType::VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		writeSet[1 + i].dstArrayElement = 0;
+		writeSet[1 + i].dstBinding = 1;
+		writeSet[1 + i].dstSet = m_DescSet[i];
+		writeSet[1 + i].pBufferInfo = &bufferInfo;
 	}
 
-	device.updateDescriptorSets(BUFFER_COUNT + 2, writeSet, 0, nullptr);
+	vkUpdateDescriptorSets(device, 3, writeSet, 0, nullptr);
 }
 
 void ToneMapProgram::DeInit(DeviceAllocator& allocator) {
@@ -83,19 +95,13 @@ void ToneMapProgram::DeInit(DeviceAllocator& allocator) {
 
 void ToneMapProgram::Update(DeviceAllocator& allocator) {
 	static ToneMapUniformData data = {1.0f, 1.0f / 1.6f};
-
-	//ImGui::Begin("Scene");
-	//ImGui::Spacing();
-	//ImGui::SliderFloat("Bright", &data.bright, 0.0f, 1.0f);
-	//ImGui::SliderFloat("Exposure", &data.exposure, 0.0f, 1.0f);
-	//ImGui::End();
 	allocator.UpdateBuffer(m_Buffer, sizeof(ToneMapUniformData), &data);
 }
 
-void ToneMapProgram::Render(CommandBuffer& cmdBuffer, vk::Viewport viewport, uint32_t frameIndex) {
-	cmdBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipeline());
-	cmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_Pipeline.GetPipelineLayout(), 0, m_DescSet[frameIndex], nullptr);
-	cmdBuffer.setViewport(0, 1, &viewport);
+void ToneMapProgram::Render(CommandBuffer& cmdBuffer, VkViewport viewport, uint32_t frameIndex) {
+	vkCmdBindPipeline(cmdBuffer.CmdBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline.GetPipeline());
+	vkCmdBindDescriptorSets(cmdBuffer.CmdBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline.GetPipelineLayout(), 0, 1, &m_DescSet[0], 0, nullptr);
+	vkCmdSetViewport(cmdBuffer.CmdBuffer(), 0, 1, &viewport);
 	//no need for a vertex buffer
-	cmdBuffer.draw(3, 1, 0, 0);
+	vkCmdDraw(cmdBuffer.CmdBuffer(), 3, 1, 0, 0);
 }

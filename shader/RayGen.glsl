@@ -2,13 +2,13 @@
 #extension GL_NV_ray_tracing : enable
 layout(rgba8, binding = 0) writeonly restrict uniform image2D output_img;
 
-layout(binding = 0) uniform PerFrame{
+layout(binding = 1) uniform PerFrame{
     mat4 invViewProj;
     vec4 CamPos;
     vec4 Lightdir;
 };
 
-layout(binding = 1) uniform accelerationStructureNV g_WorldAS;
+layout(set = 0, binding = 2) uniform accelerationStructureNV g_WorldAS;
 layout(location = 0) rayPayloadNV vec4 ColorPayload;
 
 void main(){

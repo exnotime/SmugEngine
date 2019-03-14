@@ -9,8 +9,7 @@
 // https://github.com/ocornut/imgui
 
 struct GLFWwindow;
-
-#include <vulkan/vulkan.h>
+#include "../Graphics/volk.h"
 
 #define IMGUI_VK_QUEUED_FRAMES 2
 

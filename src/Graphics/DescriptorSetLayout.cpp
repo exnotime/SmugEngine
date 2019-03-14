@@ -20,9 +20,9 @@ void DescriptorSetLayout::InitFromSpirV(const uint32_t* buffer, uint32_t bufferL
 	spirv_cross::CompilerGLSL glslCompiler(buffer, bufferLength / sizeof(uint32_t));
 	spirv_cross::ShaderResources resources = glslCompiler.get_shader_resources();
 
-	vk::DescriptorSetLayoutCreateInfo descSetCreateInfo;
-	std::vector<vk::DescriptorSetLayoutBinding> bindings;
+	VkDescriptorSetLayoutCreateInfo descSetCreateInfo;
+	std::vector<VkDescriptorSetLayoutBinding> bindings;
 
-	vk::DescriptorSetLayoutBinding binding;
-	binding.descriptorType = vk::DescriptorType::eCombinedImageSampler;
+	VkDescriptorSetLayoutBinding binding;
+	binding.descriptorType;
 }

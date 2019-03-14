@@ -9,11 +9,11 @@ class VkTexture {
 	VkTexture();
 	~VkTexture();
 
-	void Init(const std::string& filename, DeviceAllocator* allocator, const vk::Device& device);
-	void Init(const TextureInfo& texInfo, DeviceAllocator* allocator, const vk::Device& device);
+	void Init(const std::string& filename, DeviceAllocator* allocator, const VkDevice& device);
+	void Init(const TextureInfo& texInfo, DeviceAllocator* allocator, const VkDevice& device);
 
-	vk::DescriptorImageInfo GetDescriptorInfo();
-	vk::Image GetImage() {
+	VkDescriptorImageInfo GetDescriptorInfo();
+	VkImage GetImage() {
 		return m_Image.image;
 	}
 	VkImageHandle GetImageHandle() {
@@ -25,7 +25,7 @@ class VkTexture {
 	int m_Height;
 	int m_Channels;
 	VkImageHandle m_Image;
-	vk::Sampler m_Sampler;
-	vk::ImageView m_View;
+	VkSampler m_Sampler;
+	VkImageView m_View;
 };
 }

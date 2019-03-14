@@ -28,9 +28,9 @@ class PipelineStateEditor {
 	std::vector<JsonShader> m_Shaders;
 	PipelineState m_PipelineState;
 	std::string m_CurrentPipelineFile;
-	vk::PipelineDepthStencilStateCreateInfo m_DepthStencilState;
-	vk::PipelineRasterizationStateCreateInfo m_RasterState;
-	std::vector<vk::PipelineColorBlendAttachmentState> m_AttachmentStates;
+	VkPipelineDepthStencilStateCreateInfo m_DepthStencilState;
+	VkPipelineRasterizationStateCreateInfo m_RasterState;
+	std::vector<VkPipelineColorBlendAttachmentState> m_AttachmentStates;
 	int m_ActiveAttachmentEditor;
 
 };

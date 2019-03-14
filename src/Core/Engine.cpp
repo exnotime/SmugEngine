@@ -137,7 +137,16 @@ void Engine::Run() {
 			mode = (mode == GLFW_CURSOR_NORMAL) ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL;
 			g_Input.SetCursorMode(m_Window->GetWindow(), mode);
 			g_Input.SetMouseDeltaUpdate(mode != GLFW_CURSOR_NORMAL);
+			g_Input.SetEnableInput(mode != GLFW_CURSOR_NORMAL);
 		}
+		if (mode == GLFW_CURSOR_DISABLED) {
+			ImGuiIO& io = ImGui::GetIO();
+			io.MousePos = ImVec2(0, 0);
+			io.MouseDelta = ImVec2(0, 0);
+			memset(&io.MouseDown, 0x0, sizeof(io.MouseDown));
+			memset(&io.MouseClicked, 0x0, sizeof(io.MouseClicked));
+		}
+
 		if (g_Input.IsKeyDown(GLFW_KEY_ESCAPE)) {
 			break;
 		}

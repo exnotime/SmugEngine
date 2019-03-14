@@ -129,9 +129,9 @@ vec3 CalcDirLight(vec3 lightDir, vec3 albedo, vec3 normal, vec3 toEye, float rou
 	Kd *= 1.0 - metallic;
 
 	vec3 nom = D * F * G;
-	float denom = 4.0 * ndotl * ndotv + 0.01;
+	float denom = 4.0 * ndotl * (ndotv + 0.01);
 	vec3 spec = nom / denom;
-	return saturate((Kd * albedo / PI + spec) * ndotl);
+	return saturate((((Kd * albedo) / PI) + spec) * ndotl);
 }
 
 vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
@@ -144,7 +144,7 @@ vec3 CalcIBLLight( vec3 inNormal, vec3 toeye, vec3 baseColor, float roughness, f
 	vec3 F0 = mix(vec3(0.02f), baseColor, metal);
  	vec3 irradiance = texture(g_IBLCube[1], inNormal).rgb;
 
- 	float NoV = clamp(dot(normalize(inNormal), normalize(toeye)), 0.001, 1.0);
+ 	float NoV = clamp(dot(normalize(inNormal), normalize(toeye)), 0.1, 1.0);
  	vec3 R = normalize(reflect(-toeye, inNormal));
 
  	vec3 F = fresnelSchlickRoughness(NoV, F0, roughness);
@@ -156,7 +156,7 @@ vec3 CalcIBLLight( vec3 inNormal, vec3 toeye, vec3 baseColor, float roughness, f
 	float mipLevel = numMips * roughness;
 
 	vec3 color = textureLod(g_IBLCube[0], R, mipLevel).rgb;
-	vec2 envBRDF = texture(g_IBLTex, vec2(NoV - 0.001, roughness)).rg;
+	vec2 envBRDF = texture(g_IBLTex, vec2(NoV, roughness)).rg;
 
  	vec3 diffuse = baseColor * irradiance;
  	vec3 specular = saturate(color * (F * envBRDF.x + envBRDF.y));

@@ -1,6 +1,7 @@
 #pragma once
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
+#define VK_NO_PROTOTYPES
 #include <vulkan/vulkan.h>
 #include <Imgui/imgui.h>
 #include <Imgui/imgui_impl_glfw_vulkan.h>
@@ -41,6 +42,7 @@ class Input {
 	bool IsMousebuttonPushed(int button);
 	bool IsKeyDown(int key);
 	bool IsKeyPushed(int key);
+	bool IsKeyReleased(int key);
 	bool IsGamepadConnected(int pid);
 	void SetCursorMode(GLFWwindow* window, int mode);
 	void SetMousePos(double x, double y);
@@ -50,6 +52,7 @@ class Input {
 	glm::dvec2 GetMousePos();
 	void Update();
 	void SetMouseDeltaUpdate(bool val);
+	void SetEnableInput(bool val);
   private:
 	Input();
 	int m_Keys[GLFW_KEY_LAST];
@@ -62,6 +65,7 @@ class Input {
 	glm::dvec2 m_MouseDelta;
 	float m_MouseScroll;
 	bool m_UpdateMouseDelta;
+	bool m_Disabled;
 };
 static void MousePosCallback(GLFWwindow* window, double xpos, double ypos) {
 	g_Input.SetMousePos(xpos, ypos);

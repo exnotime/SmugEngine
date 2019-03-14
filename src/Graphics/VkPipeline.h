@@ -18,7 +18,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <vector>
 #include <string>
 #include <unordered_map>
-#include <vulkan/vulkan.hpp>
+#include "volk.h"
 #include <AssetLoader/Resources.h>
 
 namespace smug {
@@ -28,47 +28,47 @@ class PipelineState {
   public:
 	PipelineState();
 	~PipelineState();
-	void LoadPipelineFromFile(const vk::Device& device, const std::string& filename, vk::RenderPass rp);
-	void LoadPipelineFromInfo(const vk::Device& device, const PipelineStateInfo& psInfo, vk::RenderPass rp);
-	void ReloadPipelineFromFile(const vk::Device& device, const std::string& filename, vk::RenderPass rp);
-	void SetDefaultVertexState(const vk::PipelineVertexInputStateCreateInfo& vertexState);
-	void SetDefaultMulitSampleState(const vk::PipelineMultisampleStateCreateInfo& msState);
+	void LoadPipelineFromFile(const VkDevice& device, const std::string& filename, VkRenderPass rp);
+	void LoadPipelineFromInfo(const VkDevice& device, const PipelineStateInfo& psInfo, VkRenderPass rp);
+	void ReloadPipelineFromFile(const VkDevice& device, const std::string& filename, VkRenderPass rp);
+	void SetDefaultVertexState(const VkPipelineVertexInputStateCreateInfo& vertexState);
+	void SetDefaultMulitSampleState(const VkPipelineMultisampleStateCreateInfo& msState);
 
-	std::vector<vk::DescriptorSetLayout>& GetDescriptorSetLayouts();
-	vk::Pipeline GetPipeline() const;
-	vk::PipelineLayout GetPipelineLayout() const;
+	std::vector<VkDescriptorSetLayout>& GetDescriptorSetLayouts();
+	VkPipeline GetPipeline() const;
+	VkPipelineLayout GetPipelineLayout() const;
 
   private:
-	std::vector<vk::ShaderModule> m_Shaders;
+	std::vector<VkShaderModule> m_Shaders;
 	int m_ShaderBits;
 
-	vk::Pipeline m_Pipeline;
+	VkPipeline m_Pipeline;
 	std::vector<Descriptor> m_Descriptors;
-	std::vector<vk::DescriptorSetLayout> m_DescSetLayouts;
-	vk::PipelineLayout m_PipelineLayout;
+	std::vector<VkDescriptorSetLayout> m_DescSetLayouts;
+	VkPipelineLayout m_PipelineLayout;
 
-	vk::PipelineVertexInputStateCreateInfo m_DefaultVertexState;
+	VkPipelineVertexInputStateCreateInfo m_DefaultVertexState;
 	bool m_DefaultVertexStateSet;
 
-	vk::PipelineMultisampleStateCreateInfo m_DefaultMultiSampleState;
+	VkPipelineMultisampleStateCreateInfo m_DefaultMultiSampleState;
 	bool m_DefaultMultiSampleStateSet;
 
   public:
 	//mappings to vulkan
 #define TO_VK_BOOL(x) (x) ? 1 : 0;
-	/*static std::unordered_map<std::string, vk::DescriptorType> ToDescriptorType;
-	static std::unordered_map<std::string, vk::BlendFactor> ToBlendFactor;
-	static std::unordered_map<std::string, vk::BlendOp> ToBlendOp;
-	static std::unordered_map<std::string, vk::LogicOp> ToLogicOp;
-	static std::unordered_map<std::string, vk::StencilOp> ToStencilOp;
-	static std::unordered_map<std::string, vk::CompareOp> ToCompareOp;
-	static std::unordered_map<std::string, vk::PrimitiveTopology> ToPrimitiveTopology;
-	static std::unordered_map<int, vk::SampleCountFlagBits> ToSampleCount;
-	static std::unordered_map<std::string, vk::CullModeFlagBits> ToCullMode;
-	static std::unordered_map<std::string, vk::FrontFace> ToFrontFace;
-	static std::unordered_map<std::string, vk::PolygonMode> ToPolygonMode;
-	static std::unordered_map<std::string, vk::Format> ToFormat;
-	static std::unordered_map<int, vk::ShaderStageFlagBits> ToShaderStage;
-	static std::unordered_map<std::string, vk::VertexInputRate> ToVertexInputRate;*/
+	/*static std::unordered_map<std::string, VkDescriptorType> ToDescriptorType;
+	static std::unordered_map<std::string, VkBlendFactor> ToBlendFactor;
+	static std::unordered_map<std::string, VkBlendOp> ToBlendOp;
+	static std::unordered_map<std::string, VkLogicOp> ToLogicOp;
+	static std::unordered_map<std::string, VkStencilOp> ToStencilOp;
+	static std::unordered_map<std::string, VkCompareOp> ToCompareOp;
+	static std::unordered_map<std::string, VkPrimitiveTopology> ToPrimitiveTopology;
+	static std::unordered_map<int, VkSampleCountFlagBits> ToSampleCount;
+	static std::unordered_map<std::string, VkCullModeFlagBits> ToCullMode;
+	static std::unordered_map<std::string, VkFrontFace> ToFrontFace;
+	static std::unordered_map<std::string, VkPolygonMode> ToPolygonMode;
+	static std::unordered_map<std::string, VkFormat> ToFormat;
+	static std::unordered_map<int, VkShaderStageFlagBits> ToShaderStage;
+	static std::unordered_map<std::string, VkVertexInputRate> ToVertexInputRate;*/
 };
 };

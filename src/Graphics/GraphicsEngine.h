@@ -12,13 +12,13 @@
 #include "PipelineStateEditor.h"
 #include "RenderPipeline.h"
 #include "RaytracingProgram.h"
+#include "VulkanProfiler.h"
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #endif
 
 #ifdef USE_IMGUI
-
 #include <Imgui/imgui.h>
 #include <Imgui/imgui_impl_glfw_vulkan.h>
 #endif
@@ -71,29 +71,29 @@ class GFX_DLL GraphicsEngine {
 	PipelineState m_Pipeline;
 	int m_CurrentPipeline;
 
-	vk::RenderPass m_RenderPass;
-	vk::Semaphore m_ImageAquiredSemaphore;
-	vk::Semaphore m_TransferComplete;
-	vk::Semaphore m_RenderCompleteSemaphore;
-	vk::Fence m_Fence[BUFFER_COUNT];
-	vk::Viewport m_Viewport;
-	vk::Rect2D m_Scissor;
+	VkRenderPass m_RenderPass;
+	VkSemaphore m_ImageAquiredSemaphore;
+	VkSemaphore m_TransferComplete;
+	VkSemaphore m_RenderCompleteSemaphore;
+	VkFence m_Fence[BUFFER_COUNT];
+	VkViewport m_Viewport;
+	VkRect2D m_Scissor;
 
 	VkBufferHandle m_PerFrameBuffer;
 	SkyBox m_SkyBox;
-	//vk::DescriptorPool m_DescriptorPool;
-	vk::DescriptorSet m_PerFrameSet;
+	//VkDescriptorPool m_DescriptorPool;
+	VkDescriptorSet m_PerFrameSet;
 	//ibl TODO: MOVE SOMEWHERE ELSE
 	VkTexture m_IBLTex;
 	VkTexture m_SkyRad;
 	VkTexture m_SkyIrr;
-	vk::DescriptorSet m_IBLDescSet;
+	VkDescriptorSet m_IBLDescSet;
 
 	FrameBufferManager m_FrameBuffer;
 
 	bool m_VSync;
 	glm::vec2 m_ScreenSize;
-	vk::PipelineMultisampleStateCreateInfo m_MSState;
+	VkPipelineMultisampleStateCreateInfo m_MSState;
 	ShadowMapProgram m_ShadowProgram;
 	ToneMapProgram m_ToneMapping;
 
@@ -104,17 +104,20 @@ class GFX_DLL GraphicsEngine {
 	PerFrameStatistics m_Stats;
 	DeviceAllocator m_DeviceAllocator;
 	RenderPipeline m_RenderPipeline;
+	VulkanProfiler m_Profiler;
+#if defined(RTX_ON)
 	RaytracingProgram m_RaytracingProgram;
+#endif
 
 #ifdef USE_IMGUI
   public:
 	ImGui_ImplGlfwVulkan_Init_Data* GetImguiInit();
 	void CreateImguiFont(ImGuiContext* imguiCtx);
   private:
-	vk::Semaphore m_ImguiComplete;
+	VkSemaphore m_ImguiComplete;
 	ImGuiContext* m_ImguiCtx;
 
-	PipelineStateEditor pipelineEditor;
+	//PipelineStateEditor pipelineEditor;
 #endif
 
 #define VK_DEVICE m_VKContext.Device

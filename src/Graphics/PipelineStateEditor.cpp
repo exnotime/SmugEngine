@@ -84,45 +84,45 @@ void RenderTextEditor(const char* name, char* text, uint32_t bufferSize) {
 	ImGui::InputTextMultiline("", text, bufferSize, size); //current shader
 }
 
-void RenderDepthStencilStateEditor(vk::PipelineDepthStencilStateCreateInfo& depthInfo) {
-	ImGui::LabelText("", "Depth");
-	ImGui::Checkbox("Enable depth test", (bool*)&depthInfo.depthTestEnable);
-	std::vector<const char*> compareOPslabels;
-	int currentIndex = 0;
-	int i = 0;
-	for (auto& comp : ToCompareOp) {
-		compareOPslabels.push_back(comp.first.c_str());
-		if (depthInfo.depthCompareOp == comp.second)
-			currentIndex = i;
-		i++;
-	}
-	ImGui::Combo("Compare op", &currentIndex, compareOPslabels.data(), (uint32_t)compareOPslabels.size());
-	depthInfo.depthCompareOp = ToCompareOp[compareOPslabels[currentIndex]];
-	ImGui::Checkbox("Enable depth write", (bool*)&depthInfo.depthWriteEnable);
-	ImGui::Checkbox("Enable depth bounds", (bool*)&depthInfo.depthBoundsTestEnable);
-	ImGui::InputFloat("Min depth bounds", &depthInfo.minDepthBounds);
-	ImGui::InputFloat("Max depth bounds", &depthInfo.minDepthBounds);
-	ImGui::LabelText("", "Stencil");
-	ImGui::Checkbox("Enable stencil test", (bool*)&depthInfo.stencilTestEnable);
-	std::vector<const char*> stencilOpLabels;
-	int frontIndex = 0;
-	int backIndex = 0;
-	i = 0;
-	for (auto& op : ToStencilOp) {
-		stencilOpLabels.push_back(op.first.c_str());
-		if (depthInfo.front == op.second)
-			frontIndex = i;
-		if (depthInfo.back == op.second)
-			backIndex = i;
-		i++;
-	}
-	ImGui::Combo("Front Stencil op", &frontIndex, stencilOpLabels.data(), (uint32_t)stencilOpLabels.size());
-	ImGui::Combo("Back Stencil op", &backIndex, stencilOpLabels.data(), (uint32_t)stencilOpLabels.size());
-	depthInfo.front = ToStencilOp[stencilOpLabels[frontIndex]];
-	depthInfo.back = ToStencilOp[stencilOpLabels[backIndex]];
+void RenderDepthStencilStateEditor(VkPipelineDepthStencilStateCreateInfo& depthInfo) {
+	//ImGui::LabelText("", "Depth");
+	//ImGui::Checkbox("Enable depth test", (bool*)&depthInfo.depthTestEnable);
+	//std::vector<const char*> compareOPslabels;
+	//int currentIndex = 0;
+	//int i = 0;
+	//for (auto& comp : ToCompareOp) {
+	//	compareOPslabels.push_back(comp.first.c_str());
+	//	if (depthInfo.depthCompareOp == comp.second)
+	//		currentIndex = i;
+	//	i++;
+	//}
+	//ImGui::Combo("Compare op", &currentIndex, compareOPslabels.data(), (uint32_t)compareOPslabels.size());
+	//depthInfo.depthCompareOp = ToCompareOp[compareOPslabels[currentIndex]];
+	//ImGui::Checkbox("Enable depth write", (bool*)&depthInfo.depthWriteEnable);
+	//ImGui::Checkbox("Enable depth bounds", (bool*)&depthInfo.depthBoundsTestEnable);
+	//ImGui::InputFloat("Min depth bounds", &depthInfo.minDepthBounds);
+	//ImGui::InputFloat("Max depth bounds", &depthInfo.minDepthBounds);
+	//ImGui::LabelText("", "Stencil");
+	//ImGui::Checkbox("Enable stencil test", (bool*)&depthInfo.stencilTestEnable);
+	//std::vector<const char*> stencilOpLabels;
+	//int frontIndex = 0;
+	//int backIndex = 0;
+	//i = 0;
+	//for (auto& op : ToStencilOp) {
+	//	stencilOpLabels.push_back(op.first.c_str());
+	//	if (depthInfo.front == op.second)
+	//		frontIndex = i;
+	//	if (depthInfo.back == op.second)
+	//		backIndex = i;
+	//	i++;
+	//}
+	//ImGui::Combo("Front Stencil op", &frontIndex, stencilOpLabels.data(), (uint32_t)stencilOpLabels.size());
+	//ImGui::Combo("Back Stencil op", &backIndex, stencilOpLabels.data(), (uint32_t)stencilOpLabels.size());
+	//depthInfo.front = ToStencilOp[stencilOpLabels[frontIndex]];
+	//depthInfo.back = ToStencilOp[stencilOpLabels[backIndex]];
 }
 
-void RenderRasterizerStateEditor(vk::PipelineRasterizationStateCreateInfo& rasterInfo) {
+void RenderRasterizerStateEditor(VkPipelineRasterizationStateCreateInfo& rasterInfo) {
 	//cull mode
 	std::vector<const char*> cullModelabels;
 	int cullIndex = 0;
@@ -167,9 +167,9 @@ void RenderRasterizerStateEditor(vk::PipelineRasterizationStateCreateInfo& raste
 	ImGui::InputFloat("Depth bias clamp", &rasterInfo.depthBiasClamp);
 }
 
-int RenderAttachmentStatesChooser(std::vector<vk::PipelineColorBlendAttachmentState>& states, int activeAttachment) {
+int RenderAttachmentStatesChooser(std::vector<VkPipelineColorBlendAttachmentState>& states, int activeAttachment) {
 	uint32_t stateCount = (uint32_t)states.size();
-	for (int i = 0; i < stateCount; i++) {
+	for (uint32_t i = 0; i < stateCount; i++) {
 		ImGui::Text("Attachment %d", i);
 		ImGui::SameLine();
 		if (ImGui::SmallButton("Edit")) {
@@ -187,7 +187,7 @@ int RenderAttachmentStatesChooser(std::vector<vk::PipelineColorBlendAttachmentSt
 	return activeAttachment;
 }
 
-void RenderAttachmentStateEditor(vk::PipelineColorBlendAttachmentState& attachmentState) {
+void RenderAttachmentStateEditor(VkPipelineColorBlendAttachmentState& attachmentState) {
 	ImGui::Checkbox("Enable blend", (bool*)&attachmentState.blendEnable);
 	std::vector<const char*> blendOplabels;
 	int alphaOpIndex = 0;

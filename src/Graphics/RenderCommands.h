@@ -5,9 +5,9 @@
 
 namespace smug {
 	namespace RenderCommands {
-		void RenderCommand(const RenderCmd& cmd, vk::CommandBuffer cmdBuffer, RenderQueue& rq, ResourceHandler& resources, const vk::DescriptorSet& perFrameSet, const vk::DescriptorSet& iblSet);
-		void DisptachCommand(const DispatchCmd& cmd, vk::CommandBuffer cmdBuffer);
-		void CopyCommands();
-		void FenceCommand();
+		void RenderCommand(const RenderCmd& cmd, VkCommandBuffer cmdBuffer, RenderQueue& rq, ResourceHandler& resources, const VkDescriptorSet& perFrameSet, const VkDescriptorSet& iblSet);
+		void DisptachCommand(const DispatchCmd& cmd, VkCommandBuffer cmdBuffer, ResourceHandler& resources);
+		void CopyCommands(const CopyCmd& cmd, VkCommandBuffer cmdBuffer, ResourceHandler& resources);
+		void FenceCommand(const FenceCmd& cmd, VkDevice device);
 	}
 }

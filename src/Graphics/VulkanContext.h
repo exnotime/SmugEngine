@@ -1,107 +1,114 @@
 #pragma once
-#include <vulkan/vulkan.hpp>
+#include "volk.h"
 #include <deque>
+#include <vector>
 #define BUFFER_COUNT 2
 namespace smug {
 
 struct VulkanSwapChain {
-	vk::SurfaceKHR Surface;
-	vk::SwapchainKHR SwapChain;
-	vk::Image Images[BUFFER_COUNT];
-	vk::ImageView ImageViews[BUFFER_COUNT];
-	vk::Framebuffer FrameBuffers[BUFFER_COUNT];
+	VkSurfaceKHR Surface;
+	VkSwapchainKHR SwapChain;
+	VkImage Images[BUFFER_COUNT];
+	VkImageView ImageViews[BUFFER_COUNT];
+	VkFramebuffer FrameBuffers[BUFFER_COUNT];
 	bool SRGB;
-	vk::Format Format;
+	VkFormat Format;
 };
 
 struct VulkanContext {
-	vk::Instance Instance;
-	vk::Device Device;
-	vk::PhysicalDevice PhysicalDevice;
-	vk::DescriptorPool DescriptorPool;
+	VkInstance Instance;
+	VkDevice Device;
+	VkPhysicalDevice PhysicalDevice;
+	VkDescriptorPool DescriptorPool;
 	uint32_t FrameIndex;
 };
 
 
-static vk::AccessFlags LayoutToAccessMask(vk::ImageLayout layout) {
+static VkAccessFlags LayoutToAccessMask(VkImageLayout layout) {
 	switch (layout) {
-	case vk::ImageLayout::eColorAttachmentOptimal:
-		return vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite;
+	case VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+		return VkAccessFlagBits::VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VkAccessFlagBits::VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 		break;
-	case vk::ImageLayout::eDepthStencilAttachmentOptimal:
-		return vk::AccessFlagBits::eDepthStencilAttachmentRead | vk::AccessFlagBits::eDepthStencilAttachmentWrite;
+	case VkImageLayout::VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+		return VkAccessFlagBits::VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VkAccessFlagBits::VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 		break;
-	case vk::ImageLayout::eDepthStencilReadOnlyOptimal:
-		return vk::AccessFlagBits::eShaderRead;
+	case VkImageLayout::VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL:
+		return VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT;
 		break;
-	case vk::ImageLayout::ePresentSrcKHR:
-		return vk::AccessFlagBits::eMemoryRead;
+	case VkImageLayout::VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
+		return VkAccessFlagBits::VK_ACCESS_MEMORY_READ_BIT;
 		break;
-	case vk::ImageLayout::eShaderReadOnlyOptimal:
-		return vk::AccessFlagBits::eShaderRead;
+	case VkImageLayout::VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+		return VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT;
 		break;
-	case vk::ImageLayout::eTransferDstOptimal:
-		return vk::AccessFlagBits::eTransferWrite;
+	case VkImageLayout::VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+		return VkAccessFlagBits::VK_ACCESS_TRANSFER_WRITE_BIT;
 		break;
-	case vk::ImageLayout::eTransferSrcOptimal:
-		return vk::AccessFlagBits::eTransferRead;
+	case VkImageLayout::VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+		return VkAccessFlagBits::VK_ACCESS_TRANSFER_READ_BIT;
 		break;
-	case vk::ImageLayout::eGeneral:
-		return vk::AccessFlagBits::eShaderWrite;
+	case VkImageLayout::VK_IMAGE_LAYOUT_GENERAL:
+		return VkAccessFlagBits::VK_ACCESS_SHADER_WRITE_BIT;
 		break;
-	case vk::ImageLayout::ePreinitialized:
-		return vk::AccessFlags();
+	case VkImageLayout::VK_IMAGE_LAYOUT_PREINITIALIZED:
+		return VkAccessFlags();
 		break;
-	case vk::ImageLayout::eUndefined:
-		return vk::AccessFlags();
+	case VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED:
+		return VkAccessFlags();
 		break;
 	}
-	return vk::AccessFlags();
+	return VkAccessFlags();
 }
 
-static vk::ImageAspectFlags LayoutToAspectMask(vk::ImageLayout layout) {
-	if (layout == vk::ImageLayout::eColorAttachmentOptimal || layout == vk::ImageLayout::eShaderReadOnlyOptimal ||
-	        layout == vk::ImageLayout::eGeneral || layout == vk::ImageLayout::ePresentSrcKHR || layout == vk::ImageLayout::eTransferDstOptimal ||
-	        layout == vk::ImageLayout::eTransferSrcOptimal) {
-		return vk::ImageAspectFlagBits::eColor;
+static VkImageAspectFlags LayoutToAspectMask(VkImageLayout layout) {
+	if (layout == VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL || layout == VkImageLayout::VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ||
+	        layout == VkImageLayout::VK_IMAGE_LAYOUT_GENERAL || layout == VkImageLayout::VK_IMAGE_LAYOUT_PRESENT_SRC_KHR || layout == VkImageLayout::VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL ||
+	        layout == VkImageLayout::VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL) {
+		return VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT;
 	}
-	else if (layout == vk::ImageLayout::eDepthStencilAttachmentOptimal) {
-		return vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil;
-	}else if (layout == vk::ImageLayout::eDepthStencilReadOnlyOptimal){
-		return vk::ImageAspectFlagBits::eDepth;
+	else if (layout == VkImageLayout::VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
+		return VkImageAspectFlagBits::VK_IMAGE_ASPECT_DEPTH_BIT | VkImageAspectFlagBits::VK_IMAGE_ASPECT_STENCIL_BIT;
+	}else if (layout == VkImageLayout::VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL){
+		return VkImageAspectFlagBits::VK_IMAGE_ASPECT_DEPTH_BIT;
 	} else {
-		return vk::ImageAspectFlagBits::eMetadata;
+		return VkImageAspectFlagBits::VK_IMAGE_ASPECT_METADATA_BIT;
 	}
-	return vk::ImageAspectFlagBits::eMetadata;
+	return VkImageAspectFlagBits::VK_IMAGE_ASPECT_METADATA_BIT;
 }
 
-class CommandBuffer : public vk::CommandBuffer {
+class CommandBuffer {
   public:
 	CommandBuffer() {
 
 	}
 
-	CommandBuffer(vk::CommandBuffer buffer) {
-		*static_cast<vk::CommandBuffer*>(this) = buffer;
+	CommandBuffer(VkCommandBuffer buffer) {
+		m_Buffer = buffer;
 	}
 
 	~CommandBuffer() {
 		int i = 0;
 	}
 
-	void Begin(const vk::Framebuffer& frameBuffer, const vk::RenderPass& renderPass) {
-		vk::CommandBufferBeginInfo beginInfo;
-		vk::CommandBufferInheritanceInfo inheritanceInfo;
+	void Begin(const VkFramebuffer& frameBuffer, const VkRenderPass& renderPass) {
+		VkCommandBufferBeginInfo beginInfo = {};
+		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		beginInfo.pNext = nullptr;
+		VkCommandBufferInheritanceInfo inheritanceInfo = {};
+		inheritanceInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
+		inheritanceInfo.pNext = nullptr;
 		inheritanceInfo.framebuffer = frameBuffer;
 		inheritanceInfo.renderPass = renderPass;
 		beginInfo.pInheritanceInfo = &inheritanceInfo;
-		beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
+		beginInfo.flags = VkCommandBufferUsageFlagBits::VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
-		this->begin(&beginInfo);
+		vkBeginCommandBuffer(m_Buffer, &beginInfo);
 	}
 
-	void ImageBarrier(const vk::Image& img, vk::ImageLayout oldLayout, vk::ImageLayout newLayout) {
-		vk::ImageMemoryBarrier imgBarrier;
+	void ImageBarrier(const VkImage& img, VkImageLayout oldLayout, VkImageLayout newLayout) {
+		VkImageMemoryBarrier imgBarrier = {};
+		imgBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		imgBarrier.pNext = nullptr;
 		imgBarrier.image = img;
 		imgBarrier.oldLayout = oldLayout;
 		imgBarrier.newLayout = newLayout;
@@ -116,18 +123,20 @@ class CommandBuffer : public vk::CommandBuffer {
 	}
 
 	void PushPipelineBarrier() {
-		this->pipelineBarrier(vk::PipelineStageFlagBits::eAllCommands, vk::PipelineStageFlagBits::eAllCommands, vk::DependencyFlagBits::eByRegion,
-		                      0, nullptr, 0, nullptr, (uint32_t)m_ImgBarriers.size(), m_ImgBarriers.data());
+		vkCmdPipelineBarrier(m_Buffer,VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_DEPENDENCY_BY_REGION_BIT, 0, nullptr, 0, nullptr, (uint32_t)m_ImgBarriers.size(), m_ImgBarriers.data());
 		m_ImgBarriers.resize(0);
 	}
 
 	void Reset() {
-		this->reset(vk::CommandBufferResetFlagBits::eReleaseResources);
+		vkResetCommandBuffer( m_Buffer, VkCommandBufferResetFlagBits::VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
 		m_ImgBarriers.resize(0);
 	}
 
+	VkCommandBuffer CmdBuffer() { return m_Buffer; }
+
   private:
-	std::vector<vk::ImageMemoryBarrier> m_ImgBarriers;
+	std::vector<VkImageMemoryBarrier> m_ImgBarriers;
+	VkCommandBuffer m_Buffer;
 };
 
 class VulkanCommandBufferFactory {
@@ -141,33 +150,39 @@ class VulkanCommandBufferFactory {
 		}
 	}
 
-	void Init(vk::Device device, int queueFamilyIndex, uint32_t bufferCount) {
-		vk::CommandPoolCreateInfo poolInfo;
+	void Init(VkDevice device, int queueFamilyIndex, uint32_t bufferCount) {
+		VkCommandPoolCreateInfo poolInfo = {};
+		poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+		poolInfo.pNext = nullptr;
 		poolInfo.queueFamilyIndex = queueFamilyIndex;
-		poolInfo.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer;
-		m_CmdPools[0] = device.createCommandPool(poolInfo);
-		m_CmdPools[1] = device.createCommandPool(poolInfo);
+		poolInfo.flags = VkCommandPoolCreateFlagBits::VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+		vkCreateCommandPool(device, &poolInfo,nullptr, &m_CmdPools[0]);
+		vkCreateCommandPool(device, &poolInfo, nullptr, &m_CmdPools[1]);
 
-		vk::CommandBufferAllocateInfo bufferInfo;
+		VkCommandBufferAllocateInfo bufferInfo = {};
+		bufferInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+		bufferInfo.pNext = nullptr;
 		bufferInfo.commandBufferCount = bufferCount;
 		bufferInfo.commandPool = m_CmdPools[0];
-		bufferInfo.level = vk::CommandBufferLevel::ePrimary;
+		bufferInfo.level = VkCommandBufferLevel::VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 
-		auto& buffers = device.allocateCommandBuffers(bufferInfo);
+		std::vector<VkCommandBuffer> buffers;
+		buffers.resize(bufferCount);
+		vkAllocateCommandBuffers(device, &bufferInfo, &buffers[0]);
 		for (uint32_t i = 0; i < buffers.size(); ++i) {
 			m_CommandBuffers.push_back(new CommandBuffer(buffers[i]));
 		}
 		m_ResetBuffers.insert(m_ResetBuffers.begin(), m_CommandBuffers.begin(), m_CommandBuffers.end());
 	}
 
-	void Reset(vk::Device device, int frameIndex) {
+	void Reset(VkDevice device, int frameIndex) {
 		while (!m_UsedBuffers.empty()) {
 			auto& buffer = m_UsedBuffers.front();
 			buffer->Reset();
 			m_UsedBuffers.pop_front();
 			m_ResetBuffers.push_back(buffer);
 		}
-		device.resetCommandPool(m_CmdPools[frameIndex], vk::CommandPoolResetFlagBits::eReleaseResources);
+		vkResetCommandPool(device, m_CmdPools[frameIndex], VkCommandPoolResetFlagBits::VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT);
 	}
 
 	CommandBuffer* GetNextBuffer() {
@@ -177,7 +192,7 @@ class VulkanCommandBufferFactory {
 	}
 
 	void EndBuffer(CommandBuffer* buffer) {
-		buffer->end();
+		vkEndCommandBuffer(buffer->CmdBuffer());
 		m_UsedBuffers.push_back(buffer);
 	}
 
@@ -185,10 +200,10 @@ class VulkanCommandBufferFactory {
 	std::vector<CommandBuffer*> m_CommandBuffers;
 	std::deque<CommandBuffer*> m_ResetBuffers;
 	std::deque<CommandBuffer*> m_UsedBuffers;
-	vk::CommandPool m_CmdPools[BUFFER_COUNT];
+	VkCommandPool m_CmdPools[BUFFER_COUNT];
 };
 
-class DeviceQueue : public vk::Queue {
+class DeviceQueue {
   public:
 	DeviceQueue() {
 
@@ -197,24 +212,36 @@ class DeviceQueue : public vk::Queue {
 
 	}
 
-	void Init(const vk::PhysicalDevice& physDevice, vk::QueueFlagBits type) {
+	void Init(VkPhysicalDevice physDevice, VkQueueFlagBits type) {
 		//find queue index for type
 		m_QueueIndex = 0;
-		for (auto& queueProps : physDevice.getQueueFamilyProperties()) {
-			if (queueProps.queueFlags & type) {
+		uint32_t queueCount = 0;
+		vkGetPhysicalDeviceQueueFamilyProperties(physDevice, &queueCount, nullptr);
+		std::vector<VkQueueFamilyProperties> props(queueCount);
+		vkGetPhysicalDeviceQueueFamilyProperties(physDevice, &queueCount, &props[0]);
+		for (; m_QueueIndex < queueCount; ++m_QueueIndex) {
+			if (props[m_QueueIndex].queueFlags & type) {
 				break;
 			}
-			m_QueueIndex++;
 		}
+		m_QueueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+		m_QueueInfo.pNext = nullptr;
+		m_QueueInfo.flags = 0;
 		m_QueueInfo.queueCount = 1;
 		m_QueueInfo.queueFamilyIndex = m_QueueIndex;
 		m_QueuePrio = 0.0f;
 		m_QueueInfo.pQueuePriorities = &m_QueuePrio;
 	}
 
-	void Submit(const std::vector<vk::CommandBuffer>& cmdBuffers, const std::vector<vk::Semaphore> waitSemaphores,
-	            const std::vector<vk::Semaphore> signalSemaphores, vk::Fence fence) {
-		vk::SubmitInfo submit;
+	void SetQueue(const VkDevice& device) {
+		vkGetDeviceQueue(device, m_QueueIndex, 0, &m_Queue);
+	}
+
+	void Submit(const std::vector<VkCommandBuffer>& cmdBuffers, const std::vector<VkSemaphore> waitSemaphores,
+	            const std::vector<VkSemaphore> signalSemaphores, VkFence fence) {
+		VkSubmitInfo submit = {};
+		submit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submit.pNext = nullptr;
 		submit.commandBufferCount = (uint32_t)cmdBuffers.size();
 		submit.pCommandBuffers = cmdBuffers.data();
 		submit.signalSemaphoreCount = (uint32_t)signalSemaphores.size();
@@ -222,61 +249,68 @@ class DeviceQueue : public vk::Queue {
 		submit.waitSemaphoreCount = (uint32_t)waitSemaphores.size();
 		submit.pWaitSemaphores = waitSemaphores.data();
 
-		std::vector<vk::PipelineStageFlags> flags;
+		std::vector<VkPipelineStageFlags> flags;
 		for (auto& waits : waitSemaphores)
-			flags.push_back(vk::PipelineStageFlagBits::eBottomOfPipe);
+			flags.push_back(VkPipelineStageFlagBits::VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
 
 		submit.pWaitDstStageMask = flags.data();
-
-		this->submit(1, &submit, fence);
+		vkQueueSubmit(m_Queue, 1, &submit, fence);
 	}
 
-	void Submit(const vk::CommandBuffer& cmdBuffer, const vk::Semaphore& waitSemaphore,
-	            const vk::Semaphore& signalSemaphore, const vk::Fence fence) {
-		vk::SubmitInfo submit;
+	void Submit(VkCommandBuffer cmdBuffer, VkSemaphore waitSemaphore, VkSemaphore signalSemaphore, VkFence fence) {
+		VkSubmitInfo submit = {};
+		submit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submit.pNext = nullptr;
 		submit.commandBufferCount = 1;
 		submit.pCommandBuffers = &cmdBuffer;
 		submit.signalSemaphoreCount = (signalSemaphore) ? 1 : 0;
 		submit.pSignalSemaphores = &signalSemaphore;
 		submit.waitSemaphoreCount = (waitSemaphore) ? 1 : 0;
 		submit.pWaitSemaphores = &waitSemaphore;
-		vk::PipelineStageFlags flags = vk::PipelineStageFlagBits::eBottomOfPipe;
+		VkPipelineStageFlags flags = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
 		submit.pWaitDstStageMask = &flags;
 
-		this->submit(1, &submit, fence);
+		vkQueueSubmit(m_Queue, 1, &submit, fence);
 	}
 
-	void Submit(const vk::CommandBuffer cmdBuffer) {
-		vk::SubmitInfo submit;
+	void Submit(VkCommandBuffer cmdBuffer) {
+		VkSubmitInfo submit = {};
+		submit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submit.pNext = nullptr;
 		submit.commandBufferCount = 1;
 		submit.pCommandBuffers = &cmdBuffer;
-		vk::PipelineStageFlags flags = vk::PipelineStageFlagBits::eBottomOfPipe;
+		VkPipelineStageFlags flags = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
 		submit.pWaitDstStageMask = &flags;
 
-		this->submit(1, &submit, nullptr);
+		vkQueueSubmit(m_Queue, 1, &submit, nullptr);
 	}
 
-	void Submit(const std::vector<vk::CommandBuffer> buffers) {
-		vk::SubmitInfo submit;
+	void Submit(const std::vector<VkCommandBuffer>& buffers) {
+		VkSubmitInfo submit = {};
+		submit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submit.pNext = nullptr;
 		submit.commandBufferCount = (uint32_t)buffers.size();
 		submit.pCommandBuffers = buffers.data();
-		vk::PipelineStageFlags flags = vk::PipelineStageFlagBits::eBottomOfPipe;
+		VkPipelineStageFlags flags = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
 		submit.pWaitDstStageMask = &flags;
 
-		this->submit(1, &submit, nullptr);
+		vkQueueSubmit(m_Queue, 1, &submit, nullptr);
 	}
 
-	vk::DeviceQueueCreateInfo& GetInfo() {
+	VkDeviceQueueCreateInfo& GetInfo() {
 		return m_QueueInfo;
 	}
 	int GetQueueIndex() {
 		return m_QueueIndex;
 	}
 
+	VkQueue GetQueue() { return m_Queue; }
+
   private:
 	int m_QueueIndex;
 	float m_QueuePrio;
-	vk::DeviceQueueCreateInfo m_QueueInfo;
+	VkDeviceQueueCreateInfo m_QueueInfo;
+	VkQueue m_Queue;
 
 };
 

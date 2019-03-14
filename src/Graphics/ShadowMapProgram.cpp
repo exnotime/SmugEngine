@@ -16,38 +16,40 @@ ShadowMapProgram::~ShadowMapProgram() {
 
 void ShadowMapProgram::Init(VulkanContext& vc, DeviceAllocator& allocator) {
 	m_Device = &vc.Device;
-	std::vector<vk::Format> formats;
-	std::vector<vk::ImageUsageFlags> usages;
-	formats.push_back(vk::Format::eD32Sfloat);
-	usages.push_back(vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled);
-	m_FrameBuffer.Init(vc.Device, vc.PhysicalDevice, glm::vec2(SHADOWMAP_SIZE * 2), formats, usages, 1);
+	std::vector<VkFormat> formats;
+	std::vector<VkImageUsageFlags> usages;
+	formats.push_back(VkFormat::VK_FORMAT_D32_SFLOAT);
+	usages.push_back(VkImageUsageFlagBits::VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VkImageUsageFlagBits::VK_IMAGE_USAGE_SAMPLED_BIT);
+	m_FrameBuffer.Init(vc.Device, vc.PhysicalDevice, glm::vec2(SHADOWMAP_SIZE * 2), formats, usages);
 
 	m_State.LoadPipelineFromFile(vc.Device, "shader/shadowmap.json", m_FrameBuffer.GetRenderPass());
 
 	//allocate uniform buffer for light view matrixes
 	m_UniformBuffer = allocator.AllocateBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(glm::mat4) * 4, nullptr);
 	//allocate descriptor set
-	vk::DescriptorSetAllocateInfo descAllocInfo;
+	VkDescriptorSetAllocateInfo descAllocInfo = {};
+	descAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	descAllocInfo.pNext = nullptr;
 	descAllocInfo.descriptorPool = vc.DescriptorPool;
-	std::vector<vk::DescriptorSetLayout>& descLayouts = m_State.GetDescriptorSetLayouts();
+	std::vector<VkDescriptorSetLayout>& descLayouts = m_State.GetDescriptorSetLayouts();
 	descAllocInfo.pSetLayouts = descLayouts.data();
 	descAllocInfo.descriptorSetCount = (uint32_t)descLayouts.size();
-
-	m_DescSet = vc.Device.allocateDescriptorSets(descAllocInfo)[0];
+	vkAllocateDescriptorSets(vc.Device, &descAllocInfo, &m_DescSet);
 	//fill in descriptor set
-	vk::WriteDescriptorSet writeInfo;
+	VkWriteDescriptorSet writeInfo = {};
+	writeInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	writeInfo.pNext = nullptr;
 	writeInfo.descriptorCount = 1;
-	writeInfo.descriptorType = vk::DescriptorType::eUniformBuffer;
+	writeInfo.descriptorType = VkDescriptorType::VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	writeInfo.dstBinding = 0;
 	writeInfo.dstArrayElement = 0;
 	writeInfo.dstSet = m_DescSet;
-	vk::DescriptorBufferInfo bufferInfo;
+	VkDescriptorBufferInfo bufferInfo = {};
 	bufferInfo.buffer = m_UniformBuffer.buffer;
 	bufferInfo.offset = 0;
 	bufferInfo.range = VK_WHOLE_SIZE;
 	writeInfo.pBufferInfo = &bufferInfo;
-	vc.Device.updateDescriptorSets(1, &writeInfo, 0, nullptr);
-
+	vkUpdateDescriptorSets(vc.Device, 1, &writeInfo, 0, nullptr);
 
 	m_BoxHandle = g_AssetLoader.LoadAsset("assets/models/cube/cube.obj");
 
@@ -152,66 +154,69 @@ void ShadowMapProgram::Update(DeviceAllocator& allocator, RenderQueue& rq) {
 	allocator.UpdateBuffer(m_UniformBuffer, sizeof(glm::mat4) * CASCADE_COUNT, m_LightViewProjs);
 }
 
-void ShadowMapProgram::Render(uint32_t frameIndex, CommandBuffer& cmdBuffer, const RenderQueue& rq, const ResourceHandler& resources) {
+void ShadowMapProgram::Render(uint32_t frameIndex, CommandBuffer& cmdBuffer, const RenderQueue& rq, const ResourceHandler& resources, VulkanProfiler& profiler) {
 
 	if (rq.GetModels().size() == 0) {
 		return;
 	}
-	cmdBuffer.Begin(m_FrameBuffer.GetFrameBuffer(0), m_FrameBuffer.GetRenderPass());
+	cmdBuffer.Begin(m_FrameBuffer.GetFrameBuffer(), m_FrameBuffer.GetRenderPass());
+	profiler.Stamp(cmdBuffer.CmdBuffer(), "ShadowMap");
 	static bool first = true;
 	if(first) {
-		std::vector<vk::ImageLayout> newLayouts;
-		newLayouts.push_back(vk::ImageLayout::eDepthStencilAttachmentOptimal);
-		m_FrameBuffer.ChangeLayout(cmdBuffer, newLayouts, 0);
+		std::vector<VkImageLayout> newLayouts;
+		newLayouts.push_back(VkImageLayout::VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+		m_FrameBuffer.ChangeLayout(cmdBuffer, newLayouts);
 		cmdBuffer.PushPipelineBarrier();
 		first = false;
 	}
 
-	vk::RenderPassBeginInfo rpBeginInfo;
+	VkRenderPassBeginInfo rpBeginInfo = {};
+	rpBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+	rpBeginInfo.pNext = nullptr;
 	rpBeginInfo.clearValueCount = 1;
-	vk::ClearValue cv;
+	VkClearValue cv;
 	cv.depthStencil.depth = 1.0f;
 	cv.depthStencil.stencil = 0x0;
-	vk::ClearValue cv2;
-	vk::ClearValue clears[] = { cv, cv2 };
+	VkClearValue cv2;
+	VkClearValue clears[] = { cv, cv2 };
 	rpBeginInfo.pClearValues = clears;
 	rpBeginInfo.renderPass = m_FrameBuffer.GetRenderPass();
-	rpBeginInfo.framebuffer = m_FrameBuffer.GetFrameBuffer(0);
+	rpBeginInfo.framebuffer = m_FrameBuffer.GetFrameBuffer();
 	rpBeginInfo.renderArea.extent.width = (uint32_t)(SHADOWMAP_SIZE * 2);
 	rpBeginInfo.renderArea.extent.height = (uint32_t)(SHADOWMAP_SIZE * 2);
-	cmdBuffer.beginRenderPass(rpBeginInfo, vk::SubpassContents::eInline);
-	cmdBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, m_State.GetPipeline());
-	vk::Viewport viewports[CASCADE_COUNT] = {
+
+	vkCmdBeginRenderPass(cmdBuffer.CmdBuffer(), &rpBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+	vkCmdBindPipeline(cmdBuffer.CmdBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, m_State.GetPipeline());
+	VkViewport viewports[CASCADE_COUNT] = {
 		{ 0,				0,					SHADOWMAP_SIZE,	SHADOWMAP_SIZE, 0.0f, 1.0f },
 		{ SHADOWMAP_SIZE,	0,					SHADOWMAP_SIZE,	SHADOWMAP_SIZE, 0.0f, 1.0f },
 		{ 0,				SHADOWMAP_SIZE,		SHADOWMAP_SIZE,	SHADOWMAP_SIZE, 0.0f, 1.0f },
 		{ SHADOWMAP_SIZE,	SHADOWMAP_SIZE,		SHADOWMAP_SIZE,	SHADOWMAP_SIZE, 0.0f, 1.0f },
 	};
-	cmdBuffer.setViewport(0, CASCADE_COUNT, viewports);
+	vkCmdSetViewport(cmdBuffer.CmdBuffer(), 0, CASCADE_COUNT, viewports);
 
-	vk::Rect2D scissors[CASCADE_COUNT] = {
+	VkRect2D scissors[CASCADE_COUNT] = {
 		{ {0,				0}, 			{SHADOWMAP_SIZE,	SHADOWMAP_SIZE}},
 		{ {SHADOWMAP_SIZE,	0}, 			{SHADOWMAP_SIZE,	SHADOWMAP_SIZE}},
 		{ {0,				SHADOWMAP_SIZE},{SHADOWMAP_SIZE,	SHADOWMAP_SIZE}},
 		{ {SHADOWMAP_SIZE,	SHADOWMAP_SIZE},{SHADOWMAP_SIZE,	SHADOWMAP_SIZE}},
 	};
-	cmdBuffer.setScissor(0, CASCADE_COUNT, scissors);
+	vkCmdSetScissor(cmdBuffer.CmdBuffer(), 0, CASCADE_COUNT, scissors);
 
-
-	vk::DescriptorSet sets[] = { m_DescSet, rq.GetDescriptorSet() };
-	cmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_State.GetPipelineLayout(), 0, _countof(sets), sets, 0, nullptr);
+	VkDescriptorSet sets[] = { m_DescSet, rq.GetDescriptorSet() };
+	vkCmdBindDescriptorSets(cmdBuffer.CmdBuffer(), VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_GRAPHICS, m_State.GetPipelineLayout(), 0, _countof(sets), sets, 0, nullptr);
 	auto& models = rq.GetModels();
 	for (auto& m : models) {
 		const Model& model = resources.GetModel(m.first);
-		const vk::Buffer vertexBuffers[1] = { model.VertexBuffers[0].buffer };
-		const vk::DeviceSize offsets[1] = { 0 };
-		cmdBuffer.bindVertexBuffers(0, 1, vertexBuffers, offsets);
-		cmdBuffer.bindIndexBuffer(model.IndexBuffer.buffer, 0, vk::IndexType::eUint16);
-		cmdBuffer.pushConstants(m_State.GetPipelineLayout(), vk::ShaderStageFlagBits::eAll, 0, sizeof(uint32_t), &m.second.Offset);
+		const VkBuffer vertexBuffers[1] = { model.VertexBuffers[0].buffer };
+		const VkDeviceSize offsets[1] = { 0 };
+		vkCmdBindVertexBuffers(cmdBuffer.CmdBuffer(), 0, 1, vertexBuffers, offsets);
+		vkCmdBindIndexBuffer(cmdBuffer.CmdBuffer(), model.IndexBuffer.buffer, 0, VkIndexType::VK_INDEX_TYPE_UINT32);
+		vkCmdPushConstants(cmdBuffer.CmdBuffer(), m_State.GetPipelineLayout(), VkShaderStageFlagBits::VK_SHADER_STAGE_ALL, 0, sizeof(uint32_t), &m.second.Offset);
 		for (uint32_t meshIt = 0; meshIt < model.MeshCount; ++meshIt) {
 			Mesh& mesh = model.Meshes[meshIt];
-			cmdBuffer.drawIndexed(mesh.IndexCount, m.second.Count, mesh.IndexOffset, 0, 0);
+			vkCmdDrawIndexed(cmdBuffer.CmdBuffer(), mesh.IndexCount, m.second.Count, mesh.IndexOffset, 0, 0);
 		}
 	}
-	cmdBuffer.endRenderPass();
+	vkCmdEndRenderPass(cmdBuffer.CmdBuffer());
 }

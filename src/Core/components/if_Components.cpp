@@ -4,6 +4,7 @@
 #include <Core/GlobalSystems.h>
 #include "TransformComponent.h"
 #include "ModelComponent.h"
+#include "RigidBodyComponent.h"
 
 namespace smug {
 namespace if_component {
@@ -76,6 +77,30 @@ void CreateModelComponent(uint32_t euid, uint64_t modelResource) {
 }
 #pragma endregion
 
+#pragma region PhysicsComponent
+void CreateRigidBodyComponent(uint32_t euid, uint32_t shape, float mass, bool staticActor, bool useTransform) {
+	Entity& e = globals::g_EntityManager->GetEntity(euid);
+	glm::vec3 pos = glm::vec3();
+	glm::vec3 size = glm::vec3();
+	glm::quat rot = glm::quat();
+	if (e.ComponentBitfield & TransformComponent::Flag && useTransform) {
+		TransformComponent* tc = (TransformComponent*)globals::g_Components->GetComponent(e, TransformComponent::Flag);
+		pos = tc->Position;
+		rot = tc->Orientation;
+		size = tc->Scale;
+	}
+	
+	RigidBodyComponent rc;
+	if (staticActor) {
+		rc.Body = globals::g_Physics->CreateStaticActor(pos, rot, size, (PHYSICS_SHAPE)shape);
+	}
+	else {
+		rc.Body = globals::g_Physics->CreateDynamicActor(pos, rot, size, mass, (PHYSICS_SHAPE)shape);
+	}
+	globals::g_Components->CreateComponent(&rc, e, RigidBodyComponent::Flag);
+}
+#pragma endregion
+
 void InitComponentInterface() {
 	using namespace AngelScript;
 
@@ -90,6 +115,12 @@ void InitComponentInterface() {
 	engine->RegisterGlobalFunction("void CreateTransformComponent(uint euid, vec3 position, vec3 scale)", asFUNCTIONPR(CreateTransformComponent, (uint32_t euid, glm::vec3 position, glm::vec3 scale), void), asCALL_CDECL);
 	engine->RegisterGlobalFunction("void CreateTransformComponent(uint euid, vec3 position, vec3 scale, quat rotation)", asFUNCTIONPR(CreateTransformComponent, (uint32_t euid, glm::vec3 position, glm::vec3 scale, glm::quat rot), void), asCALL_CDECL);
 	engine->RegisterGlobalFunction("void CreateModelComponent(uint euid, uint64 resource)", asFUNCTIONPR(CreateModelComponent, (uint32_t euid, uint64_t mr), void), asCALL_CDECL);
+	engine->RegisterGlobalFunction("void CreateRigidBodyComponent(uint euid, uint shape, float mass, bool staticActor, bool useTransform)", asFUNCTIONPR(CreateRigidBodyComponent, (uint32_t euid, uint32_t shape, float mass, bool s, bool t), void), asCALL_CDECL);
+	engine->RegisterEnum("PHYSICS_SHAPE");
+	engine->RegisterEnumValue("PHYSICS_SHAPE", "SPHERE", PHYSICS_SHAPE::SPHERE);
+	engine->RegisterEnumValue("PHYSICS_SHAPE", "CAPSULE", PHYSICS_SHAPE::CAPSULE);
+	engine->RegisterEnumValue("PHYSICS_SHAPE", "PLANE", PHYSICS_SHAPE::PLANE);
+	engine->RegisterEnumValue("PHYSICS_SHAPE", "CUBE", PHYSICS_SHAPE::CUBE);
 }
 }
 }

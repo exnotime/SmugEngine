@@ -1,6 +1,6 @@
 #pragma once
 #include "PhysicsExport.h"
-#include <PhysX/PxPhysicsAPI.h>
+#include <PhysX4.0/PxPhysicsAPI.h>
 #include <vector>
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -22,6 +22,15 @@ struct PHYSICS_DLL PhysicsBody {
 	glm::quat Orientation;
 	glm::vec3 Force;
 	uint32_t Actor;
+	bool Updated;
+	bool Kinematic;
+	bool Controller;
+	bool IsOnGround;
+};
+
+struct PHYSICS_DLL PhysicsMesh {
+	std::vector<glm::vec3> Vertices;
+	std::vector<uint32_t> Indices;
 };
 
 class PHYSICS_DLL PhysicsEngine {
@@ -35,6 +44,11 @@ class PHYSICS_DLL PhysicsEngine {
 
 	PhysicsBody* CreateDynamicActor(const glm::vec3& pos, const glm::quat& orientation, const glm::vec3& size, float mass, PHYSICS_SHAPE shape, bool kinematic = false);
 	PhysicsBody* CreateStaticActor(const glm::vec3& pos, const glm::quat& orientation, const glm::vec3& size, PHYSICS_SHAPE shape);
+	PhysicsBody* CreateDynamicActorFromTriMesh(const glm::vec3& pos, const glm::quat& orientation, const glm::vec3& size, float mass, PhysicsMesh& mesh, bool kinematic = false);
+	PhysicsBody* CreateStaticActorFromTriMesh(const glm::vec3& pos, const glm::quat& orientation, const glm::vec3& size, PhysicsMesh& mesh);
+	PhysicsBody* CreateController(const glm::vec3& pos, const glm::quat& orientation, const glm::vec3& size, PHYSICS_SHAPE shape);
+
+	void LockRotationAxes(PhysicsBody* body, const glm::bvec3& axes);
 	void DeleteActor(uint32_t actor);
 
 	void SetGravityPoint(const glm::vec3& pos, float strength);
@@ -42,11 +56,12 @@ class PHYSICS_DLL PhysicsEngine {
 	physx::PxFoundation* m_Foundation;
 	physx::PxPhysics* m_Physics;
 	physx::PxScene* m_Scene;
+	physx::PxCooking* m_Cooking;
+	physx::PxControllerManager* m_ControllerManager;
 #ifdef _DEBUG
 	physx::PxPvd* m_PVD;
 #endif
-
-	physx::PxDefaultAllocator m_Allocator;
+	//physx::PxDefaultAllocator m_Allocator;
 	physx::PxDefaultErrorCallback m_Error;
 	physx::PxDefaultCpuDispatcher* m_Disbatcher;
 
@@ -54,8 +69,12 @@ class PHYSICS_DLL PhysicsEngine {
 	const double m_StepTime = 1.0 / 60.0;
 
 	std::vector<physx::PxRigidActor*> m_Actors;
+	std::vector<physx::PxController*> m_Controllers;
+	std::vector<uint32_t> m_FreeActors;
 	std::vector<PhysicsBody*> m_Bodies;
-	physx::PxVec3 m_GravityPoint;
+	glm::vec3 m_GravityPoint;
 	float m_GravityFactor;
+	bool m_HasActiveCustomGravity = false;
+
 };
 }

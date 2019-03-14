@@ -2,7 +2,7 @@ solution "SmugAssetCompiler"
     configurations { "Debug", "Release" }
         flags{ "NoPCH" }
         local vulkan_dir = os.getenv("VULKAN_SDK");
-        libdirs { "lib", vulkan_dir .. "/bin", vulkan_dir .. "/lib", "lib/physx", "lib/spirv_cross" }
+        libdirs { "lib", vulkan_dir .. "/bin", vulkan_dir .. "/lib", "lib/physx4.0", "lib/spirv_cross" }
         includedirs { "include", vulkan_dir .. "/include"}
         platforms{"x64" }
 

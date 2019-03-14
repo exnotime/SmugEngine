@@ -48,10 +48,10 @@ class GFX_DLL RenderQueue {
 	const VkBufferHandle& GetUniformBuffer() const {
 		return m_Resources->GetBuffer(m_Buffer);
 	}
-	void SetDescSet(vk::DescriptorSet set) {
+	void SetDescSet(VkDescriptorSet set) {
 		m_DescSet = set;
 	}
-	vk::DescriptorSet GetDescriptorSet() const {
+	VkDescriptorSet GetDescriptorSet() const {
 		return m_DescSet;
 	}
 
@@ -59,7 +59,7 @@ class GFX_DLL RenderQueue {
 	std::vector<CameraData> m_Cameras;
 	std::vector<ShaderInput> m_Inputs;
 	std::map<ResourceHandle, ModelInstance> m_Models;
-	vk::DescriptorSet m_DescSet;
+	VkDescriptorSet m_DescSet;
 	ResourceHandle m_Buffer;
 	ResourceHandler* m_Resources;
 };

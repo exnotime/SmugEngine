@@ -4,6 +4,7 @@ using namespace smug;
 Input::Input() {
 	m_MousePos = glm::vec2(0);
 	m_UpdateMouseDelta = true;
+	m_Disabled = false;
 }
 Input::~Input() {
 
@@ -55,6 +56,8 @@ void Input::Update() {
 }
 
 void Input::SetKeyState(int key, int state) {
+	if (m_Disabled && key != GLFW_KEY_F3)
+		return;
 	m_Keys[key] = state;
 }
 
@@ -67,10 +70,16 @@ bool Input::IsKeyDown(int key) {
 }
 
 bool Input::IsKeyPushed(int key) {
+	return (m_KeysLastFrame[key] == GLFW_RELEASE) && m_Keys[key] == GLFW_PRESS;
+}
+
+bool Input::IsKeyReleased(int key) {
 	return (m_KeysLastFrame[key] == GLFW_PRESS || m_KeysLastFrame[key] == GLFW_REPEAT) && m_Keys[key] == GLFW_RELEASE;
 }
 
 void Input::SetMousebuttonState(int button, int state) {
+	if (m_Disabled)
+		return;
 	m_MouseButtons[button] = state;
 }
 bool Input::IsMousebuttonDown(int button) {
@@ -110,4 +119,8 @@ glm::dvec2 Input::GetMousePos() {
 
 void Input::SetMouseDeltaUpdate(bool val) {
 	m_UpdateMouseDelta = val;
+}
+
+void Input::SetEnableInput(bool val) {
+	m_Disabled = !val;
 }

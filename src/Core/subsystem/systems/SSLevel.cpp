@@ -2,6 +2,7 @@
 #include <Core/GlobalSystems.h>
 #include <Core/components/TransformComponent.h>
 #include <Core/components/ModelComponent.h>
+#include <Core/components/RigidBodyComponent.h>
 #include <par_shapes.h>
 
 #define STB_PERLIN_IMPLEMENTATION
@@ -42,6 +43,22 @@ void SSLevel::Startup() {
 		mc.Visible = true;
 		mc.Tint = glm::vec4(0.4f, 0.5f, 0.4f, 1.0f);
 		globals::g_Components->CreateComponent(&mc, e, ModelComponent::Flag);
+
+		RigidBodyComponent rc;
+		PhysicsMesh worldPhysicsMesh;
+		for (uint32_t i = 0; i < m_WorldModel.MeshCount; ++i) {
+			MeshInfo& m = m_WorldModel.Meshes[i];
+			for (uint32_t k = 0; k < m.VertexCount; ++k) {
+				worldPhysicsMesh.Vertices.push_back(m.Vertices[k].Position);
+			}
+			for (uint32_t k = 0; k < m.IndexCount; ++k) {
+				worldPhysicsMesh.Indices.push_back(m.Indices[k]);
+			}
+		}
+		rc.Body = globals::g_Physics->CreateStaticActorFromTriMesh(tc.Position, tc.Orientation, tc.Scale, worldPhysicsMesh);
+		globals::g_Components->CreateComponent(&rc, e, RigidBodyComponent::Flag);
+
+
 		m_WorldEntityUID = e.UID;
 		//voxel world entity
 		Entity& voxelEntity = globals::g_EntityManager->CreateEntity();
@@ -50,6 +67,19 @@ void SSLevel::Startup() {
 		mc.ModelHandle = m_VoxelModelHandle;
 		mc.Tint = glm::vec4(0.3, 0.2, 0.2, 1.0f);
 		globals::g_Components->CreateComponent(&mc, voxelEntity, ModelComponent::Flag);
+
+		/*PhysicsMesh voxelPhysicsMesh;
+		for (uint32_t i = 0; i < m_VoxelModel.MeshCount; ++i) {
+			MeshInfo& m = m_VoxelModel.Meshes[i];
+			for (uint32_t k = 0; k < m.VertexCount; ++k) {
+				voxelPhysicsMesh.Vertices.push_back(m.Vertices[k].Position);
+			}
+			for (uint32_t k = 0; k < m.IndexCount; ++k) {
+				voxelPhysicsMesh.Indices.push_back(m.Indices[k]);
+			}
+		}*/
+		//rc.Body = globals::g_Physics->CreateStaticActorFromTriMesh(tc.Position, tc.Orientation, tc.Scale, voxelPhysicsMesh);
+		//globals::g_Components->CreateComponent(&rc, voxelEntity, RigidBodyComponent::Flag);
 		m_VoxelEntityUID = voxelEntity.UID;
 	}
 }
@@ -72,6 +102,22 @@ void SSLevel::Update(const double deltaTime) {
 		GenerateWorld(m_ProcVars);
 		if (m_Indices.size() > 0) {
 			g_AssetLoader.UpdateModel(m_ModelHandle, m_WorldModel);
+			Entity& worldEntity = globals::g_EntityManager->GetEntity(m_WorldEntityUID);
+			RigidBodyComponent* rc = (RigidBodyComponent*)globals::g_Components->GetComponent(worldEntity, RigidBodyComponent::Flag);
+			globals::g_Physics->DeleteActor(rc->Body->Actor);
+			PhysicsMesh worldPhysicsMesh;
+			for (uint32_t i = 0; i < m_WorldModel.MeshCount; ++i) {
+				MeshInfo& m = m_WorldModel.Meshes[i];
+				for (uint32_t k = 0; k < m.VertexCount; ++k) {
+					worldPhysicsMesh.Vertices.push_back(m.Vertices[k].Position);
+				}
+				for (uint32_t k = 0; k < m.IndexCount; ++k) {
+					worldPhysicsMesh.Indices.push_back(m.Indices[k]);
+				}
+			}
+			TransformComponent* tc = (TransformComponent*)globals::g_Components->GetComponent(worldEntity, TransformComponent::Flag);
+			rc->Body = globals::g_Physics->CreateStaticActorFromTriMesh(tc->Position, tc->Orientation, tc->Scale, worldPhysicsMesh);
+
 			g_AssetLoader.UpdateModel(m_VoxelModelHandle, m_VoxelModel);
 		}
 	}

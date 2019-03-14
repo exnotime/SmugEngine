@@ -36,7 +36,7 @@ enum MaterialChannels {
 struct MaterialSet {
 	uint32_t TextureCount;
 	VkImageHandle* Textures;
-	vk::DescriptorSet DescSet;
+	VkDescriptorSet DescSet;
 };
 
 struct Mesh {
@@ -62,7 +62,7 @@ class ResourceHandler {
   public:
 	ResourceHandler();
 	~ResourceHandler();
-	void Init(vk::Device* device, const vk::PhysicalDevice& physDev, MemoryBudget budget, DeviceAllocator& deviceAlloc, FrameBufferManager& fbManager);
+	void Init(VkDevice* device, const VkPhysicalDevice& physDev, MemoryBudget budget, DeviceAllocator& deviceAlloc, FrameBufferManager& fbManager);
 	void ScheduleTransfer(CommandBuffer& cmdBuffer);
 	void Clear();
 
@@ -81,7 +81,7 @@ class ResourceHandler {
 	void DeAllocateBuffer(ResourceHandle handle);
 	ResourceAllocator& GetResourceAllocator() { return m_ResourceAllocator; }
   private:
-	vk::Device* m_Device;
+	VkDevice* m_Device;
 	DeviceAllocator* m_DeviceAllocator;
 	FrameBufferManager* m_FrameBufferManager;
 	ResourceAllocator m_ResourceAllocator;
@@ -95,8 +95,8 @@ class ResourceHandler {
 	VkTexture m_DefaultRoughness;
 	VkTexture m_DefaultMetal;
 
-	vk::DescriptorPool m_DescPool;
-	vk::DescriptorSetLayout m_MaterialLayout;
-	vk::DescriptorSet m_DefaultMaterial;
+	VkDescriptorPool m_DescPool;
+	VkDescriptorSetLayout m_MaterialLayout;
+	VkDescriptorSet m_DefaultMaterial;
 };
 }

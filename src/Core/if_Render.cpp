@@ -26,27 +26,27 @@ namespace smug {
 			RENDER_QUEUE_COPY
 		};
 
-		vk::Format RTFormatToVKFormat(RENDER_TARGET_FORMAT format) {
+		VkFormat RTFormatToVKFormat(RENDER_TARGET_FORMAT format) {
 			switch (format)
 			{
 			case smug::if_render::R8G8B8A8:
-				return vk::Format::eR8G8B8A8Unorm;
+				return VkFormat::VK_FORMAT_R8G8B8A8_UNORM;
 				break;
 			case smug::if_render::R16G16B16A16:
-				return vk::Format::eR16G16B16A16Sfloat;
+				return VkFormat::VK_FORMAT_R16G16B16A16_SFLOAT;
 				break;
 			case smug::if_render::D32:
-				return vk::Format::eD32Sfloat;
+				return VkFormat::VK_FORMAT_D32_SFLOAT;
 				break;
 			case smug::if_render::D24S8:
-				return vk::Format::eD24UnormS8Uint;
+				return VkFormat::VK_FORMAT_D24_UNORM_S8_UINT;
 				break;
 			}
-			return vk::Format::eUndefined;
+			return VkFormat::VK_FORMAT_UNDEFINED;
 		}
 
 		void AllocateRenderTarget(int width, int height, int format, const std::string name) {
-			globals::g_Gfx->GetFrameBufferManager().AllocRenderTarget(HashString(name), width, height, 1, RTFormatToVKFormat((RENDER_TARGET_FORMAT)format), vk::ImageLayout::eColorAttachmentOptimal);
+			//globals::g_Gfx->GetFrameBufferManager().AllocRenderTarget(HashString(name), width, height, 1, RTFormatToVKFormat((RENDER_TARGET_FORMAT)format), VkImageLayout::eColorAttachmentOptimal);
 		}
 
 		enum BUFFER_USAGE {
@@ -62,6 +62,14 @@ namespace smug {
 		void AllocateBuffer(uint64_t size, int usage, const std::string name) {
 			ResourceHandle handle = CreateHandle(HashString(name.c_str()), RT_BUFFER);
 			globals::g_Gfx->GetResourceHandler().AllocateBuffer(size, usage, handle);
+		}
+
+		void AllocateRenderPass(const CScriptArray* renderTargets) {
+
+		}
+
+		void AllocateFrameBuffer(const CScriptArray* renderTargets) {
+
 		}
 
 		uint64_t LoadShader(std::string name) {

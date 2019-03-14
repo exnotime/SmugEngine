@@ -12,5 +12,8 @@ class SSCamera : public SubSystem {
 	virtual void Shutdown();
   private:
 	EntityCache* m_Cache;
+	bool m_FreeFlight = false;
+	float m_JumpVelocity;
+	float m_JumpForce;
 };
 }

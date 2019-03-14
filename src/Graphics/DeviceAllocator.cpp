@@ -9,13 +9,34 @@ DeviceAllocator::~DeviceAllocator() {
 	vmaDestroyAllocator(m_Allocator);
 }
 
-void DeviceAllocator::Init(vk::Device& device, vk::PhysicalDevice& physicalDevice) {
+void DeviceAllocator::Init(VkDevice& device, VkPhysicalDevice& physicalDevice) {
 	VmaAllocatorCreateInfo allocatorCrateInfo = {};
 	allocatorCrateInfo.device = device;
 	allocatorCrateInfo.physicalDevice = physicalDevice;
 	//VmaRecordSettings recordSettings;
 	//recordSettings.pFilePath = "./vmadata.csv";
 	//allocatorCrateInfo.pRecordSettings = &recordSettings;
+	VmaVulkanFunctions vkFunks;
+	vkFunks.vkGetPhysicalDeviceProperties = vkGetPhysicalDeviceProperties;
+	vkFunks.vkGetPhysicalDeviceMemoryProperties = vkGetPhysicalDeviceMemoryProperties;
+	vkFunks.vkAllocateMemory = vkAllocateMemory;
+	vkFunks.vkFreeMemory = vkFreeMemory;
+	vkFunks.vkMapMemory = vkMapMemory;
+	vkFunks.vkUnmapMemory = vkUnmapMemory;
+	vkFunks.vkFlushMappedMemoryRanges = vkFlushMappedMemoryRanges;
+	vkFunks.vkInvalidateMappedMemoryRanges = vkInvalidateMappedMemoryRanges;
+	vkFunks.vkBindBufferMemory = vkBindBufferMemory;
+	vkFunks.vkBindImageMemory = vkBindImageMemory;
+	vkFunks.vkGetBufferMemoryRequirements = vkGetBufferMemoryRequirements;
+	vkFunks.vkGetImageMemoryRequirements = vkGetImageMemoryRequirements;
+	vkFunks.vkCreateBuffer = vkCreateBuffer;
+	vkFunks.vkDestroyBuffer = vkDestroyBuffer;
+	vkFunks.vkCreateImage = vkCreateImage;
+	vkFunks.vkDestroyImage = vkDestroyImage;
+	vkFunks.vkCmdCopyBuffer = vkCmdCopyBuffer;
+	vkFunks.vkGetBufferMemoryRequirements2KHR = vkGetBufferMemoryRequirements2KHR;
+	vkFunks.vkGetImageMemoryRequirements2KHR = vkGetImageMemoryRequirements2KHR;
+	allocatorCrateInfo.pVulkanFunctions = &vkFunks;
 	vmaCreateAllocator(&allocatorCrateInfo, &m_Allocator);
 
 	m_Device = &device;
@@ -61,11 +82,13 @@ VkImageHandle DeviceAllocator::AllocateImage(VkImageCreateInfo* createInfo, uint
 		void* ptr = nullptr;
 		vmaMapMemory(m_Allocator, memMap, &ptr);
 		memcpy(ptr, data, size);
-		vk::MappedMemoryRange range;
+		VkMappedMemoryRange range = {};
+		range.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+		range.pNext = nullptr;
 		range.memory = info.deviceMemory;
 		range.offset = info.offset;
 		range.size = info.size;
-		m_Device->flushMappedMemoryRanges(1, &range);
+		vkFlushMappedMemoryRanges(*m_Device, 1, &range);
 		vmaUnmapMemory(m_Allocator, memMap);
 
 		ImageTransfer transfer;
@@ -103,7 +126,7 @@ VkImageHandle DeviceAllocator::AllocateImage(VkImageCreateInfo* createInfo, uint
 	return handle;
 }
 
-VkBufferHandle DeviceAllocator::AllocateBuffer(const VkBufferUsageFlags usage, uint64_t size, void * data) {
+VkBufferHandle DeviceAllocator::AllocateBuffer(const VkBufferUsageFlags usage, uint64_t size, void * data, uint32_t memoryTypeBits) {
 	VkBufferHandle ret;
 
 	VkBufferCreateInfo createInfo = {};
@@ -113,9 +136,10 @@ VkBufferHandle DeviceAllocator::AllocateBuffer(const VkBufferUsageFlags usage, u
 	createInfo.usage = usage | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 	createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-	
 	VmaAllocationCreateInfo memReqs = {};
 	memReqs.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+	memReqs.preferredFlags = VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+	memReqs.memoryTypeBits = memoryTypeBits;
 	VkResult vkres = vmaCreateBuffer(m_Allocator, &createInfo, &memReqs, &ret.buffer, &ret.memory, nullptr);
 	if (vkres != VK_SUCCESS) {
 		printf("Error allocating memory for buffer\n");
@@ -137,11 +161,13 @@ VkBufferHandle DeviceAllocator::AllocateBuffer(const VkBufferUsageFlags usage, u
 		void* ptr = nullptr;
 		vmaMapMemory(m_Allocator, transfer.memory, &ptr);
 		memcpy(ptr, data, size);
-		vk::MappedMemoryRange range;
+		VkMappedMemoryRange range = {};
+		range.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+		range.pNext = nullptr;
 		range.memory = info.deviceMemory;
 		range.offset = info.offset;
 		range.size = info.size;
-		m_Device->flushMappedMemoryRanges(1, &range);
+		vkFlushMappedMemoryRanges(*m_Device, 1, &range);
 		vmaUnmapMemory(m_Allocator, transfer.memory);
 
 		transfer.dst = ret.buffer;
@@ -179,11 +205,13 @@ void DeviceAllocator::UpdateBuffer(VkBufferHandle& handle, uint64_t size, void* 
 		vmaMapMemory(m_Allocator, transfer.memory, &ptr);
 		memcpy(ptr, data, size);
 
-		vk::MappedMemoryRange range;
+		VkMappedMemoryRange range = {};
+		range.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+		range.pNext = nullptr;
 		range.memory = info.deviceMemory;
 		range.offset = info.offset;
 		range.size = info.size;
-		m_Device->flushMappedMemoryRanges(1, &range);
+		vkFlushMappedMemoryRanges(*m_Device, 1, &range);
 		vmaUnmapMemory(m_Allocator, transfer.memory);
 
 		transfer.dst = handle.buffer;
@@ -212,12 +240,12 @@ void DeviceAllocator::ScheduleTransfers(CommandBuffer* cmdBuffer) {
 	uint32_t imageCount = (uint32_t)m_ImageCopies.size();
 	if (imageCount > 0) {
 		for (uint32_t i = 0; i < imageCount; ++i) {
-			cmdBuffer->ImageBarrier(m_ImageCopies[i].dst, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
+			cmdBuffer->ImageBarrier(m_ImageCopies[i].dst, VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED, VkImageLayout::VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 		}
 		cmdBuffer->PushPipelineBarrier();
 		for (uint32_t i = 0; i < imageCount; ++i) {
-			cmdBuffer->copyBufferToImage(m_ImageCopies[i].src, m_ImageCopies[i].dst, vk::ImageLayout::eTransferDstOptimal, m_ImageCopies[i].copies);
-			cmdBuffer->ImageBarrier(m_ImageCopies[i].dst, vk::ImageLayout::eTransferDstOptimal, (vk::ImageLayout)m_ImageCopies[i].finalLayout);
+			vkCmdCopyBufferToImage(cmdBuffer->CmdBuffer(), m_ImageCopies[i].src, m_ImageCopies[i].dst, VkImageLayout::VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, m_ImageCopies[i].copies.size(), &m_ImageCopies[i].copies[0]);
+			cmdBuffer->ImageBarrier(m_ImageCopies[i].dst, VkImageLayout::VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, (VkImageLayout)m_ImageCopies[i].finalLayout);
 		}
 		cmdBuffer->PushPipelineBarrier();
 		//m_ImageCopies.clear();
@@ -226,12 +254,11 @@ void DeviceAllocator::ScheduleTransfers(CommandBuffer* cmdBuffer) {
 	uint32_t bufferCopies = (uint32_t)m_BufferCopies.size();
 	if (bufferCopies > 0) {
 		for (uint32_t i = 0; i < bufferCopies; ++i) {
-			std::array<vk::BufferCopy, 1> copy = { m_BufferCopies[i].copy };
-			cmdBuffer->copyBuffer(m_BufferCopies[i].src, m_BufferCopies[i].dst, copy);
+			vkCmdCopyBuffer(cmdBuffer->CmdBuffer(), m_BufferCopies[i].src, m_BufferCopies[i].dst, 1, &m_BufferCopies[i].copy);
 		}
 		//m_BufferCopies.clear();
 	}
-	cmdBuffer->pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTopOfPipe, vk::DependencyFlagBits::eByRegion, nullptr, nullptr, nullptr);
+	vkCmdPipelineBarrier(cmdBuffer->CmdBuffer(), VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TRANSFER_BIT, VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VkDependencyFlagBits::VK_DEPENDENCY_BY_REGION_BIT, 0, nullptr, 0, nullptr, 0, nullptr);
 }
 
 void DeviceAllocator::Clear() {

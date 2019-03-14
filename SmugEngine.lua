@@ -2,7 +2,7 @@ solution "SmugEngine"
     configurations { "Debug", "Release" }
         flags{ "NoPCH" }
         local vulkan_dir = os.getenv("VULKAN_SDK");
-        libdirs { "lib", vulkan_dir .. "/bin", vulkan_dir .. "/lib", "lib/physx", "lib/spirv_cross" }
+        libdirs { "lib", vulkan_dir .. "/bin", vulkan_dir .. "/lib", "lib/spirv_cross" }
         includedirs { "include", vulkan_dir .. "/include"}
         platforms{"x64" }
 
@@ -13,7 +13,10 @@ solution "SmugEngine"
             location ( location_path )
             location_path = location_path .. "/projects"
         end
-    
+    newoption{
+        trigger = "rtx-on",
+        description = "Compile with ray-tracing enabled"
+    }
     disablewarnings { "4251" }
 
     configuration { "Debug" }
@@ -27,7 +30,6 @@ solution "SmugEngine"
         floatingpoint "fast"
         targetdir ( "bin/" .. "/release" )
 
-
 	project "Core"
         targetname "SmugEngine"
 		debugdir ""
@@ -37,7 +39,7 @@ solution "SmugEngine"
 		kind "ConsoleApp"
 		files { "src/Core/**", "src/Imgui/**"}
 		includedirs { "include", "src" }
-		links {  "Graphics", "AssetLoader", "Physics", "glfw3", "vulkan-1", "Utility" }
+		links {  "Graphics", "AssetLoader", "Physics", "glfw3", "Utility" }
         configuration { "Debug" }
                 links { "angelscript64d", "as_integrationD" }
         configuration { "Release" }
@@ -52,11 +54,14 @@ solution "SmugEngine"
     	files { "src/Graphics/**", "src/Imgui/**"}
     	includedirs { "include", "src" }
     	kind "StaticLib"
-    	links { "vulkan-1", "AssetLoader", "glfw3", "Utility"}
+    	links {"AssetLoader", "glfw3", "Utility"}
     	configuration { "Debug" }
-                links { "spirv-cross-coreD", "spirv-cross-glslD"  }
+            links { "spirv-cross-coreD", "spirv-cross-glslD"  }
         configuration { "Release" }
-                links { "spirv-cross-core", "spirv-cross-glsl"}
+            links { "spirv-cross-core", "spirv-cross-glsl"}
+        configuration { "rtx-on" }
+            defines { "RTX_ON" }
+
 
     project "AssetLoader"
     	targetname "AssetLoader"
@@ -75,17 +80,19 @@ solution "SmugEngine"
 
     project "Physics"
         targetname "Physics"
-        defines { "PHYSICS_EXPORT"}
+        defines { "PHYSICS_EXPORT", "PX_PHYSX_CHARACTER_STATIC_LIB "}
         debugdir ""
         location (location_path)
         language("C++")
         kind "SharedLib"
         files { "src/Physics/**"}
-        includedirs { "include", "src" }
+        includedirs { "include", "src", "include/PhysX4.0" }
         configuration { "Debug" }
-            links { "PhysX3DEBUG_x64", "PhysX3CommonDEBUG_x64.lib", "PxFoundationDEBUG_x64", "PhysX3ExtensionsDEBUG", "PxPvdSDKDEBUG_x64"}
+        	libdirs{ "lib/physx4.0/debug" }
+            links { "PhysX_64", "PhysXCommon_64", "PhysXFoundation_64", "PhysXExtensions_static_64", "PhysXCharacterKinematic_static_64", "PhysXCooking_64", "PhysXPvdSDK_static_64"}
         configuration { "Release" }
-            links { "PhysX3CHECKED_x64", "PhysX3CommonCHECKED_x64.lib", "PxFoundationCHECKED_x64", "PhysX3ExtensionsCHECKED"}
+        	libdirs{ "lib/physx4.0/checked" }
+        	links { "PhysX_64", "PhysXCommon_64", "PhysXFoundation_64", "PhysXExtensions_static_64", "PhysXCharacterKinematic_static_64", "PhysXCooking_64"}
 
     project "Utility"
         targetname "Utility"

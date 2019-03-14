@@ -1,6 +1,7 @@
 #include "SSRender.h"
 #include "Core/components/ModelComponent.h"
 #include "Core/components/TransformComponent.h"
+#include "Core/components/RigidBodyComponent.h"
 #include "Core/datasystem/ComponentManager.h"
 #include "Core/entity/EntityManager.h"
 #include <Graphics/GraphicsEngine.h>
@@ -19,12 +20,16 @@ SSRender::~SSRender() {
 
 }
 
+float randf() {
+	return float(rand()) / float(RAND_MAX);
+}
+
 void SSRender::Startup() {
-	const int c = 4;
+	const int c = 3;
 	const float d = 1;
-	const float s = 0.2f;
+	const float s = 1.0f;
 	ModelComponent mc;
-	mc.ModelHandle = g_AssetLoader.LoadAsset("assets/models/sphere/sphere.obj");
+	mc.ModelHandle = g_AssetLoader.LoadAsset("assets/models/cube/cube.obj");
 	//ResourceHandle shader = g_AssetLoader.LoadAsset("assets/shaders/filled.shader");
 	//RenderQueue* rq = globals::g_Gfx->GetStaticQueue();
 
@@ -37,19 +42,18 @@ void SSRender::Startup() {
 				TransformComponent tc;
 				tc.Position = glm::vec3(x, y, z) * d;
 				tc.Scale = glm::vec3(s);
-				tc.Orientation = glm::angleAxis(glm::pi<float>(), glm::vec3(0, 0, -1));
+				tc.Orientation = glm::quat();
 				globals::g_Components->CreateComponent(&tc, e, tc.Flag);
-				mc.Tint = glm::vec4(1.0f);
+				mc.Tint = glm::vec4(randf(), randf(), randf(), 1.0f);
 				globals::g_Components->CreateComponent(&mc, e, mc.Flag);
+				RigidBodyComponent rc;
+				rc.Body = globals::g_Physics->CreateDynamicActor(tc.Position, tc.Orientation, tc.Scale / 2.0f, 1.0f, PHYSICS_SHAPE::CUBE);
+				globals::g_Components->CreateComponent(&rc, e, rc.Flag);
 
-				tc.Transform = glm::toMat4(tc.Orientation);
+				tc.Transform = glm::toMat4(tc.Orientation) * glm::scale(tc.Scale);
 				tc.Transform[3][0] = tc.Position.x;
 				tc.Transform[3][1] = tc.Position.y;
 				tc.Transform[3][2] = tc.Position.z;
-
-				tc.Transform[0][0] *= tc.Scale.x;
-				tc.Transform[1][1] *= tc.Scale.y;
-				tc.Transform[2][2] *= tc.Scale.z;
 
 				//rq->AddModel(mc.ModelHandle, tc.Transform, mc.Tint);
 			}
@@ -78,14 +82,10 @@ void SSRender::Update(const double deltaTime) {
 				continue;
 
 			TransformComponent* tc = (TransformComponent*)globals::g_Components->GetComponent(entity, TransformComponent::Flag);
-			tc->Transform = glm::toMat4(tc->Orientation);
+			tc->Transform = glm::toMat4(tc->Orientation) * glm::scale(tc->Scale);
 			tc->Transform[3][0] = tc->Position.x;
 			tc->Transform[3][1] = tc->Position.y;
 			tc->Transform[3][2] = tc->Position.z;
-
-			tc->Transform[0][0] *= tc->Scale.x;
-			tc->Transform[1][1] *= tc->Scale.y;
-			tc->Transform[2][2] *= tc->Scale.z;
 
 			rq->AddModel(mc->ModelHandle, tc->Transform, mc->Tint);
 		}

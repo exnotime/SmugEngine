@@ -12,7 +12,7 @@ VkTexture::~VkTexture() {
 
 }
 
-void VkTexture::Init(const std::string& filename, DeviceAllocator* allocator, const vk::Device& device) {
+void VkTexture::Init(const std::string& filename, DeviceAllocator* allocator, const VkDevice& device) {
 	gli::texture texture(gli::load(filename));
 	//create image
 	VkImageCreateInfo imageInfo = {};
@@ -28,7 +28,7 @@ void VkTexture::Init(const std::string& filename, DeviceAllocator* allocator, co
 	if (texture.target() == gli::TARGET_CUBE) {
 		gli::texture_cube cubeTex(texture);
 		imageInfo.arrayLayers = (uint32_t)cubeTex.faces();
-		imageInfo.extent = vk::Extent3D(cubeTex[0].extent().x, cubeTex[0].extent().y, 1);
+		imageInfo.extent = { (uint32_t)cubeTex[0].extent().x, (uint32_t)cubeTex[0].extent().y, 1 };
 		imageInfo.format = static_cast<VkFormat>(cubeTex.format());
 		imageInfo.mipLevels = (uint32_t)cubeTex.levels();
 		imageInfo.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
@@ -37,7 +37,7 @@ void VkTexture::Init(const std::string& filename, DeviceAllocator* allocator, co
 	} else if (texture.target() == gli::TARGET_2D) {
 		gli::texture2d tex2D(texture);
 		imageInfo.arrayLayers = 1;
-		imageInfo.extent = vk::Extent3D(tex2D[0].extent().x, tex2D[0].extent().y, 1 );
+		imageInfo.extent = { (uint32_t)tex2D[0].extent().x, (uint32_t)tex2D[0].extent().y, 1 };
 		imageInfo.format = static_cast<VkFormat>(tex2D.format());
 		imageInfo.mipLevels = (uint32_t)tex2D.levels();
 		data = tex2D.data();
@@ -68,28 +68,30 @@ void VkTexture::Init(const std::string& filename, DeviceAllocator* allocator, co
 		viewInfo.subresourceRange.levelCount = VK_IMAGE_VIEW_TYPE_2D;
 		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 	}
-	m_View = device.createImageView(viewInfo);
+	vkCreateImageView(device, &viewInfo, nullptr, &m_View);
 	//create sampler
-	vk::SamplerCreateInfo sampInfo;
-	sampInfo.addressModeU = vk::SamplerAddressMode::eRepeat;
-	sampInfo.addressModeV = vk::SamplerAddressMode::eRepeat;
-	sampInfo.addressModeW = vk::SamplerAddressMode::eRepeat;
+	VkSamplerCreateInfo sampInfo = {};
+	sampInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+	sampInfo.pNext = nullptr;
+	sampInfo.addressModeU = VkSamplerAddressMode::VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	sampInfo.addressModeV = VkSamplerAddressMode::VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	sampInfo.addressModeW = VkSamplerAddressMode::VK_SAMPLER_ADDRESS_MODE_REPEAT;
 	sampInfo.anisotropyEnable = true;
 	sampInfo.maxAnisotropy = 1.0f;
-	sampInfo.borderColor = vk::BorderColor::eFloatOpaqueBlack;
+	sampInfo.borderColor = VkBorderColor::VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
 	sampInfo.compareEnable = false;
-	sampInfo.compareOp = vk::CompareOp::eNever;
-	sampInfo.magFilter = vk::Filter::eLinear;
-	sampInfo.minFilter = vk::Filter::eLinear;
+	sampInfo.compareOp = VkCompareOp::VK_COMPARE_OP_NEVER;
+	sampInfo.magFilter = VkFilter::VK_FILTER_LINEAR;
+	sampInfo.minFilter = VkFilter::VK_FILTER_LINEAR;
 	sampInfo.maxLod = (float)texture.levels();
 	sampInfo.minLod = 0.0f;
 	sampInfo.mipLodBias = 0.0f;
-	sampInfo.mipmapMode = vk::SamplerMipmapMode::eLinear;
+	sampInfo.mipmapMode = VkSamplerMipmapMode::VK_SAMPLER_MIPMAP_MODE_LINEAR;
 	sampInfo.unnormalizedCoordinates = false;
-	m_Sampler = device.createSampler(sampInfo);
+	vkCreateSampler(device, &sampInfo, nullptr, &m_Sampler);
 }
 
-void VkTexture::Init(const TextureInfo& texInfo, DeviceAllocator* allocator, const vk::Device& device) {
+void VkTexture::Init(const TextureInfo& texInfo, DeviceAllocator* allocator, const VkDevice& device) {
 	//create image
 	VkImageCreateInfo imageInfo = {};
 	imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -100,7 +102,7 @@ void VkTexture::Init(const TextureInfo& texInfo, DeviceAllocator* allocator, con
 	imageInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 	imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 	imageInfo.arrayLayers = texInfo.Layers;
-	imageInfo.extent = vk::Extent3D(texInfo.Width, texInfo.Height, 1);
+	imageInfo.extent = { texInfo.Width, texInfo.Height, 1 };
 	imageInfo.format = (VkFormat)texInfo.Format;
 	imageInfo.mipLevels = texInfo.MipCount;
 
@@ -126,31 +128,33 @@ void VkTexture::Init(const TextureInfo& texInfo, DeviceAllocator* allocator, con
 		viewInfo.subresourceRange.levelCount = VK_IMAGE_VIEW_TYPE_2D;
 		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 	}
-	m_View = device.createImageView(viewInfo);
+	vkCreateImageView(device, &viewInfo, nullptr, &m_View);
 	//create sampler
-	vk::SamplerCreateInfo sampInfo;
-	sampInfo.addressModeU = vk::SamplerAddressMode::eRepeat;
-	sampInfo.addressModeV = vk::SamplerAddressMode::eRepeat;
-	sampInfo.addressModeW = vk::SamplerAddressMode::eRepeat;
+	VkSamplerCreateInfo sampInfo = {};
+	sampInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+	sampInfo.pNext = nullptr;
+	sampInfo.addressModeU = VkSamplerAddressMode::VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	sampInfo.addressModeV = VkSamplerAddressMode::VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	sampInfo.addressModeW = VkSamplerAddressMode::VK_SAMPLER_ADDRESS_MODE_REPEAT;
 	sampInfo.anisotropyEnable = true;
 	sampInfo.maxAnisotropy = 1.0f;
-	sampInfo.borderColor = vk::BorderColor::eFloatOpaqueBlack;
+	sampInfo.borderColor = VkBorderColor::VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
 	sampInfo.compareEnable = false;
-	sampInfo.compareOp = vk::CompareOp::eNever;
-	sampInfo.magFilter = vk::Filter::eLinear;
-	sampInfo.minFilter = vk::Filter::eLinear;
+	sampInfo.compareOp = VkCompareOp::VK_COMPARE_OP_NEVER;
+	sampInfo.magFilter = VkFilter::VK_FILTER_LINEAR;
+	sampInfo.minFilter = VkFilter::VK_FILTER_LINEAR;
 	sampInfo.maxLod = (float)texInfo.MipCount;
 	sampInfo.minLod = 0.0f;
 	sampInfo.mipLodBias = 0.0f;
-	sampInfo.mipmapMode = vk::SamplerMipmapMode::eLinear;
+	sampInfo.mipmapMode = VkSamplerMipmapMode::VK_SAMPLER_MIPMAP_MODE_LINEAR;
 	sampInfo.unnormalizedCoordinates = false;
-	m_Sampler = device.createSampler(sampInfo);
+	vkCreateSampler(device, &sampInfo, nullptr, &m_Sampler);
 }
 
 
-vk::DescriptorImageInfo VkTexture::GetDescriptorInfo() {
-	vk::DescriptorImageInfo info;
-	info.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+VkDescriptorImageInfo VkTexture::GetDescriptorInfo() {
+	VkDescriptorImageInfo info;
+	info.imageLayout = VkImageLayout::VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 	info.imageView = m_View;
 	info.sampler = m_Sampler;
 	return info;

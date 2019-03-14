@@ -7,7 +7,7 @@ namespace smug {
 struct ImageTransfer {
 	VkBuffer src;
 	VkImage dst;
-	std::vector<vk::BufferImageCopy> copies;
+	std::vector<VkBufferImageCopy> copies;
 	VkImageLayout finalLayout;
 	VmaAllocation memory;
 };
@@ -34,9 +34,9 @@ class DeviceAllocator {
   public:
 	DeviceAllocator();
 	~DeviceAllocator();
-	void Init(vk::Device& device, vk::PhysicalDevice& physicalDevice);
+	void Init(VkDevice& device, VkPhysicalDevice& physicalDevice);
 	VkImageHandle AllocateImage(VkImageCreateInfo* createInfo, uint64_t size = 0, void* data = nullptr);
-	VkBufferHandle AllocateBuffer(const VkBufferUsageFlags usage, uint64_t size = 0, void * data = nullptr);
+	VkBufferHandle AllocateBuffer(const VkBufferUsageFlags usage, uint64_t size = 0, void * data = nullptr, uint32_t memoryTypeBits = 0);
 	void UpdateBuffer(VkBufferHandle& handle, uint64_t size, void* data = nullptr);
 	void DeAllocateBuffer(VkBufferHandle& handle);
 	void DeAllocateImage(VkImageHandle& handle);
@@ -49,7 +49,7 @@ class DeviceAllocator {
 	std::set<VkBuffer> m_BufferSet;
 	std::set<VkImage> m_ImageSet;
 	VmaAllocator m_Allocator;
-	vk::Device* m_Device;
+	VkDevice* m_Device;
 
 	uint32_t m_ImageCounter = 0;
 	uint32_t m_BufferCounter = 0;

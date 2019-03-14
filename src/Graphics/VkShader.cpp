@@ -27,7 +27,7 @@ const char* StageString(SHADER_KIND stage) {
 #define USE_GLSLANG_VALIDATOR
 
 #ifdef USE_SHADERC
-vk::ShaderModule smug::LoadShader(const vk::Device& device, const std::string& filename, SHADER_KIND stage, const std::string& entryPoint, SHADER_LANGUAGE language) {
+VkShaderModule smug::LoadShader(const VkDevice& device, const std::string& filename, SHADER_KIND stage, const std::string& entryPoint, SHADER_LANGUAGE language) {
 	//read file ending and figure out shader type
 	size_t lastDot = filename.find_last_of('.');
 	std::string fileEnding = filename.substr(lastDot + 1);
@@ -46,7 +46,7 @@ vk::ShaderModule smug::LoadShader(const vk::Device& device, const std::string& f
 		shaderType = shaderc_glsl_compute_shader;
 	} else if (stage == PRECOMPILED) {
 		//Load  precompiled shader
-		vk::ShaderModuleCreateInfo shaderInfo;
+		VkShaderModuleCreateInfo shaderInfo;
 		FILE* fin = fopen(filename.c_str(), "rb");
 		fseek(fin, 0, SEEK_END);
 		uint64_t fileSize = ftell(fin);
@@ -56,7 +56,7 @@ vk::ShaderModule smug::LoadShader(const vk::Device& device, const std::string& f
 		fread(code, sizeof(char), fileSize, fin);
 		fclose(fin);
 		shaderInfo.pCode = reinterpret_cast<const uint32_t*>(code);
-		vk::ShaderModule module = device.createShaderModule(shaderInfo);
+		VkShaderModule module = device.createShaderModule(shaderInfo);
 		delete[] code;
 		return module;
 	}
@@ -74,14 +74,14 @@ vk::ShaderModule smug::LoadShader(const vk::Device& device, const std::string& f
 	}
 	if (cacheBuf.st_mtime > fileBuf.st_mtime) {
 		//there is an up to date cache
-		vk::ShaderModuleCreateInfo shaderInfo;
+		VkShaderModuleCreateInfo shaderInfo;
 		FILE* fin = fopen(cacheName.c_str(), "rb");
 		shaderInfo.codeSize = cacheBuf.st_size;
 		char* code = new char[cacheBuf.st_size];
 		fread(code, sizeof(char), cacheBuf.st_size, fin);
 		fclose(fin);
 		shaderInfo.pCode = reinterpret_cast<const uint32_t*>(code);
-		vk::ShaderModule module = device.createShaderModule(shaderInfo);
+		VkShaderModule module = device.createShaderModule(shaderInfo);
 		delete[] code;
 		return module;
 	}
@@ -153,10 +153,10 @@ vk::ShaderModule smug::LoadShader(const vk::Device& device, const std::string& f
 	}
 	delete[] code;
 	//create vulkan shader module
-	vk::ShaderModuleCreateInfo shaderInfo;
+	VkShaderModuleCreateInfo shaderInfo;
 	shaderInfo.codeSize = shaderc_result_get_length(result);
 	shaderInfo.pCode = reinterpret_cast<const uint32_t*>(shaderc_result_get_bytes(result));
-	vk::ShaderModule module = device.createShaderModule(shaderInfo);
+	VkShaderModule module = device.createShaderModule(shaderInfo);
 	//TEST:
 	DescriptorSetLayout layout;
 	layout.InitFromSpirV(shaderInfo.pCode, (uint32_t)shaderInfo.codeSize);
@@ -175,7 +175,7 @@ vk::ShaderModule smug::LoadShader(const vk::Device& device, const std::string& f
 #endif
 
 #ifdef USE_GLSLANG_VALIDATOR
-vk::ShaderModule smug::LoadShader(const vk::Device& device, const std::string& file, SHADER_KIND kind, const std::string& entryPoint, SHADER_LANGUAGE lang) {
+VkShaderModule smug::LoadShader(const VkDevice& device, const std::string& file, SHADER_KIND kind, const std::string& entryPoint, SHADER_LANGUAGE lang) {
 	//use the program glslangvalidator
 	std::string command;
 	command += "%VULKAN_SDK%/Bin/glslangValidator.exe -V ";
@@ -231,7 +231,7 @@ vk::ShaderModule smug::LoadShader(const vk::Device& device, const std::string& f
 	command += " ./" + file;
 
 	system(command.c_str());
-	vk::ShaderModule module = nullptr;
+	VkShaderModule module = nullptr;
 	FILE* fin = fopen("./temp.spv", "rb");
 	if (fin) {
 		fseek(fin, 0, SEEK_END);
@@ -241,10 +241,12 @@ vk::ShaderModule smug::LoadShader(const vk::Device& device, const std::string& f
 		fread(buffer, sizeof(uint8_t), size, fin);
 		fclose(fin);
 
-		vk::ShaderModuleCreateInfo shaderInfo;
+		VkShaderModuleCreateInfo shaderInfo = {};
+		shaderInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+		shaderInfo.pNext = nullptr;
 		shaderInfo.codeSize = size;
 		shaderInfo.pCode = reinterpret_cast<const uint32_t*>(buffer);
-		module = device.createShaderModule(shaderInfo);
+		vkCreateShaderModule(device, &shaderInfo, nullptr, &module);
 		free(buffer);
 	}
 	fclose(fin);

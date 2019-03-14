@@ -1,11 +1,31 @@
 #include "PhysicsEngine.h"
 #include <glm/glm.hpp>
+#include <PhysX4.0/common/PxPhysXCommonConfig.h>
+#include <PhysX4.0/characterkinematic/PxControllerManager.h>
 
 #if _DEBUG
-#include <PhysX/pvd/PxPvd.h>
+#include <PhysX4.0/pvd/PxPvd.h>
 #endif
+
+#define GRAVITY_CONSTANT 9.82f
+
 using namespace smug;
 using namespace physx;
+
+static PxDefaultAllocator g_DefaultAllocator;
+
+class PhysXErrorReporter : public PxErrorCallback
+{
+public:
+	PhysXErrorReporter(){}
+	~PhysXErrorReporter(){}
+
+	virtual void reportError(PxErrorCode::Enum code, const char* message, const char* file, int line) {
+		printf(message);
+	}
+};
+
+static PhysXErrorReporter g_ErrorHandler;
 
 PhysicsEngine::PhysicsEngine() {
 
@@ -15,8 +35,7 @@ PhysicsEngine::~PhysicsEngine() {
 }
 
 void PhysicsEngine::Init() {
-
-	m_Foundation = PxCreateFoundation(PX_FOUNDATION_VERSION, m_Allocator, m_Error);
+	m_Foundation = PxCreateFoundation(PX_PHYSICS_VERSION, g_DefaultAllocator, m_Error);
 	if (!m_Foundation) {
 		printf("Error creating physx foundation\n");
 		return;
@@ -40,8 +59,8 @@ void PhysicsEngine::Init() {
 	sceneDesc.filterShader = PxDefaultSimulationFilterShader;
 	m_Disbatcher = PxDefaultCpuDispatcherCreate(2);
 	sceneDesc.cpuDispatcher = m_Disbatcher;
+	sceneDesc.gravity = PxVec3(0,-9.2f,0);
 
-	//bool isValid = sceneDesc.isValid();
 	m_Scene = m_Physics->createScene(sceneDesc);
 	if (!m_Scene) {
 		printf("Error creating physx scene\n");
@@ -49,15 +68,42 @@ void PhysicsEngine::Init() {
 	}
 
 	m_Accumulator = 0;
+
+	PxCookingParams cookingParams = PxCookingParams(PxTolerancesScale());
+	m_Cooking = PxCreateCooking(PX_PHYSICS_VERSION, *m_Foundation, cookingParams);
+
+	m_ControllerManager = PxCreateControllerManager(*m_Scene);
 }
 
 void PhysicsEngine::Update(double deltaTime) {
 	//add force on objects
 	for (auto& body : m_Bodies) {
-		PxRigidDynamic* a = m_Actors[body->Actor]->is<PxRigidDynamic>();
-		if (a) {
-			a->addForce(PxVec3(body->Force.x, body->Force.y, body->Force.z));
-			body->Force = glm::vec3(0);
+		if (body->Controller) {
+			PxController* c = m_Controllers[body->Actor];
+			if (body->Updated) {
+				c->setPosition(PxExtendedVec3(body->Position.x, body->Position.y, body->Position.z));
+				body->Updated = false;
+			} else {
+				PxControllerFilters filters;
+				filters.mFilterCallback = nullptr;
+				filters.mCCTFilterCallback = nullptr;
+				filters.mFilterFlags = PxQueryFlag::eDYNAMIC | PxQueryFlag::eSTATIC;
+				c->move(PxVec3(body->Force.x, body->Force.y, body->Force.z), 0.01f, deltaTime, filters);
+			}
+		}
+		else {
+			PxRigidDynamic* a = m_Actors[body->Actor]->is<PxRigidDynamic>();
+			if (a) {
+				a->addForce(PxVec3(body->Force.x, body->Force.y, body->Force.z));
+				body->Force = glm::vec3(0);
+				if (body->Kinematic && body->Updated) {
+					a->setKinematicTarget(
+						PxTransform(PxVec3(body->Position.x, body->Position.y, body->Position.z),
+							PxQuat(body->Orientation.x, body->Orientation.y, body->Orientation.z, body->Orientation.w))
+					);
+					body->Updated = false;
+				}
+			}
 		}
 	}
 	//step physics
@@ -68,12 +114,17 @@ void PhysicsEngine::Update(double deltaTime) {
 	m_Accumulator -= m_StepTime;
 
 	//add custom gravity
-	for (auto& actor : m_Actors) {
-		PxRigidDynamic* d = actor->is<PxRigidDynamic>();
-		if (d) {
-			PxVec3 pos = d->getGlobalPose().p;
-			PxVec3 dir = m_GravityPoint - pos;
-			d->addForce(dir.getNormalized() * 9.2f * m_GravityFactor);
+	if (m_HasActiveCustomGravity) {
+		for (auto& actor : m_Actors) {
+			PxRigidDynamic* d = actor->is<PxRigidDynamic>();
+			if (d) {
+				PxVec3 pos = d->getGlobalPose().p;
+				PxVec3 dir = PxVec3(0);
+				dir.x = m_GravityPoint.x - pos.x;
+				dir.y = m_GravityPoint.y - pos.y;
+				dir.z = m_GravityPoint.z - pos.z;
+				d->addForce(dir.getNormalized() * GRAVITY_CONSTANT * m_GravityFactor);
+			}
 		}
 	}
 
@@ -82,12 +133,21 @@ void PhysicsEngine::Update(double deltaTime) {
 
 	//get updated positions
 	for (auto& body : m_Bodies) {
-		PxRigidDynamic* d = m_Actors[body->Actor]->is<PxRigidDynamic>();
-		if (d) {
-			if (!d->isSleeping()) {
-				PxTransform t = d->getGlobalPose();
-				body->Position = glm::vec3(t.p.x, t.p.y, t.p.z);
-				body->Orientation = glm::quat(t.q.w, t.q.x, t.q.y, t.q.z);
+		if (body->Controller) {
+			PxController* c = m_Controllers[body->Actor];
+			PxExtendedVec3 p = c->getPosition();
+			body->Position = glm::vec3(p.x, p.y, p.z);
+			PxControllerState state;
+			c->getState(state);
+			body->IsOnGround = state.collisionFlags & PxControllerCollisionFlag::eCOLLISION_DOWN;
+		} else {
+			PxRigidDynamic* d = m_Actors[body->Actor]->is<PxRigidDynamic>();
+			if (d) {
+				if (!d->isSleeping()) {
+					PxTransform t = d->getGlobalPose();
+					body->Position = glm::vec3(t.p.x, t.p.y, t.p.z);
+					body->Orientation = glm::quat(t.q.w, t.q.x, t.q.y, t.q.z);
+				}
 			}
 		}
 	}
@@ -128,10 +188,10 @@ PhysicsBody* PhysicsEngine::CreateDynamicActor(const glm::vec3& pos, const glm::
 	transform.p.x = pos.x;
 	transform.p.y = pos.y;
 	transform.p.z = pos.z;
-	transform.q.x = orientation.y;
-	transform.q.y = orientation.z;
-	transform.q.z = orientation.w;
-	transform.q.w = orientation.x;
+	transform.q.x = orientation.x;
+	transform.q.y = orientation.y;
+	transform.q.z = orientation.z;
+	transform.q.w = orientation.w;
 
 	PxRigidDynamic* actor = m_Physics->createRigidDynamic(transform);
 	PxMaterial* mat = m_Physics->createMaterial((PxReal)0.5, (PxReal)0.5, (PxReal)0.1);
@@ -153,16 +213,22 @@ PhysicsBody* PhysicsEngine::CreateDynamicActor(const glm::vec3& pos, const glm::
 
 	PxRigidBodyExt::updateMassAndInertia(*actor, mass);
 	actor->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, kinematic);
-
 	m_Scene->addActor(*actor);
-	m_Actors.push_back(actor);
+	if (!m_FreeActors.empty()) {
+		m_Actors[m_FreeActors.back()] = actor;
+		m_FreeActors.pop_back();
+	}
+	else {
+		m_Actors.push_back(actor);
+	}
 
 	PhysicsBody* body = new PhysicsBody();
 	body->Actor = (uint32_t)m_Actors.size() - 1;
 	body->Position = pos;
 	body->Orientation = orientation;
+	body->Kinematic = kinematic;
+	body->Updated = false;
 	m_Bodies.push_back(body);
-
 	return body;
 }
 
@@ -171,10 +237,18 @@ PhysicsBody* PhysicsEngine::CreateStaticActor(const glm::vec3& pos, const glm::q
 	transform.p.x = pos.x;
 	transform.p.y = pos.y;
 	transform.p.z = pos.z;
-	transform.q.x = orientation.y;
-	transform.q.y = orientation.z;
-	transform.q.z = orientation.w;
-	transform.q.w = orientation.x;
+	transform.q.x = orientation.x;
+	transform.q.y = orientation.y;
+	transform.q.z = orientation.z;
+	transform.q.w = orientation.w;
+
+	
+	if (shape == PLANE) {
+		glm::vec3 d = glm::normalize(-pos);
+		float dist = glm::length(pos);
+		PxPlane p = PxPlane(d.x,d.y,d.z, dist);
+		transform = PxTransformFromPlaneEquation(p);
+	}
 
 	PxRigidStatic* actor = m_Physics->createRigidStatic(transform);
 	PxMaterial* mat = m_Physics->createMaterial((PxReal)0.5, (PxReal)0.5, (PxReal)0.1);
@@ -189,13 +263,21 @@ PhysicsBody* PhysicsEngine::CreateStaticActor(const glm::vec3& pos, const glm::q
 	case CAPSULE:
 		pxshape = PxRigidActorExt::createExclusiveShape(*actor, PxCapsuleGeometry(size.x, size.y), *mat);
 		break;
+	case PLANE:
+		pxshape = PxRigidActorExt::createExclusiveShape(*actor, PxPlaneGeometry(), *mat);
+		break;
 	default:
 		return nullptr;
 		break;
 	}
 
 	m_Scene->addActor(*actor);
-	m_Actors.push_back(actor);
+	if (!m_FreeActors.empty()) {
+		m_Actors[m_FreeActors.back()] = actor;
+		m_FreeActors.pop_back();
+	} else {
+		m_Actors.push_back(actor);
+	}
 
 	PhysicsBody* body = new PhysicsBody();
 	body->Actor = uint32_t(m_Actors.size() - 1);
@@ -206,11 +288,118 @@ PhysicsBody* PhysicsEngine::CreateStaticActor(const glm::vec3& pos, const glm::q
 	return body;
 }
 
-void PhysicsEngine::DeleteActor(uint32_t actor) {
+PhysicsBody* PhysicsEngine::CreateStaticActorFromTriMesh(const glm::vec3& pos, const glm::quat& orientation, const glm::vec3& size, PhysicsMesh& mesh) {
+	PxTransform transform;
+	transform.p.x = pos.x;
+	transform.p.y = pos.y;
+	transform.p.z = pos.z;
+	transform.q.x = orientation.x;
+	transform.q.y = orientation.y;
+	transform.q.z = orientation.z;
+	transform.q.w = orientation.w;
 
+	PxTriangleMeshDesc meshDesc;
+	meshDesc.points.data = mesh.Vertices.data();
+	meshDesc.points.count = mesh.Vertices.size();
+	meshDesc.points.stride = sizeof(glm::vec3);
+	meshDesc.triangles.count = mesh.Indices.size() / 3;
+	meshDesc.triangles.data = mesh.Indices.data();
+	meshDesc.triangles.stride = sizeof(uint32_t) * 3;
+	meshDesc.materialIndices.data = nullptr;
+	meshDesc.materialIndices.stride = 0;
+
+	bool valid = meshDesc.isValid();
+
+	PxTriangleMesh* triMesh = m_Cooking->createTriangleMesh(meshDesc, m_Physics->getPhysicsInsertionCallback());
+
+	PxRigidStatic* actor = m_Physics->createRigidStatic(transform);
+	PxMaterial* mat = m_Physics->createMaterial((PxReal)0.5, (PxReal)0.5, (PxReal)0.1);
+	PxMeshScale scale = PxMeshScale(PxVec3(size.x, size.y, size.z));
+
+	PxShape* pxshape = PxRigidActorExt::createExclusiveShape(*actor, PxTriangleMeshGeometry(triMesh,scale), *mat);
+
+	m_Scene->addActor(*actor);
+	if (!m_FreeActors.empty()) {
+		m_Actors[m_FreeActors.back()] = actor;
+		m_FreeActors.pop_back();
+	}
+	else {
+		m_Actors.push_back(actor);
+	}
+
+	PhysicsBody* body = new PhysicsBody();
+	body->Actor = uint32_t(m_Actors.size() - 1);
+	body->Position = pos;
+	body->Orientation = orientation;
+	m_Bodies.push_back(body);
+
+	return body;
+}
+
+PhysicsBody* PhysicsEngine::CreateController(const glm::vec3& pos, const glm::quat& orientation, const glm::vec3& size, PHYSICS_SHAPE shape) {
+	if (shape == CAPSULE) {
+		PxCapsuleControllerDesc desc = {};
+		desc.setToDefault();
+		desc.height = size.y;
+		desc.radius = size.x;
+		desc.stepOffset = size.x;
+		desc.position = PxExtendedVec3(pos.x, pos.y, pos.z);
+		PxMaterial* mat = m_Physics->createMaterial((PxReal)0.5, (PxReal)0.5, (PxReal)0.1);
+		desc.material = mat;
+		bool valid = desc.isValid();
+		PxController* c = m_ControllerManager->createController(desc);
+		m_Controllers.push_back(c);
+	} else if (shape == CUBE) {
+
+	}
+
+	PhysicsBody* body = new PhysicsBody();
+	body->Actor = uint32_t(m_Controllers.size() - 1);
+	body->Position = pos;
+	body->Orientation = orientation;
+	body->Controller = true;
+	m_Bodies.push_back(body);
+
+	return body;
+}
+
+
+
+void PhysicsEngine::DeleteActor(uint32_t actor) {
+	if (m_Actors.size() < actor && m_Actors[actor]) {
+		PxActor* a = m_Actors[actor];
+		m_Scene->removeActor(*a, true);
+		a->release();
+		m_Actors[actor] = nullptr;
+		m_FreeActors.push_back(actor);
+	}
 }
 
 void PhysicsEngine::SetGravityPoint(const glm::vec3& pos, float strength) {
-	m_GravityPoint = PxVec3(pos.x,pos.y,pos.z);
+	if (strength < 0) {
+		m_HasActiveCustomGravity = false;
+		return;
+	}
+	m_GravityPoint = pos;
 	m_GravityFactor = strength;
+	m_HasActiveCustomGravity = true;
+}
+
+void PhysicsEngine::LockRotationAxes(PhysicsBody* body, const glm::bvec3& axes) {
+	if (m_Actors.size() < body->Actor && m_Actors[body->Actor]) {
+		if (m_Actors[body->Actor]->getType() == physx::PxActorType::eRIGID_DYNAMIC) {
+			PxRigidDynamic* a = reinterpret_cast<PxRigidDynamic*>(m_Actors[body->Actor]);
+			if (axes.x) {
+				a->setRigidDynamicLockFlag(physx::PxRigidDynamicLockFlag::eLOCK_ANGULAR_X, true);
+			}
+			if (axes.y) {
+				a->setRigidDynamicLockFlag(physx::PxRigidDynamicLockFlag::eLOCK_ANGULAR_Y, true);
+			}
+			if (axes.z) {
+				a->setRigidDynamicLockFlag(physx::PxRigidDynamicLockFlag::eLOCK_ANGULAR_Z, true);
+			}
+		}
+	}
+
+	
 }

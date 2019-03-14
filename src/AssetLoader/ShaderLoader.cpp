@@ -5,6 +5,7 @@
 #include <Utility/Hash.h>
 #include <Utility/Memory.h>
 #include <spirv_cross/spirv_cross.hpp>
+#define VK_NO_PROTOTYPES
 #include <vulkan/vulkan.h>
 
 using namespace smug;
@@ -166,7 +167,7 @@ ShaderByteCode* CompileShader(const std::string& file, SHADER_KIND kind, const s
 		bc->SrcLanguage = lang;
 		bc->Type = SPIRV;
 		bc->ByteCode = malloc(size);
-		bc->ByteCodeSize = size;
+		bc->ByteCodeSize = (uint32_t)size;
 		fread(bc->ByteCode, sizeof(uint8_t), size, fin);
 		fclose(fin);
 		return bc;
@@ -304,7 +305,7 @@ char* ReflectShaders(ShaderInfo& info, PipelineStateInfo& psInfoOut){
 			psInfoOut.PushConstants.Offset = UINT32_MAX;
 			auto ranges = compiler->get_active_buffer_ranges(res.id);
 			for (auto& r : ranges) {
-				psInfoOut.PushConstants.Size += r.range;
+				psInfoOut.PushConstants.Size += (uint32_t)r.range;
 				psInfoOut.PushConstants.Offset = glm::min(psInfoOut.PushConstants.Offset, (uint32_t)r.offset);
 			}
 		}

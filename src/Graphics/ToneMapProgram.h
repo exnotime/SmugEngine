@@ -14,14 +14,14 @@ class ToneMapProgram {
 	ToneMapProgram();
 	~ToneMapProgram();
 	//swapchain fbo can be bigger or smaller than the fbo we use for rendering
-	void Init(vk::Device& device, const glm::vec2& screenSize, FrameBufferManager& fbo, vk::DescriptorPool& descPool, vk::RenderPass& rp, DeviceAllocator& allocator);
+	void Init(VkDevice& device, const glm::vec2& screenSize, FrameBufferManager& fbo, VkDescriptorPool& descPool, VkRenderPass& rp, DeviceAllocator& allocator);
 	void DeInit(DeviceAllocator& allocator);
 	void Update(DeviceAllocator& allocator);
-	void Render(CommandBuffer& cmdBuffer, vk::Viewport viewport, uint32_t frameIndex);
+	void Render(CommandBuffer& cmdBuffer, VkViewport viewport, uint32_t frameIndex);
   private:
 	PipelineState m_Pipeline;
-	vk::DescriptorSet m_DescSet[BUFFER_COUNT];
-	vk::Sampler m_Sampler;
+	VkDescriptorSet m_DescSet[BUFFER_COUNT];
+	VkSampler m_Sampler;
 	VkBufferHandle m_Buffer;
 };
 }

@@ -52,8 +52,8 @@ namespace smug {
 	};
 	//copies one resource to another
 	struct CopyCmd {
-		uint32_t Dst; //resource name
-		uint32_t Src; //resource name
+		ResourceHandle Dst; //resource name
+		ResourceHandle Src; //resource name
 		uint64_t OffsetDst; //offset into dst
 		uint64_t OffsetSrc; //offset into src
 		uint64_t Size; // Set to UINT_MAX to copy entire resource

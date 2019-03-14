@@ -1,5 +1,5 @@
 #pragma once
-#include <vulkan/vulkan.hpp>
+#include "volk.h"
 #include <glm/glm.hpp>
 #include <unordered_map>
 #include <unordered_set>
@@ -14,10 +14,10 @@ namespace smug {
 		uint32_t Height;
 		uint32_t Depth;
 		uint32_t Name;
-		vk::Format Format;
-		vk::Image Handle;
-		vk::ImageView View;
-		vk::ImageLayout Layout;
+		VkFormat Format;
+		VkImage Handle;
+		VkImageView View;
+		VkImageLayout Layout;
 		VmaAllocation Memory;
 	};
 
@@ -30,51 +30,51 @@ class GFX_DLL FrameBufferManager {
   public:
 	FrameBufferManager();
 	~FrameBufferManager();
-	void Init(const vk::Device& device, const vk::PhysicalDevice& gpu, const glm::vec2& size, const std::vector<vk::Format>& formats, const std::vector<vk::ImageUsageFlags>& usages, uint32_t bufferCount);
+	void Init(const VkDevice& device, const VkPhysicalDevice& gpu, const glm::vec2& size, const std::vector<VkFormat>& formats, const std::vector<VkImageUsageFlags>& usages);
 	void Resize(const glm::vec2& size);
-	void ChangeLayout(CommandBuffer& cmdBuffer, const std::vector<vk::ImageLayout>& newLayouts, uint32_t frameIndex);
-	void SetLayouts(const std::vector<vk::ImageLayout>& newLayouts, uint32_t frameIndex);
+	void ChangeLayout(CommandBuffer& cmdBuffer, const std::vector<VkImageLayout>& newLayouts);
+	void SetLayouts(const std::vector<VkImageLayout>& newLayouts);
 
-	void AllocRenderTarget(uint32_t name, uint32_t width, uint32_t height, uint32_t depth, vk::Format format, vk::ImageLayout initialLayout);
-	vk::RenderPass CreateRenderPass(uint32_t name, std::vector<SubPass> subPasses);
+	void AllocRenderTarget(uint32_t name, uint32_t width, uint32_t height, uint32_t depth, VkFormat format, VkImageLayout initialLayout);
+	VkRenderPass CreateRenderPass(uint32_t name, std::vector<SubPass> subPasses);
 
 	//Getters
-	std::vector<vk::Image>& GetImages() {
+	std::vector<VkImage>& GetImages() {
 		return m_Images;
 	}
-	std::vector<vk::ImageView>& GetViews() {
+	std::vector<VkImageView>& GetViews() {
 		return m_ImageViews;
 	}
-	std::vector<vk::Format>& GetFormats() {
+	std::vector<VkFormat>& GetFormats() {
 		return m_Formats;
 	}
-	std::vector<vk::ImageLayout>& GetLayouts() {
+	std::vector<VkImageLayout>& GetLayouts() {
 		return m_CurrentLayouts;
 	}
-	std::vector<vk::DescriptorImageInfo>& GetDescriptors() {
+	std::vector<VkDescriptorImageInfo>& GetDescriptors() {
 		return m_Descriptors;
 	}
-	vk::RenderPass GetRenderPass() {
+	VkRenderPass GetRenderPass() {
 		return m_RenderPass;
 	}
-	vk::Framebuffer GetFrameBuffer(uint32_t frameIndex) {
-		return m_FrameBuffers[frameIndex];
+	VkFramebuffer GetFrameBuffer() {
+		return m_FrameBuffer;
 	}
 
-	vk::Image GetImage(uint32_t index, uint32_t frameIndex) {
+	VkImage GetImage(uint32_t index, uint32_t frameIndex) {
 		return m_Images[m_FormatCount * frameIndex + index];
 	}
-	vk::ImageView& GetView(uint32_t index, uint32_t frameIndex) {
+	VkImageView& GetView(uint32_t index, uint32_t frameIndex) {
 		return m_ImageViews[m_FormatCount * frameIndex + index];
 	}
-	vk::Image GetImage(vk::Format f, uint32_t frameIndex) {
+	VkImage GetImage(VkFormat f, uint32_t frameIndex) {
 		uint32_t i = frameIndex * m_FormatCount;
 		for (; i < m_FormatCount; ++i)
 			if (m_Formats[i] == f)
 				break;
 		return m_Images[m_FormatCount * frameIndex + i];
 	}
-	vk::ImageView& GetView(vk::Format f, uint32_t frameIndex) {
+	VkImageView& GetView(VkFormat f, uint32_t frameIndex) {
 		uint32_t i = frameIndex * m_FormatCount;
 		for (; i < m_FormatCount; ++i)
 			if (m_Formats[i] == f)
@@ -87,23 +87,22 @@ class GFX_DLL FrameBufferManager {
 
 
   private:
-	vk::Device m_Device;
+	VkDevice m_Device;
 	VmaAllocator m_DeviceAllocator;
 	std::unordered_map<uint32_t, RenderTarget> m_RenderTargets;
-	std::unordered_map<uint32_t, vk::RenderPass> m_RenderPasses;
-	std::unordered_map<uint32_t, vk::Framebuffer> m_FrameBuffersT;
+	std::unordered_map<uint32_t, VkRenderPass> m_RenderPasses;
+	std::unordered_map<uint32_t, VkFramebuffer> m_FrameBuffersT;
 
 	glm::vec2 m_FrameBufferSize;
-	vk::Framebuffer m_FrameBuffers[BUFFER_COUNT];
-	vk::RenderPass m_RenderPass;
-	vk::DeviceMemory m_Memory;
-	std::vector<vk::Image> m_Images;
-	std::vector<vk::ImageView> m_ImageViews;
-	std::vector<vk::Format> m_Formats;
-	std::vector<vk::ImageLayout> m_CurrentLayouts;
-	std::vector<vk::DescriptorImageInfo> m_Descriptors;
+	VkFramebuffer m_FrameBuffer;
+	VkRenderPass m_RenderPass;
+	VkDeviceMemory m_Memory;
+	std::vector<VkImage> m_Images;
+	std::vector<VkImageView> m_ImageViews;
+	std::vector<VkFormat> m_Formats;
+	std::vector<VkImageLayout> m_CurrentLayouts;
+	std::vector<VkDescriptorImageInfo> m_Descriptors;
 	uint64_t m_MemorySize;
 	uint32_t m_FormatCount;
-	uint32_t m_BufferCount;
 };
 }

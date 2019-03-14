@@ -1,5 +1,4 @@
 #include "ResourceHandler.h"
-#include <AssetLoader/AssetLoader.h>
 #include <Utility/Hash.h>
 
 #define SAFE_DELETE(x) if(x) delete x
@@ -11,6 +10,7 @@ ResourceHandler::ResourceHandler() {
 ResourceHandler::~ResourceHandler() {
 }
 
+#pragma region AllocatorInterface
 void AllocateAssetCallback(const void* data, void* userData, const std::string& filename, const RESOURCE_TYPE type) {
 	printf("Allocating asset %s\n", filename.c_str());
 	if (type == RESOURCE_TYPE::RT_TEXTURE) {
@@ -47,8 +47,9 @@ void ReAllocateAssetCallback(const void* data, void* userData, ResourceHandle ha
 		((ResourceHandler*)userData)->ReAllocateModel(*info,handle);
 	}
 }
+#pragma endregion
 
-void ResourceHandler::Init(vk::Device* device, const vk::PhysicalDevice& physDev, MemoryBudget budget, DeviceAllocator& deviceAlloc, FrameBufferManager& fbManager) {
+void ResourceHandler::Init(VkDevice* device, const VkPhysicalDevice& physDev, MemoryBudget budget, DeviceAllocator& deviceAlloc, FrameBufferManager& fbManager) {
 	m_DeviceAllocator = &deviceAlloc;
 
 	m_ResourceAllocator.AllocResource = &AllocateAssetCallback;
@@ -58,30 +59,36 @@ void ResourceHandler::Init(vk::Device* device, const vk::PhysicalDevice& physDev
 	g_AssetLoader.SetResourceAllocator(m_ResourceAllocator);
 
 	//descriptor pool
-	vk::DescriptorPoolCreateInfo poolInfo;
+	VkDescriptorPoolCreateInfo poolInfo = {};
+	poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+	poolInfo.pNext = nullptr;
 	poolInfo.maxSets = MAX_MATERIALS;
-	vk::DescriptorPoolSize poolSize;
+	VkDescriptorPoolSize poolSize;
 	poolSize.descriptorCount = MAX_MATERIALS * MATERIAL_SIZE;
-	poolSize.type = vk::DescriptorType::eCombinedImageSampler;
+	poolSize.type = VkDescriptorType::VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	poolInfo.poolSizeCount = 1;
 	poolInfo.pPoolSizes = &poolSize;
-	m_DescPool = device->createDescriptorPool(poolInfo);
+	vkCreateDescriptorPool(*device, &poolInfo, nullptr, &m_DescPool);
 
-	vk::DescriptorSetLayoutCreateInfo layoutInfo;
+	VkDescriptorSetLayoutCreateInfo layoutInfo = {};
+	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	layoutInfo.pNext = nullptr;
 	layoutInfo.bindingCount = 1;
-	vk::DescriptorSetLayoutBinding binding;
+	VkDescriptorSetLayoutBinding binding = {};
 	binding.binding = 0;
 	binding.descriptorCount = MATERIAL_SIZE;
-	binding.descriptorType = vk::DescriptorType::eCombinedImageSampler;
-	binding.stageFlags = vk::ShaderStageFlagBits::eAll;
+	binding.descriptorType = VkDescriptorType::VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	binding.stageFlags = VkShaderStageFlagBits::VK_SHADER_STAGE_ALL;
 	layoutInfo.pBindings = &binding;
-	m_MaterialLayout = device->createDescriptorSetLayout(layoutInfo);
+	vkCreateDescriptorSetLayout(*device, &layoutInfo, nullptr, &m_MaterialLayout);
 
-	vk::DescriptorSetAllocateInfo allocInfo;
+	VkDescriptorSetAllocateInfo allocInfo = {};
+	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	allocInfo.pNext = nullptr;
 	allocInfo.descriptorPool = m_DescPool;
 	allocInfo.descriptorSetCount = 1;
 	allocInfo.pSetLayouts = &m_MaterialLayout;
-	m_DefaultMaterial = device->allocateDescriptorSets(allocInfo)[0];
+	vkAllocateDescriptorSets(*device, &allocInfo, &m_DefaultMaterial);
 
 	//default materials
 	TextureInfo texInfo;
@@ -89,7 +96,7 @@ void ResourceHandler::Init(vk::Device* device, const vk::PhysicalDevice& physDev
 	texInfo.Height = 1;
 	texInfo.MipCount = 1;
 	texInfo.Layers = 1;
-	texInfo.Format = (uint32_t)vk::Format::eR8G8B8A8Unorm;
+	texInfo.Format = (uint32_t)VkFormat::VK_FORMAT_R8G8B8A8_UNORM;
 	texInfo.BPP = 32;
 	texInfo.LinearSize = 4;
 	texInfo.Data = malloc(4);
@@ -106,7 +113,7 @@ void ResourceHandler::Init(vk::Device* device, const vk::PhysicalDevice& physDev
 	((uint8_t*)texInfo.Data)[3] = 255; //unused
 	m_DefaultRoughness.Init(texInfo, m_DeviceAllocator, *device);
 	texInfo.LinearSize = 1;
-	texInfo.Format = (uint32_t)vk::Format::eR8Unorm;
+	texInfo.Format = (uint32_t)VkFormat::VK_FORMAT_R8_UNORM;
 	memset(texInfo.Data, 0x0, 1);
 	m_DefaultMetal.Init(texInfo, m_DeviceAllocator, *device);
 	free(texInfo.Data);
@@ -155,20 +162,24 @@ void ResourceHandler::AllocateModel(const ModelInfo& model, ResourceHandle handl
 		indexCounter += mesh.IndexCount;
 
 		//allocate material
-		vk::DescriptorSetAllocateInfo allocInfo;
+		VkDescriptorSetAllocateInfo allocInfo;
+		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+		allocInfo.pNext = nullptr;
 		allocInfo.descriptorPool = m_DescPool;
 		allocInfo.descriptorSetCount = 1;
 		allocInfo.pSetLayouts = &m_MaterialLayout;
-		internalModel.Meshes[m].Material.DescSet = m_Device->allocateDescriptorSets(allocInfo)[0];
+		vkAllocateDescriptorSets(*m_Device, &allocInfo, &internalModel.Meshes[m].Material.DescSet);
 		internalModel.Meshes[m].Material.TextureCount = 0; //TEMP!
 		//create material
-		vk::WriteDescriptorSet materialWrite;
+		VkWriteDescriptorSet materialWrite;
+		materialWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		materialWrite.pNext = nullptr;
 		materialWrite.descriptorCount = MATERIAL_SIZE;
-		materialWrite.descriptorType = vk::DescriptorType::eCombinedImageSampler;
+		materialWrite.descriptorType = VkDescriptorType::VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		materialWrite.dstArrayElement = 0;
 		materialWrite.dstSet = internalModel.Meshes[m].Material.DescSet;
 		materialWrite.dstBinding = 0;
-		vk::DescriptorImageInfo imageInfo[MATERIAL_SIZE];
+		VkDescriptorImageInfo imageInfo[MATERIAL_SIZE];
 		VkTexture albedo, normalTex, roughness, metal;
 		//albedo
 		if (model.Materials && model.Materials[mesh.Material].Albedo != RESOURCE_INVALID) {
@@ -203,13 +214,13 @@ void ResourceHandler::AllocateModel(const ModelInfo& model, ResourceHandle handl
 			imageInfo[3] = m_DefaultMetal.GetDescriptorInfo();
 		}
 		materialWrite.pImageInfo = imageInfo;
-		m_Device->updateDescriptorSets(materialWrite, nullptr);
+		vkUpdateDescriptorSets(*m_Device, 1, &materialWrite, 0, nullptr);
 	}
 	//allocate buffers
 	internalModel.IndexBuffer = m_DeviceAllocator->AllocateBuffer(VK_BUFFER_USAGE_INDEX_BUFFER_BIT, sizeof(uint32_t) * indices.size(), indices.data());
 	internalModel.IndexCount = (uint32_t)indices.size();
 
-	vk::BufferCreateInfo vertBufferCreateInfo[NUM_VERTEX_CHANNELS];
+	VkBufferCreateInfo vertBufferCreateInfo[NUM_VERTEX_CHANNELS];
 	uint32_t sizes[] = { (uint32_t)positions.size() * sizeof(glm::vec3), (uint32_t)normals.size() * sizeof(glm::vec3),
 	                     (uint32_t)tangents.size() * sizeof(glm::vec3), (uint32_t)texcoords.size() * sizeof(glm::vec2)
 	                   };
@@ -231,7 +242,7 @@ void ResourceHandler::AllocateTexture(const TextureInfo& tex, ResourceHandle han
 void ResourceHandler::AllocateShader(const PipelineStateInfo& psInfo, ResourceHandle handle) {
 	PipelineState ps;
 	//create renderpass if needed
-	vk::RenderPass rp = nullptr;
+	VkRenderPass rp = nullptr;
 	if (psInfo.RenderTargetCount > 0) {
 		SubPass sp;
 		for (uint32_t i = 0; i < psInfo.RenderTargetCount; ++i) {

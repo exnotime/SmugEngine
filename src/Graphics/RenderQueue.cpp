@@ -13,10 +13,10 @@ void RenderQueue::Init(ResourceHandler& resources, int index) {
 	//allocate gpu memory for shader inputs
 	std::string bufferName = "ShaderInputBuffer_" + index;
 	m_Buffer = CreateHandle(HashString(bufferName), RT_BUFFER);
-	resources.AllocateBuffer(sizeof(ShaderInput) * 1024, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, m_Buffer);
+	resources.AllocateBuffer(sizeof(ShaderInput) * 1024 * 128, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, m_Buffer);
 
 	m_Cameras.reserve(4);
-	m_Inputs.reserve(1024);
+	m_Inputs.reserve(1024 * 128);
 }
 
 void RenderQueue::Clear() {

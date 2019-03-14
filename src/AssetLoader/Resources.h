@@ -9,15 +9,18 @@
 #define RESOURCE_INVALID -1
 
 namespace smug {
-enum RESOURCE_TYPE : uint32_t {
-	RT_TEXTURE = 0x1,
-	RT_MODEL = 0x2,
-	RT_SHADER = 0x4,
-	RT_ANIMATION = 0x8,
-	RT_SKELETON = 0x10,
-	RT_SCRIPT = 0x20,
-	RT_BUFFER = 0x40
-};
+	enum RESOURCE_TYPE : uint32_t {
+		RT_TEXTURE = 0x1,
+		RT_MODEL = 0x2,
+		RT_SHADER = 0x4,
+		RT_ANIMATION = 0x8,
+		RT_SKELETON = 0x10,
+		RT_SCRIPT = 0x20,
+		RT_BUFFER = 0x40,
+		RT_RENDERPASS = 0x80,
+		RT_FRAMEBUFFER = 0x100,
+		RT_RENDER_TARGET = 0x200
+	};
 
 typedef ASSET_DLL uint64_t ResourceHandle; //first 32 bits say type, second 32 bits say resource hash
 
