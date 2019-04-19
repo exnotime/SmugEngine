@@ -16,8 +16,8 @@ ShadowMapProgram::~ShadowMapProgram() {
 
 void ShadowMapProgram::Init(VulkanContext& vc, DeviceAllocator& allocator) {
 	m_Device = &vc.Device;
-	std::vector<VkFormat> formats;
-	std::vector<VkImageUsageFlags> usages;
+	eastl::vector<VkFormat> formats;
+	eastl::vector<VkImageUsageFlags> usages;
 	formats.push_back(VkFormat::VK_FORMAT_D32_SFLOAT);
 	usages.push_back(VkImageUsageFlagBits::VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VkImageUsageFlagBits::VK_IMAGE_USAGE_SAMPLED_BIT);
 	m_FrameBuffer.Init(vc.Device, vc.PhysicalDevice, glm::vec2(SHADOWMAP_SIZE * 2), formats, usages);
@@ -31,7 +31,7 @@ void ShadowMapProgram::Init(VulkanContext& vc, DeviceAllocator& allocator) {
 	descAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 	descAllocInfo.pNext = nullptr;
 	descAllocInfo.descriptorPool = vc.DescriptorPool;
-	std::vector<VkDescriptorSetLayout>& descLayouts = m_State.GetDescriptorSetLayouts();
+	eastl::vector<VkDescriptorSetLayout>& descLayouts = m_State.GetDescriptorSetLayouts();
 	descAllocInfo.pSetLayouts = descLayouts.data();
 	descAllocInfo.descriptorSetCount = (uint32_t)descLayouts.size();
 	vkAllocateDescriptorSets(vc.Device, &descAllocInfo, &m_DescSet);
@@ -163,7 +163,7 @@ void ShadowMapProgram::Render(uint32_t frameIndex, CommandBuffer& cmdBuffer, con
 	profiler.Stamp(cmdBuffer.CmdBuffer(), "ShadowMap");
 	static bool first = true;
 	if(first) {
-		std::vector<VkImageLayout> newLayouts;
+		eastl::vector<VkImageLayout> newLayouts;
 		newLayouts.push_back(VkImageLayout::VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 		m_FrameBuffer.ChangeLayout(cmdBuffer, newLayouts);
 		cmdBuffer.PushPipelineBarrier();

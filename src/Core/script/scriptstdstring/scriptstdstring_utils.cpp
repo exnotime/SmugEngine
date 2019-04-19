@@ -20,7 +20,7 @@ BEGIN_AS_NAMESPACE
 //
 // AngelScript signature:
 // array<string>@ string::split(const string &in delim) const
-static CScriptArray *StringSplit(const string &delim, const string &str) {
+static CScriptArray *StringSplit(const eastl::string &delim, const eastl::string &str) {
 	// Obtain a pointer to the engine
 	asIScriptContext *ctx = asGetActiveContext();
 	asIScriptEngine *engine = ctx->GetEngine();
@@ -34,10 +34,10 @@ static CScriptArray *StringSplit(const string &delim, const string &str) {
 
 	// Find the existence of the delimiter in the input string
 	int pos = 0, prev = 0, count = 0;
-	while( (pos = (int)str.find(delim, prev)) != (int)string::npos ) {
+	while( (pos = (int)str.find(delim, prev)) != (int)eastl::string::npos ) {
 		// Add the part to the array
 		array->Resize(array->GetSize()+1);
-		((string*)array->At(count))->assign(&str[prev], pos-prev);
+		((eastl::string*)array->At(count))->assign(&str[prev], pos-prev);
 
 		// Find the next part
 		count++;
@@ -46,15 +46,15 @@ static CScriptArray *StringSplit(const string &delim, const string &str) {
 
 	// Add the remaining part
 	array->Resize(array->GetSize()+1);
-	((string*)array->At(count))->assign(&str[prev]);
+	((eastl::string*)array->At(count))->assign(&str[prev]);
 
 	return array;
 }
 
 static void StringSplit_Generic(asIScriptGeneric *gen) {
 	// Get the arguments
-	string *str   = (string*)gen->GetObject();
-	string *delim = *(string**)gen->GetAddressOfArg(0);
+	eastl::string *str   = (eastl::string*)gen->GetObject();
+	eastl::string *delim = *(eastl::string**)gen->GetAddressOfArg(0);
 
 	// Return the array by handle
 	*(CScriptArray**)gen->GetAddressOfReturnLocation() = StringSplit(*delim, *str);
@@ -75,18 +75,18 @@ static void StringSplit_Generic(asIScriptGeneric *gen) {
 //
 // AngelScript signature:
 // string join(const array<string> &in array, const string &in delim)
-static string StringJoin(const CScriptArray &array, const string &delim) {
+static eastl::string StringJoin(const CScriptArray &array, const eastl::string &delim) {
 	// Create the new string
-	string str = "";
+	eastl::string str = "";
 	if( array.GetSize() ) {
 		int n;
 		for( n = 0; n < (int)array.GetSize() - 1; n++ ) {
-			str += *(string*)array.At(n);
+			str += *(eastl::string*)array.At(n);
 			str += delim;
 		}
 
 		// Add the last part
-		str += *(string*)array.At(n);
+		str += *(eastl::string*)array.At(n);
 	}
 
 	return str;
@@ -95,10 +95,10 @@ static string StringJoin(const CScriptArray &array, const string &delim) {
 static void StringJoin_Generic(asIScriptGeneric *gen) {
 	// Get the arguments
 	CScriptArray  *array = *(CScriptArray**)gen->GetAddressOfArg(0);
-	string *delim = *(string**)gen->GetAddressOfArg(1);
+	eastl::string *delim = *(eastl::string**)gen->GetAddressOfArg(1);
 
 	// Return the string
-	new(gen->GetAddressOfReturnLocation()) string(StringJoin(*array, *delim));
+	new(gen->GetAddressOfReturnLocation()) eastl::string(StringJoin(*array, *delim));
 }
 
 // This is where the utility functions are registered.

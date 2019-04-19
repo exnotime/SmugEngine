@@ -6,7 +6,7 @@
 #include <angelscript.h>
 #endif
 
-#include <string>
+#include <EASTL/string.h>
 #include <stdio.h>
 
 #include "../scriptarray/scriptarray.h"
@@ -22,11 +22,11 @@ class CScriptFileSystem {
 
 	// Sets the current path that should be used in other calls when using relative paths
 	// It can use relative paths too, so moving up a directory is used by passing in ".."
-	bool ChangeCurrentPath(const std::string &path);
-	std::string GetCurrentPath() const;
+	bool ChangeCurrentPath(const eastl::string &path);
+	eastl::string GetCurrentPath() const;
 
 	// Returns true if the path is a directory. Input can be either a full path or a relative path
-	bool IsDir(const std::string &path) const;
+	bool IsDir(const eastl::string &path) const;
 
 	// Returns a list of the files in the current path
 	CScriptArray *GetFiles() const;
@@ -38,7 +38,7 @@ class CScriptFileSystem {
 	~CScriptFileSystem();
 
 	mutable int refCount;
-	std::string currentPath;
+	eastl::string currentPath;
 };
 
 void RegisterScriptFileSystem(asIScriptEngine *engine);

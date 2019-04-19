@@ -22,7 +22,9 @@ void VulkanProfiler::Reset(VkDevice device) {
 	m_FrameIndex = (m_FrameIndex + 1) % BUFFER_COUNT;
 
 	uint32_t count = m_QueryOffset[m_FrameIndex];
-	std::vector<uint64_t> timeStamps;
+	if (count == 0)
+		return;
+	eastl::vector<uint64_t> timeStamps;
 	timeStamps.resize(count);
 	vkGetQueryPoolResults(device, m_Pool[m_FrameIndex], 0, count, sizeof(uint64_t) * count, timeStamps.data(), sizeof(uint64_t), VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
 	

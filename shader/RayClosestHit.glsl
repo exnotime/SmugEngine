@@ -8,9 +8,6 @@ layout(binding = 1) uniform PerFrame{
     vec4 CamPos;
     vec4 Lightdir;
 };
-layout(binding = 3) buffer normals { vec3 g_VertexNormals[]; };
-layout(binding = 4) buffer indexBuffer { uint g_IndexBuffer[]; };
-layout(binding = 5) buffer instanceOffsets { uint g_InstanceIndexOffsets[]; };
 
 vec3 TriLerp3(vec3 a, vec3 b, vec3 c, float u, float v){
     return (1.0 - u - v) * a + b * u + c * v;

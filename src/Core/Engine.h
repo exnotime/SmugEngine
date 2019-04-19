@@ -5,6 +5,7 @@ namespace smug {
 class Window;
 class SubSystemSet;
 class Timer;
+class Profiler;
 
 class Engine {
   public:
@@ -19,5 +20,6 @@ class Engine {
 	Timer* m_GlobalTimer;
 	Timer* m_ProfilerTimer;
 	ImGuiContext* m_ImguiCtx;
+	Profiler* m_Profiler;
 };
 }

@@ -2,9 +2,9 @@
 #include <map>
 #include "volk.h"
 namespace smug {
-static std::map<std::string, VkDescriptorSet> g_DescSetMap;
+static std::map<eastl::string, VkDescriptorSet> g_DescSetMap;
 
-void RegisterDescriptorSet(const std::string& name, VkDescriptorSet set) {
+void RegisterDescriptorSet(const eastl::string& name, VkDescriptorSet set) {
 	auto& i = g_DescSetMap.find(name);
 	if (i == g_DescSetMap.end()) {
 		g_DescSetMap[name] = set;
@@ -13,7 +13,7 @@ void RegisterDescriptorSet(const std::string& name, VkDescriptorSet set) {
 	}
 }
 
-VkDescriptorSet GetDescriptorSet(const std::string& name) {
+VkDescriptorSet GetDescriptorSet(const eastl::string& name) {
 	auto& i = g_DescSetMap.find(name);
 	if (i != g_DescSetMap.end()) {
 		return i->second;

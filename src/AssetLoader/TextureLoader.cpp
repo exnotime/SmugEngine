@@ -7,8 +7,8 @@ using namespace smug;
 TextureLoader::TextureLoader() {}
 TextureLoader::~TextureLoader() {}
 
-char* TextureLoader::LoadTexture(const std::string& filename, TextureInfo& info) {
-	gli::texture texture(gli::load(filename));
+char* TextureLoader::LoadTexture(const eastl::string& filename, TextureInfo& info) {
+	gli::texture texture(gli::load(filename.c_str()));
 	if (texture.empty()) {
 		return "Loading texture";
 	}

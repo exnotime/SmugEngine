@@ -42,10 +42,10 @@ void PhysicsEngine::Init() {
 	}
 
 #ifdef _DEBUG
-	m_PVD = PxCreatePvd(*m_Foundation);
-	PxPvdTransport* transport = PxDefaultPvdSocketTransportCreate("127.0.0.1", 5425, 10);
-	m_PVD->connect(*transport, PxPvdInstrumentationFlag::eALL);
-	m_Physics = PxCreatePhysics(PX_PHYSICS_VERSION, *m_Foundation, PxTolerancesScale(), false, m_PVD);
+	//m_PVD = PxCreatePvd(*m_Foundation);
+	//PxPvdTransport* transport = PxDefaultPvdSocketTransportCreate("127.0.0.1", 5425, 10);
+	//m_PVD->connect(*transport, PxPvdInstrumentationFlag::eALL);
+	m_Physics = PxCreatePhysics(PX_PHYSICS_VERSION, *m_Foundation, PxTolerancesScale(), false, nullptr);
 #else
 	m_Physics = PxCreatePhysics(PX_PHYSICS_VERSION, *m_Foundation, PxTolerancesScale(), false, nullptr);
 #endif
@@ -57,7 +57,7 @@ void PhysicsEngine::Init() {
 
 	PxSceneDesc sceneDesc = PxSceneDesc(PxTolerancesScale());
 	sceneDesc.filterShader = PxDefaultSimulationFilterShader;
-	m_Disbatcher = PxDefaultCpuDispatcherCreate(2);
+	m_Disbatcher = PxDefaultCpuDispatcherCreate(1);
 	sceneDesc.cpuDispatcher = m_Disbatcher;
 	sceneDesc.gravity = PxVec3(0,-9.2f,0);
 
@@ -154,6 +154,16 @@ void PhysicsEngine::Update(double deltaTime) {
 }
 
 void PhysicsEngine::Shutdown() {
+	m_Cooking->release();
+
+	for (auto& c : m_Controllers) {
+		c->release();
+	}
+
+	m_ControllerManager->purgeControllers();
+	m_ControllerManager->release();
+	m_ControllerManager = nullptr;
+
 	m_Disbatcher->release();
 	m_Disbatcher = nullptr;
 
@@ -169,9 +179,9 @@ void PhysicsEngine::Shutdown() {
 	m_Physics = nullptr;
 
 #ifdef _DEBUG
-	m_PVD->getTransport()->release();
-	m_PVD->release();
-	m_PVD = nullptr;
+	//m_PVD->getTransport()->release();
+	//m_PVD->release();
+	//m_PVD = nullptr;
 #endif
 
 	m_Foundation->release();

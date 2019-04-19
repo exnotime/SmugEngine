@@ -1177,8 +1177,8 @@ static inline bool  CollapsingHeader(const char* label, const char* str_id, bool
 // Helpers
 //-----------------------------------------------------------------------------
 
-// Helper: Lightweight std::vector<> like class to avoid dragging dependencies (also: Windows implementation of STL with debug enabled is absurdly slow, so let's bypass it so our code runs fast in debug).
-// *Important* Our implementation does NOT call C++ constructors/destructors. This is intentional, we do not require it but you have to be mindful of that. Do not use this class as a straight std::vector replacement in your code!
+// Helper: Lightweight eastl::vector<> like class to avoid dragging dependencies (also: Windows implementation of STL with debug enabled is absurdly slow, so let's bypass it so our code runs fast in debug).
+// *Important* Our implementation does NOT call C++ constructors/destructors. This is intentional, we do not require it but you have to be mindful of that. Do not use this class as a straight eastl::vector replacement in your code!
 template<typename T>
 class ImVector {
   public:

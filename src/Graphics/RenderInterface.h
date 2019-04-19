@@ -1,5 +1,5 @@
 #pragma once
-#include <vector>
+
 namespace smug {
 	//c interface for executing render commmands
 	namespace RenderInterface {

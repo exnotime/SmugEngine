@@ -1,5 +1,5 @@
 #pragma once
-#include <string>
+#include <EASTL/string.h>
 struct GLFWwindow;
 namespace smug {
 
@@ -14,7 +14,7 @@ struct WindowSettings {
 	bool BorderLess = false;
 	bool Vsync = false;
 	bool OpenGL = true;
-	std::string Title = "Untitled window";
+	eastl::string Title = "Untitled window";
 };
 
 class Window {

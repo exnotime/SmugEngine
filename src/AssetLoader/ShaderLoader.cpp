@@ -5,6 +5,7 @@
 #include <Utility/Hash.h>
 #include <Utility/Memory.h>
 #include <spirv_cross/spirv_cross.hpp>
+#include <EASTL/vector.h>
 #define VK_NO_PROTOTYPES
 #include <vulkan/vulkan.h>
 
@@ -15,7 +16,7 @@ ShaderLoader::~ShaderLoader() {}
 #define USE_GLSLANGVALIDATOR
 
 #ifdef USE_SHADERC
-ShaderByteCode* CompileShader(const std::string& file, SHADER_KIND kind, const std::string& entryPoint, SHADER_LANGUAGE lang, bool debug) {
+ShaderByteCode* CompileShader(const eastl::string& file, SHADER_KIND kind, const eastl::string& entryPoint, SHADER_LANGUAGE lang, bool debug) {
 	//load shader file
 	struct stat fileBuf;
 	stat(file.c_str(), &fileBuf);
@@ -40,12 +41,12 @@ ShaderByteCode* CompileShader(const std::string& file, SHADER_KIND kind, const s
 
 	auto includeResolver = [](void* user_data, const char* requested_source, int type,
 	const char* requesting_source, size_t include_depth) -> shaderc_include_result* {
-		std::string filename;
+		eastl::string filename;
 		if (type == shaderc_include_type_relative) {
-			std::string reqSrc = std::string(requesting_source);
-			filename = reqSrc.substr(0, reqSrc.find_last_of('/')) + '/' + std::string(requested_source);
+			eastl::string reqSrc = eastl::string(requesting_source);
+			filename = reqSrc.substr(0, reqSrc.find_last_of('/')) + '/' + eastl::string(requested_source);
 		} else if (type == shaderc_include_type_standard) {
-			filename = "shaders/" + std::string(requested_source);
+			filename = "shaders/" + eastl::string(requested_source);
 		}
 		FILE* fin = fopen(filename.c_str(), "rb");
 		fseek(fin, 0, SEEK_END);
@@ -58,7 +59,7 @@ ShaderByteCode* CompileShader(const std::string& file, SHADER_KIND kind, const s
 		char* srcfile = new char[filename.size()];
 		strcpy(srcfile, filename.c_str());
 
-		std::vector<std::string>* includes = (std::vector<std::string>*)user_data;
+		eastl::vector<eastl::string>* includes = (eastl::vector<eastl::string>*)user_data;
 		includes->push_back(filename);
 
 		shaderc_include_result* res = new shaderc_include_result();
@@ -74,7 +75,7 @@ ShaderByteCode* CompileShader(const std::string& file, SHADER_KIND kind, const s
 		delete include_result;
 	};
 	//used to keep track of dependences
-	std::vector<std::string> includes;
+	eastl::vector<eastl::string> includes;
 	shaderc_compile_options_set_include_callbacks(options, includeResolver, includeResRelease, &includes);
 
 	shaderc_shader_kind shaderType;
@@ -125,9 +126,9 @@ ShaderByteCode* CompileShader(const std::string& file, SHADER_KIND kind, const s
 }
 #endif
 #ifdef USE_GLSLANGVALIDATOR
-ShaderByteCode* CompileShader(const std::string& file, SHADER_KIND kind, const std::string& entryPoint, SHADER_LANGUAGE lang, bool debug){
+ShaderByteCode* CompileShader(const eastl::string& file, SHADER_KIND kind, const eastl::string& entryPoint, SHADER_LANGUAGE lang, bool debug){
 	//use the program glslangvalidator
-	std::string command;
+	eastl::string command;
 	command += "%VULKAN_SDK%/Bin/glslangValidator.exe -V ";
 	switch (kind) {
 	case smug::VERTEX:
@@ -177,10 +178,10 @@ ShaderByteCode* CompileShader(const std::string& file, SHADER_KIND kind, const s
 }
 #endif
 
-char* ShaderLoader::LoadShaders(const std::string& filename, ShaderInfo& info) {
+char* ShaderLoader::LoadShaders(const eastl::string& filename, ShaderInfo& info) {
 	using namespace nlohmann;
 
-	std::ifstream fin(filename);
+	std::ifstream fin(filename.c_str());
 	if (!fin.is_open()) {
 		//printf("Error opening pipeline file %s\n", filename.c_str());
 		fin.close();
@@ -197,16 +198,18 @@ char* ShaderLoader::LoadShaders(const std::string& filename, ShaderInfo& info) {
 	//Find shaders
 	if (root.find("Shaders") != root.end()) {
 		json shaders = root["Shaders"];
-		std::vector<ShaderByteCode*> byte_codes;
-		std::string shader_types[] = { "Vertex", "Fragment", "Geometry", "Evaluation", "Control", "Compute" };
+		eastl::vector<ShaderByteCode*> byte_codes;
+		const char* shader_types[] = { "Vertex", "Fragment", "Geometry", "Evaluation", "Control", "Compute" };
 		for (int i = 0; i < COMPUTE + 1; ++i) {
 			if (shaders.find(shader_types[i]) != shaders.end()) {
 				json shader = shaders[shader_types[i]];
-				std::string entry = "main";
+				eastl::string entry = "main";
 				SHADER_LANGUAGE lang = GLSL;
 
-				if (shader.find("EntryPoint") != shader.end())
-					entry = shader["EntryPoint"];
+				if (shader.find("EntryPoint") != shader.end()) {
+					std::string entry_name = shader["EntryPoint"];
+					entry = entry_name.c_str();
+				}
 
 				if (shader.find("Language") != shader.end()) {
 					if (shader["Language"] == "GLSL") {
@@ -218,7 +221,9 @@ char* ShaderLoader::LoadShaders(const std::string& filename, ShaderInfo& info) {
 				if (entry.empty())
 					entry = "main";
 
-				ShaderByteCode* bc = CompileShader(shader["Source"], SHADER_KIND(i), entry, lang, false);
+				std::string source = shader["Source"];
+
+				ShaderByteCode* bc = CompileShader(source.c_str(), SHADER_KIND(i), entry, lang, false);
 				if (!bc) {
 					return "Failed to compile shaders";
 				}
@@ -238,8 +243,8 @@ char* ShaderLoader::LoadShaders(const std::string& filename, ShaderInfo& info) {
 }
 
 char* ReflectShaders(ShaderInfo& info, PipelineStateInfo& psInfoOut){
-	std::vector<Descriptor> descs;
-	std::vector<uint32_t> renderTargets;
+	eastl::vector<Descriptor> descs;
+	eastl::vector<uint32_t> renderTargets;
 	psInfoOut.DescriptorCount = 0;
 	psInfoOut.RenderTargetCount = 0;
 	psInfoOut.PushConstants.Offset = 0;
@@ -256,7 +261,7 @@ char* ReflectShaders(ShaderInfo& info, PipelineStateInfo& psInfoOut){
 			d.Set = compiler->get_decoration(res.id, spv::DecorationDescriptorSet);
 			d.Bindpoint = compiler->get_decoration(res.id, spv::DecorationBinding);
 			d.Count = compiler->get_type(res.type_id).array.size() > 0 ? compiler->get_type(res.type_id).array[0] : 1;
-			d.Resource = HashString((compiler->get_name(res.id)));
+			d.Resource = HashString((compiler->get_name(res.id).c_str()));
 			d.Type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 			descs.push_back(d);
 		}
@@ -264,7 +269,7 @@ char* ReflectShaders(ShaderInfo& info, PipelineStateInfo& psInfoOut){
 			d.Set = compiler->get_decoration(res.id, spv::DecorationDescriptorSet);
 			d.Bindpoint = compiler->get_decoration(res.id, spv::DecorationBinding);
 			d.Count = compiler->get_type(res.type_id).array.size() > 0 ? compiler->get_type(res.type_id).array[0] : 1;
-			d.Resource = HashString((compiler->get_name(res.id)));
+			d.Resource = HashString((compiler->get_name(res.id).c_str()));
 			d.Type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
 			descs.push_back(d);
 		}
@@ -272,7 +277,7 @@ char* ReflectShaders(ShaderInfo& info, PipelineStateInfo& psInfoOut){
 			d.Set = compiler->get_decoration(res.id, spv::DecorationDescriptorSet);
 			d.Bindpoint = compiler->get_decoration(res.id, spv::DecorationBinding);
 			d.Count = compiler->get_type(res.type_id).array.size() > 0 ? compiler->get_type(res.type_id).array[0] : 1;
-			d.Resource = HashString((compiler->get_name(res.id)));
+			d.Resource = HashString((compiler->get_name(res.id).c_str()));
 			d.Type = VK_DESCRIPTOR_TYPE_SAMPLER;
 			descs.push_back(d);
 		}
@@ -280,7 +285,7 @@ char* ReflectShaders(ShaderInfo& info, PipelineStateInfo& psInfoOut){
 			d.Set = compiler->get_decoration(res.id, spv::DecorationDescriptorSet);
 			d.Bindpoint = compiler->get_decoration(res.id, spv::DecorationBinding);
 			d.Count = compiler->get_type(res.type_id).array.size() > 0 ? compiler->get_type(res.type_id).array[0] : 1;
-			d.Resource = HashString((compiler->get_name(res.id)));
+			d.Resource = HashString((compiler->get_name(res.id).c_str()));
 			d.Type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 			descs.push_back(d);
 		}
@@ -288,7 +293,7 @@ char* ReflectShaders(ShaderInfo& info, PipelineStateInfo& psInfoOut){
 			d.Set = compiler->get_decoration(res.id, spv::DecorationDescriptorSet);
 			d.Bindpoint = compiler->get_decoration(res.id, spv::DecorationBinding);
 			d.Count = compiler->get_type(res.type_id).array.size() > 0 ? compiler->get_type(res.type_id).array[0] : 1;
-			d.Resource = HashString((compiler->get_name(res.id)));
+			d.Resource = HashString((compiler->get_name(res.id).c_str()));
 			d.Type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 			descs.push_back(d);
 		}
@@ -296,7 +301,7 @@ char* ReflectShaders(ShaderInfo& info, PipelineStateInfo& psInfoOut){
 			d.Set = compiler->get_decoration(res.id, spv::DecorationDescriptorSet);
 			d.Bindpoint = compiler->get_decoration(res.id, spv::DecorationBinding);
 			d.Count = compiler->get_type(res.type_id).array.size() > 0 ? compiler->get_type(res.type_id).array[0] : 1;
-			d.Resource = HashString((compiler->get_name(res.id)));
+			d.Resource = HashString((compiler->get_name(res.id).c_str()));
 			d.Type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
 			descs.push_back(d);
 		}
@@ -312,7 +317,7 @@ char* ReflectShaders(ShaderInfo& info, PipelineStateInfo& psInfoOut){
 		//fragment shader outputs through framebuffers
 		if (shader.Kind == SHADER_KIND::FRAGMENT) {
 			for (auto& res : resources.stage_outputs) {
-				renderTargets.push_back(HashString((compiler->get_name(res.id))));
+				renderTargets.push_back(HashString((compiler->get_name(res.id).c_str())));
 			}
 		}
 	}
@@ -365,7 +370,7 @@ void ShaderLoader::SerializeAsset(FileBuffer* buffer, LoadResult* asset)  {
 	//ps state = psInfo + shaders + descriptors + rendertargets
 	//serialize shaders
 	uint32_t offset = sizeof(PipelineStateInfo) + sizeof(uint32_t) + sizeof(ShaderByteCode) * si.ShaderCount;
-	std::vector<ShaderByteCode> byteCodes;
+	eastl::vector<ShaderByteCode> byteCodes;
 	for (uint32_t i = 0; i < si.ShaderCount; ++i) {
 		ShaderByteCode bc = si.Shaders[i];
 		bc.ByteCode = (void*)offset;

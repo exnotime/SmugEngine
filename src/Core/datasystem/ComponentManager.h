@@ -1,7 +1,7 @@
 #pragma once
 #include "ComponentBuffer.h"
 #include "../entity/Entity.h"
-#include <vector>
+#include <EASTL/vector.h>
 
 namespace smug {
 class ComponentManager {
@@ -15,9 +15,9 @@ class ComponentManager {
 	int GetBuffer(void** outBuffer, uint64_t type);
 	void* GetComponent(const Entity& ent, uint64_t type);
   private:
-	void CreateComponentBuffer(uint32_t count, uint32_t componentSize, uint64_t id, std::string name);
+	void CreateComponentBuffer(uint32_t count, uint32_t componentSize, uint64_t id, eastl::string name);
 
-	std::vector<ComponentBuffer>	m_Buffers;
+	eastl::vector<ComponentBuffer>	m_Buffers;
 	int								m_ComponentTypeCount;
 };
 }

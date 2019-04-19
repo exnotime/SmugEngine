@@ -10,8 +10,8 @@ struct Vertex {
 	glm::vec2 TexCoord;
 };
 
-static std::vector<VkVertexInputAttributeDescription> VertexAttributes;
-static std::vector<VkVertexInputBindingDescription> VertexBindings;
+static eastl::vector<VkVertexInputAttributeDescription> VertexAttributes;
+static eastl::vector<VkVertexInputBindingDescription> VertexBindings;
 static VkPipelineVertexInputStateCreateInfo VertexState;
 
 static VkPipelineVertexInputStateCreateInfo GetVertexState() {

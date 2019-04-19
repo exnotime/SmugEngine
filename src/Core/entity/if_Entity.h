@@ -1,6 +1,8 @@
 #pragma once
 #include <Core/script/ScriptEngine.h>
+#include <Core/entity/EntityManager.h>
 #include <Core/GlobalSystems.h>
+
 namespace smug {
 namespace if_entity {
 using namespace AngelScript;

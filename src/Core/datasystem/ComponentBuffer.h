@@ -2,7 +2,7 @@
 #include <malloc.h>
 #include <assert.h>
 #include <deque>
-#include <string>
+#include <EASTL/string.h>
 namespace smug {
 class ComponentBuffer {
   public:
@@ -13,7 +13,7 @@ class ComponentBuffer {
 
 	}
 
-	void CreateBuffer(uint32_t count, uint32_t size, std::string name) {
+	void CreateBuffer(uint32_t count, uint32_t size, eastl::string name) {
 		m_Buffer = (uint8_t*)malloc(count * size);
 		assert(m_Buffer != nullptr);
 		memset(m_Buffer, 0, count * size);
@@ -77,7 +77,7 @@ class ComponentBuffer {
 	uint32_t GetListSize() {
 		return m_Count;
 	}
-	std::string& GetName() {
+	eastl::string& GetName() {
 		return m_Name;
 	}
 
@@ -88,6 +88,6 @@ class ComponentBuffer {
 	uint32_t m_ComponentSize = 0; //size of component in bytes
 	void* m_Buffer = nullptr;
 	std::deque<uint32_t> m_Holes;
-	std::string m_Name;
+	eastl::string m_Name;
 };
 }

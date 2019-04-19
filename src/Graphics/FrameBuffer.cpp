@@ -48,7 +48,7 @@ int32_t findProperties(const VkPhysicalDeviceMemoryProperties* pMemoryProperties
 	return -1;
 }
 
-void FrameBufferManager::Init(const VkDevice& device, const VkPhysicalDevice& gpu, const glm::vec2& size, const std::vector<VkFormat>& formats, const std::vector<VkImageUsageFlags>& usages) {
+void FrameBufferManager::Init(const VkDevice& device, const VkPhysicalDevice& gpu, const glm::vec2& size, const eastl::vector<VkFormat>& formats, const eastl::vector<VkImageUsageFlags>& usages) {
 	m_Device = device;
 	m_FrameBufferSize = size;
 	m_FormatCount = (uint32_t)formats.size();
@@ -130,7 +130,7 @@ void FrameBufferManager::Init(const VkDevice& device, const VkPhysicalDevice& gp
 	renderPassInfo.pNext = nullptr;
 	renderPassInfo.attachmentCount = (uint32_t)formats.size();
 	renderPassInfo.dependencyCount = 0; //future optimization, get dependency off another framebuffer
-	std::vector<VkAttachmentDescription> attachments;
+	eastl::vector<VkAttachmentDescription> attachments;
 	for (uint32_t f = 0; f < m_FormatCount; ++f) {
 		VkAttachmentDescription attachmentDesc = {};
 		attachmentDesc.format = formats[f];
@@ -148,8 +148,8 @@ void FrameBufferManager::Init(const VkDevice& device, const VkPhysicalDevice& gp
 	renderPassInfo.pAttachments = attachments.data();
 	//init subpass
 	VkSubpassDescription subPassDesc = {};
-	std::vector<VkAttachmentReference> colorAttachments;
-	std::vector<VkAttachmentReference> depthAttachments;
+	eastl::vector<VkAttachmentReference> colorAttachments;
+	eastl::vector<VkAttachmentReference> depthAttachments;
 	for (uint32_t i = 0; i < attachments.size(); ++i) {
 		if (attachments[i].initialLayout == VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) {
 			colorAttachments.push_back({ i, VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
@@ -260,7 +260,7 @@ void FrameBufferManager::Resize(const glm::vec2& size) {
 }
 
 ///Push barrier needs to be called for this to make an effect
-void FrameBufferManager::ChangeLayout(CommandBuffer& cmdBuffer, const std::vector<VkImageLayout>& newLayouts) {
+void FrameBufferManager::ChangeLayout(CommandBuffer& cmdBuffer, const eastl::vector<VkImageLayout>& newLayouts) {
 
 	uint32_t imageCount = (uint32_t)m_Formats.size();
 	assert(imageCount == newLayouts.size());
@@ -271,7 +271,7 @@ void FrameBufferManager::ChangeLayout(CommandBuffer& cmdBuffer, const std::vecto
 	}
 }
 
-void FrameBufferManager::SetLayouts(const std::vector<VkImageLayout>& newLayouts) {
+void FrameBufferManager::SetLayouts(const eastl::vector<VkImageLayout>& newLayouts) {
 	uint32_t size = (uint32_t)newLayouts.size();
 	for (uint32_t i = 0; i < size; ++i) {
 		m_CurrentLayouts[i] = newLayouts[i];
@@ -344,16 +344,16 @@ void FrameBufferManager::AllocRenderTarget(uint32_t name, uint32_t width, uint32
 	m_RenderTargets[name] = rt;
 }
 
-VkRenderPass FrameBufferManager::CreateRenderPass(uint32_t name, std::vector<SubPass> subPasses) {
+VkRenderPass FrameBufferManager::CreateRenderPass(uint32_t name, eastl::vector<SubPass> subPasses) {
 	//create hash and see if we already have a renderpass that matches
-	std::vector<uint32_t> subpassHashes;
+	eastl::vector<uint32_t> subpassHashes;
 	meow_hash hash = MeowHash_Accelerated(0xBEEFC0DE, (int)(sizeof(uint32_t) * subpassHashes.size()), subpassHashes.data());
 	uint32_t rpHash = MeowU32From(hash, 0);
-	std::vector<VkAttachmentDescription> attachments;
-	std::unordered_map<uint32_t, uint32_t> nameToIndex;
-	std::vector<std::vector<VkAttachmentReference>> attachmentRefs;
+	eastl::vector<VkAttachmentDescription> attachments;
+	eastl::unordered_map<uint32_t, uint32_t> nameToIndex;
+	eastl::vector<eastl::vector<VkAttachmentReference>> attachmentRefs;
 	attachmentRefs.resize(subPasses.size());
-	std::vector<VkSubpassDescription> subPassesDescs;
+	eastl::vector<VkSubpassDescription> subPassesDescs;
 	uint32_t subPassIndex = 0;
 	for (auto& sp : subPasses) {
 		for (auto& rt : sp.RenderTargets) {
@@ -421,7 +421,7 @@ VkRenderPass FrameBufferManager::CreateRenderPass(uint32_t name, std::vector<Sub
 	vkCreateRenderPass(m_Device, &renderPassInfo, nullptr, &m_RenderPasses[name]);
 
 	uint32_t w = 0, h = 0, d = 0;
-	std::vector<VkImageView> fbViews;
+	eastl::vector<VkImageView> fbViews;
 	for (auto& sp : subPasses) {
 		for (auto& rt : sp.RenderTargets) {
 			fbViews.push_back(m_RenderTargets[rt].View);

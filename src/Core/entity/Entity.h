@@ -1,6 +1,6 @@
 #pragma once
 #include <stdint.h>
-#include <vector>
+#include <EASTL/vector.h>
 #include <intrin.h>
 #define MAX_COMPONENTS 64
 namespace smug {
@@ -8,7 +8,7 @@ struct Entity {
 	uint32_t UID = 0;
 	uint32_t Tag = 0;
 	uint64_t ComponentBitfield = 0;
-	std::vector<uint32_t> Components;
+	eastl::vector<uint32_t> Components;
 };
 
 static uint32_t fast_log2(uint64_t t) {

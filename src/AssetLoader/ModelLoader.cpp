@@ -11,7 +11,7 @@ using namespace smug;
 ModelLoader::ModelLoader() {}
 ModelLoader::~ModelLoader() {}
 
-std::string GetDir(const std::string& file) {
+eastl::string GetDir(const eastl::string& file) {
 	for (uint32_t i = (uint32_t)file.length() - 1; i >= 0; i--) {
 		if (file[i] == '\\' || file[i] == '/') {
 			return file.substr(0, i + 1);
@@ -20,9 +20,9 @@ std::string GetDir(const std::string& file) {
 	return "";
 }
 
-char* ModelLoader::LoadModel(const std::string& filename, ModelInfo& model) {
+char* ModelLoader::LoadModel(const eastl::string& filename, ModelInfo& model) {
 	Assimp::Importer importer;
-	const aiScene* scene = importer.ReadFile(filename, aiProcess_CalcTangentSpace | aiProcess_FlipUVs
+	const aiScene* scene = importer.ReadFile(filename.c_str(), aiProcess_CalcTangentSpace | aiProcess_FlipUVs
 	                       | aiProcess_GenUVCoords | aiProcess_JoinIdenticalVertices | aiProcess_Triangulate);
 	if (scene) {
 		//meshes
@@ -62,33 +62,33 @@ char* ModelLoader::LoadModel(const std::string& filename, ModelInfo& model) {
 			model.Materials = new MaterialInfo[model.MaterialCount];
 			for (uint32_t m = 0; m < model.MaterialCount; ++m) {
 				aiMaterial* mat = scene->mMaterials[m];
-				std::string dir = GetDir(filename);// filename.substr(0, filename.find_last_of() + 1);
+				eastl::string dir = GetDir(filename);// filename.substr(0, filename.find_last_of() + 1);
 				aiString path;
 				if (mat->GetTextureCount(aiTextureType_DIFFUSE) > 0) {
 					mat->GetTexture(aiTextureType_DIFFUSE, 0, &path);
-					std::string p = dir + path.data;
+					eastl::string p = dir + path.data;
 					model.Materials[m].Albedo = g_AssetLoader.LoadAsset(p.c_str());
 				}
 				//obj stores normals in height
 				if (mat->GetTextureCount(aiTextureType_HEIGHT)) {
 					mat->GetTexture(aiTextureType_HEIGHT, 0, &path);
-					std::string p = dir + path.data;
+					eastl::string p = dir + path.data;
 					model.Materials[m].Normal = g_AssetLoader.LoadAsset(p.c_str());
 				}
 				//dae in normals
 				if (mat->GetTextureCount(aiTextureType_NORMALS)) {
 					mat->GetTexture(aiTextureType_NORMALS, 0, &path);
-					std::string p = dir + path.data;
+					eastl::string p = dir + path.data;
 					model.Materials[m].Normal = g_AssetLoader.LoadAsset(p.c_str());
 				}
 				if (mat->GetTextureCount(aiTextureType_SPECULAR)) {
 					mat->GetTexture(aiTextureType_SPECULAR, 0, &path);
-					std::string p = dir + path.data;
+					eastl::string p = dir + path.data;
 					model.Materials[m].Roughness = g_AssetLoader.LoadAsset(p.c_str());
 				}
 				if (mat->GetTextureCount(aiTextureType_EMISSIVE)) {
 					mat->GetTexture(aiTextureType_EMISSIVE, 0, &path);
-					std::string p = dir + path.data;
+					eastl::string p = dir + path.data;
 					model.Materials[m].Metal = g_AssetLoader.LoadAsset(p.c_str());
 				}
 			}
@@ -139,7 +139,7 @@ void ModelLoader::SerializeAsset(FileBuffer* buffer, LoadResult* asset) {
 	// Header + mesh headers + materials + mesh data (vertices + indices)
 	ModelInfo* info = (ModelInfo*)asset->Data;
 	size_t meshDataOffset = sizeof(ModelInfo) + info->MeshCount * sizeof(MeshInfo) + info->MaterialCount * sizeof(MaterialInfo);
-	std::vector<MeshInfo> meshes;
+	eastl::vector<MeshInfo> meshes;
 	size_t offset = meshDataOffset;
 	for (uint32_t m = 0; m < info->MeshCount; ++m) {
 		MeshInfo mesh;
@@ -151,28 +151,28 @@ void ModelLoader::SerializeAsset(FileBuffer* buffer, LoadResult* asset) {
 		meshes.push_back(mesh);
 	}
 	for (uint32_t m = 0; m < info->MaterialCount; ++m) {
-		std::string albedo = g_AssetLoader.GetFilenameFromCache(info->Materials[m].Albedo);
+		eastl::string albedo = g_AssetLoader.GetFilenameFromCache(info->Materials[m].Albedo);
 		if (!albedo.empty()) {
 			info->Materials[m].Albedo = HashString(albedo);
 		} else {
 			info->Materials[m].Albedo = RESOURCE_INVALID;
 		}
 
-		std::string normal = g_AssetLoader.GetFilenameFromCache(info->Materials[m].Normal);
+		eastl::string normal = g_AssetLoader.GetFilenameFromCache(info->Materials[m].Normal);
 		if (!normal.empty()) {
 			info->Materials[m].Normal = HashString(normal);
 		} else {
 			info->Materials[m].Normal = RESOURCE_INVALID;
 		}
 
-		std::string metal = g_AssetLoader.GetFilenameFromCache(info->Materials[m].Metal);
+		eastl::string metal = g_AssetLoader.GetFilenameFromCache(info->Materials[m].Metal);
 		if (!metal.empty()) {
 			info->Materials[m].Metal = HashString(metal);
 		} else {
 			info->Materials[m].Metal = RESOURCE_INVALID;
 		}
 
-		std::string roughness = g_AssetLoader.GetFilenameFromCache(info->Materials[m].Roughness);
+		eastl::string roughness = g_AssetLoader.GetFilenameFromCache(info->Materials[m].Roughness);
 		if (!albedo.empty()) {
 			info->Materials[m].Roughness = HashString(roughness);
 		} else {

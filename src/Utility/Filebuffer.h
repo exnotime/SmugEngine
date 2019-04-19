@@ -1,7 +1,6 @@
 #pragma once
-#include <string>
-#include <vector>
-#include <unordered_map>
+#include <EASTL/string.h>
+#include <EASTL/unordered_map.h>
 namespace smug {
 struct LedgerEntry {
 	uint64_t TimeStamp;
@@ -31,9 +30,9 @@ class FileBuffer {
 	bool m_Open;
 	FILE* m_File;
 	FILE* m_LedgerFile;
-	std::string m_Filename;
-	std::string m_LedgerFilename;
+	eastl::string m_Filename;
+	eastl::string m_LedgerFilename;
 	size_t m_FilePtr;
-	std::unordered_map<uint32_t, LedgerEntry> m_Files;
+	eastl::unordered_map<uint32_t, LedgerEntry> m_Files;
 };
 }

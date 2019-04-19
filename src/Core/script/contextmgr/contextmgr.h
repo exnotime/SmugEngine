@@ -13,7 +13,7 @@
 #include <angelscript.h>
 #endif
 
-#include <vector>
+#include <EASTL/vector.h>
 
 BEGIN_AS_NAMESPACE
 
@@ -81,8 +81,8 @@ class CContextMgr {
 	void AbortAll();
 
   protected:
-	std::vector<SContextInfo*> m_threads;
-	std::vector<SContextInfo*> m_freeThreads;
+	eastl::vector<SContextInfo*> m_threads;
+	eastl::vector<SContextInfo*> m_freeThreads;
 	asUINT                     m_currentThread;
 	TIMEFUNC_t                 m_getTimeFunc;
 

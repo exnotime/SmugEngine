@@ -1,6 +1,6 @@
 #pragma once
 #include <stdint.h>
-#include <string>
+#include <EASTL/string.h>
 #include <glm/glm.hpp>
 #include "AssetExport.h"
 

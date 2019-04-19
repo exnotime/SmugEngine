@@ -16,6 +16,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #pragma once
 #include "volk.h"
 #include <AssetLoader/Resources.h>
+#include <EASTL/string.h>
 
 #ifndef SHADER_CACHE_DIR
 #define USE_SHADER_CACHE 1
@@ -25,5 +26,5 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 namespace smug {
-VkShaderModule LoadShader(const VkDevice& device, const std::string& filename, SHADER_KIND stage, const std::string& entryPoint = "main", SHADER_LANGUAGE language = GLSL);
+VkShaderModule LoadShader(const VkDevice& device, const eastl::string& filename, SHADER_KIND stage, const eastl::string& entryPoint = "main", SHADER_LANGUAGE language = GLSL);
 };

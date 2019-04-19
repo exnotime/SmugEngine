@@ -1,8 +1,9 @@
 #pragma once
 #include "volk.h"
 #include <deque>
-#include <vector>
+#include <EASTL/vector.h>
 #define BUFFER_COUNT 2
+
 namespace smug {
 
 struct VulkanSwapChain {
@@ -135,7 +136,7 @@ class CommandBuffer {
 	VkCommandBuffer CmdBuffer() { return m_Buffer; }
 
   private:
-	std::vector<VkImageMemoryBarrier> m_ImgBarriers;
+	eastl::vector<VkImageMemoryBarrier> m_ImgBarriers;
 	VkCommandBuffer m_Buffer;
 };
 
@@ -145,9 +146,7 @@ class VulkanCommandBufferFactory {
 
 	}
 	~VulkanCommandBufferFactory() {
-		for (auto cb : m_CommandBuffers) {
-			delete cb;
-		}
+		
 	}
 
 	void Init(VkDevice device, int queueFamilyIndex, uint32_t bufferCount) {
@@ -166,13 +165,19 @@ class VulkanCommandBufferFactory {
 		bufferInfo.commandPool = m_CmdPools[0];
 		bufferInfo.level = VkCommandBufferLevel::VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 
-		std::vector<VkCommandBuffer> buffers;
+		eastl::vector<VkCommandBuffer> buffers;
 		buffers.resize(bufferCount);
 		vkAllocateCommandBuffers(device, &bufferInfo, &buffers[0]);
 		for (uint32_t i = 0; i < buffers.size(); ++i) {
 			m_CommandBuffers.push_back(new CommandBuffer(buffers[i]));
 		}
 		m_ResetBuffers.insert(m_ResetBuffers.begin(), m_CommandBuffers.begin(), m_CommandBuffers.end());
+	}
+
+	void Shutdown() {
+		for (auto cb : m_CommandBuffers) {
+			delete cb;
+		}
 	}
 
 	void Reset(VkDevice device, int frameIndex) {
@@ -197,7 +202,7 @@ class VulkanCommandBufferFactory {
 	}
 
   private:
-	std::vector<CommandBuffer*> m_CommandBuffers;
+	eastl::vector<CommandBuffer*> m_CommandBuffers;
 	std::deque<CommandBuffer*> m_ResetBuffers;
 	std::deque<CommandBuffer*> m_UsedBuffers;
 	VkCommandPool m_CmdPools[BUFFER_COUNT];
@@ -217,7 +222,7 @@ class DeviceQueue {
 		m_QueueIndex = 0;
 		uint32_t queueCount = 0;
 		vkGetPhysicalDeviceQueueFamilyProperties(physDevice, &queueCount, nullptr);
-		std::vector<VkQueueFamilyProperties> props(queueCount);
+		eastl::vector<VkQueueFamilyProperties> props(queueCount);
 		vkGetPhysicalDeviceQueueFamilyProperties(physDevice, &queueCount, &props[0]);
 		for (; m_QueueIndex < queueCount; ++m_QueueIndex) {
 			if (props[m_QueueIndex].queueFlags & type) {
@@ -237,8 +242,8 @@ class DeviceQueue {
 		vkGetDeviceQueue(device, m_QueueIndex, 0, &m_Queue);
 	}
 
-	void Submit(const std::vector<VkCommandBuffer>& cmdBuffers, const std::vector<VkSemaphore> waitSemaphores,
-	            const std::vector<VkSemaphore> signalSemaphores, VkFence fence) {
+	void Submit(const eastl::vector<VkCommandBuffer>& cmdBuffers, const eastl::vector<VkSemaphore> waitSemaphores,
+	            const eastl::vector<VkSemaphore> signalSemaphores, VkFence fence) {
 		VkSubmitInfo submit = {};
 		submit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 		submit.pNext = nullptr;
@@ -249,7 +254,7 @@ class DeviceQueue {
 		submit.waitSemaphoreCount = (uint32_t)waitSemaphores.size();
 		submit.pWaitSemaphores = waitSemaphores.data();
 
-		std::vector<VkPipelineStageFlags> flags;
+		eastl::vector<VkPipelineStageFlags> flags;
 		for (auto& waits : waitSemaphores)
 			flags.push_back(VkPipelineStageFlagBits::VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
 
@@ -285,7 +290,7 @@ class DeviceQueue {
 		vkQueueSubmit(m_Queue, 1, &submit, nullptr);
 	}
 
-	void Submit(const std::vector<VkCommandBuffer>& buffers) {
+	void Submit(const eastl::vector<VkCommandBuffer>& buffers) {
 		VkSubmitInfo submit = {};
 		submit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 		submit.pNext = nullptr;
@@ -307,7 +312,7 @@ class DeviceQueue {
 	VkQueue GetQueue() { return m_Queue; }
 
   private:
-	int m_QueueIndex;
+	uint32_t m_QueueIndex;
 	float m_QueuePrio;
 	VkDeviceQueueCreateInfo m_QueueInfo;
 	VkQueue m_Queue;

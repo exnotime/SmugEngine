@@ -1,5 +1,6 @@
 #pragma once
 #include "RenderInterface.h"
+#include <EASTL/vector.h>
 typedef uint64_t ResourceHandle;
 namespace smug {
 
@@ -88,12 +89,12 @@ namespace smug {
 		const FenceCmd&				GetFenceCommand(uint32_t index);
 		void EndPlayback();
 	private:
-		std::vector<Cmd> m_Commands;
-		std::vector<BindRenderTargetCmd> m_RenderTargetCommands;
-		std::vector<RenderCmd> m_RenderCommands;
-		std::vector<DispatchCmd> m_DispatchCommands;
-		std::vector<CopyCmd> m_CopyCommands;
-		std::vector<FenceCmd> m_FenceCommands;
+		eastl::vector<Cmd> m_Commands;
+		eastl::vector<BindRenderTargetCmd> m_RenderTargetCommands;
+		eastl::vector<RenderCmd> m_RenderCommands;
+		eastl::vector<DispatchCmd> m_DispatchCommands;
+		eastl::vector<CopyCmd> m_CopyCommands;
+		eastl::vector<FenceCmd> m_FenceCommands;
 		bool m_Recording;
 		bool m_Playback;
 		uint32_t m_CmdIndex;

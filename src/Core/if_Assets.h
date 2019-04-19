@@ -3,7 +3,7 @@
 #include <AssetLoader/AssetLoader.h>
 namespace smug {
 namespace if_asset {
-	static ResourceHandle LoadModel(const std::string s) {
+	static ResourceHandle LoadModel(const eastl::string s) {
 		return g_AssetLoader.LoadAsset(s.c_str());
 	}
 

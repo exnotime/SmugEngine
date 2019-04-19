@@ -1,6 +1,7 @@
 #include "if_Render.h"
 #include <assert.h>
 #include "script/ScriptEngine.h"
+#include <Graphics/GraphicsEngine.h>
 #include <Core/GlobalSystems.h>
 #include <Utility/Hash.h>
 using namespace AngelScript;
@@ -45,7 +46,7 @@ namespace smug {
 			return VkFormat::VK_FORMAT_UNDEFINED;
 		}
 
-		void AllocateRenderTarget(int width, int height, int format, const std::string name) {
+		void AllocateRenderTarget(int width, int height, int format, const eastl::string name) {
 			//globals::g_Gfx->GetFrameBufferManager().AllocRenderTarget(HashString(name), width, height, 1, RTFormatToVKFormat((RENDER_TARGET_FORMAT)format), VkImageLayout::eColorAttachmentOptimal);
 		}
 
@@ -59,7 +60,7 @@ namespace smug {
 			BUFFER_USAGE_TRANSFER_SRC = VK_BUFFER_USAGE_TRANSFER_SRC_BIT
 		};
 
-		void AllocateBuffer(uint64_t size, int usage, const std::string name) {
+		void AllocateBuffer(uint64_t size, int usage, const eastl::string name) {
 			ResourceHandle handle = CreateHandle(HashString(name.c_str()), RT_BUFFER);
 			globals::g_Gfx->GetResourceHandler().AllocateBuffer(size, usage, handle);
 		}
@@ -72,20 +73,20 @@ namespace smug {
 
 		}
 
-		uint64_t LoadShader(std::string name) {
+		uint64_t LoadShader(eastl::string name) {
 			ResourceHandle h = g_AssetLoader.LoadAsset(name.c_str());
 			return h;
 		}
 
 		void BindRenderTargets(const CScriptArray* renderTargets) {
-			BindRenderTargetCmd rtCmd;
-			rtCmd.RenderTargetCount = renderTargets->GetSize();
-			rtCmd.RenderTargets = (uint32_t*)malloc(sizeof(uint32_t) * rtCmd.RenderTargetCount);
-			for (int i = 0; i < renderTargets->GetSize(); ++i) {
-				rtCmd.RenderTargets[i] = HashString(*(std::string*)renderTargets->At(i));
-			}
-			globals::g_Gfx->GetRenderPipeline().RecordBindRenderTargetCommand(rtCmd);
-			renderTargets->Release();
+			//BindRenderTargetCmd rtCmd;
+			//rtCmd.RenderTargetCount = renderTargets->GetSize();
+			//rtCmd.RenderTargets = (uint32_t*)malloc(sizeof(uint32_t) * rtCmd.RenderTargetCount);
+			//for (uint32_t i = 0; i < renderTargets->GetSize(); ++i) {
+			//	rtCmd.RenderTargets[i] = HashString(*(eastl::string*)renderTargets->At(i));
+			//}
+			//globals::g_Gfx->GetRenderPipeline().RecordBindRenderTargetCommand(rtCmd);
+			//renderTargets->Release();
 		}
 
 		void Render(int key, uint32_t stencilRef) {
@@ -93,7 +94,7 @@ namespace smug {
 			cmd.RenderKey = (RENDER_KEY)key;
 			cmd.SortKey = UINT64_MAX;
 			cmd.StencilRef = stencilRef;
-			globals::g_Gfx->GetRenderPipeline().RecordRenderCommand(cmd);
+			//globals::g_Gfx->GetRenderPipeline().RecordRenderCommand(cmd);
 		}
 
 		void Dispatch(const uint64_t shader, int workGroupX, int workGroupY, int workGroupZ, int queue) {
@@ -103,23 +104,23 @@ namespace smug {
 			cmd.WorkGroupCountX = workGroupX;
 			cmd.WorkGroupCountY = workGroupY;
 			cmd.WorkGroupCountZ = workGroupZ;
-			globals::g_Gfx->GetRenderPipeline().RecordDispatchCommand(cmd);
+			//globals::g_Gfx->GetRenderPipeline().RecordDispatchCommand(cmd);
 		}
 
-		void Copy(const std::string name, const std::string dst, const std::string src, uint64_t offsetDst, uint64_t offsetSrc, uint64_t size) {
-
-		}
-
-		void Fence(const std::string name, const std::string fence, FENCE_CMD cmd) {
+		void Copy(const eastl::string name, const eastl::string dst, const eastl::string src, uint64_t offsetDst, uint64_t offsetSrc, uint64_t size) {
 
 		}
 
-		void BeginRenderPass(const std::string name) {
-			globals::g_Gfx->GetRenderPipeline().StartRecord();
+		void Fence(const eastl::string name, const eastl::string fence, FENCE_CMD cmd) {
+
+		}
+
+		void BeginRenderPass(const eastl::string name) {
+			//globals::g_Gfx->GetRenderPipeline().StartRecord();
 		}
 
 		void EndRenderPass() {
-			globals::g_Gfx->GetRenderPipeline().EndRecord();
+			//globals::g_Gfx->GetRenderPipeline().EndRecord();
 		}
 
 		void InitInterface() {

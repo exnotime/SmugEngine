@@ -1,10 +1,10 @@
 #pragma once
 #include "Entity.h"
-#include <vector>
+#include <EASTL/vector.h>
 namespace smug {
 struct EntityCache {
 	uint64_t ComponentBitMask;
-	std::vector<uint32_t> Entities;
+	eastl::vector<uint32_t> Entities;
 };
 
 class EntityManager {
@@ -16,11 +16,11 @@ class EntityManager {
 	Entity& GetEntity(uint32_t UID);
 	void RemoveEntity(Entity& entity);
 	void RemoveAllEntities();
-	std::vector<Entity>& GetEntityList();
+	eastl::vector<Entity>& GetEntityList();
 	bool IsCacheDirty(const EntityCache& cache);
   private:
 
-	std::vector<Entity> m_Entities;
+	eastl::vector<Entity> m_Entities;
 	uint32_t m_Counter = 0;
 	uint64_t m_DirtyComponents = 0;
 };

@@ -12,8 +12,8 @@ VkTexture::~VkTexture() {
 
 }
 
-void VkTexture::Init(const std::string& filename, DeviceAllocator* allocator, const VkDevice& device) {
-	gli::texture texture(gli::load(filename));
+void VkTexture::Init(const eastl::string& filename, DeviceAllocator* allocator, const VkDevice& device) {
+	gli::texture texture(gli::load(filename.c_str()));
 	//create image
 	VkImageCreateInfo imageInfo = {};
 	imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -149,6 +149,10 @@ void VkTexture::Init(const TextureInfo& texInfo, DeviceAllocator* allocator, con
 	sampInfo.mipmapMode = VkSamplerMipmapMode::VK_SAMPLER_MIPMAP_MODE_LINEAR;
 	sampInfo.unnormalizedCoordinates = false;
 	vkCreateSampler(device, &sampInfo, nullptr, &m_Sampler);
+}
+
+void VkTexture::Release(DeviceAllocator& allocator) {
+	allocator.DeAllocateImage(m_Image);
 }
 
 

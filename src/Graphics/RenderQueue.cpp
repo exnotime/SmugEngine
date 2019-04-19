@@ -11,12 +11,12 @@ RenderQueue::~RenderQueue() {
 void RenderQueue::Init(ResourceHandler& resources, int index) {
 	m_Resources = &resources;
 	//allocate gpu memory for shader inputs
-	std::string bufferName = "ShaderInputBuffer_" + index;
+	eastl::string bufferName = "ShaderInputBuffer_" + index;
 	m_Buffer = CreateHandle(HashString(bufferName), RT_BUFFER);
-	resources.AllocateBuffer(sizeof(ShaderInput) * 1024 * 128, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, m_Buffer);
+	resources.AllocateBuffer(sizeof(ShaderInput) * MAX_INSTANCES, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, m_Buffer);
 
 	m_Cameras.reserve(4);
-	m_Inputs.reserve(1024 * 128);
+	m_Inputs.reserve(1024);
 }
 
 void RenderQueue::Clear() {
@@ -29,7 +29,7 @@ void RenderQueue::AddCamera(const CameraData & cd) {
 	m_Cameras.push_back(cd);
 }
 
-void RenderQueue::AddModel(ResourceHandle model, const glm::mat4& transform, const glm::vec4& tint) {
+void RenderQueue::AddModel(ResourceHandle model, const glm::mat3x4& transform, const glm::vec4& tint) {
 	auto& m = m_Models.find(model);
 	if (m == m_Models.end()) {
 		m_Models[model] = ModelInstance();

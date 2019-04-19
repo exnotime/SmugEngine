@@ -1,5 +1,5 @@
 #pragma once
-#include <string>
+#include <EASTL/string.h>
 #include "Resources.h"
 #include "AssetExport.h"
 #include "LoaderInterface.h"
@@ -8,7 +8,7 @@ class ModelLoader : public LoaderInterface {
   public:
 	ModelLoader();
 	~ModelLoader();
-	char* LoadModel(const std::string& filename, ModelInfo& info);
+	char* LoadModel(const eastl::string& filename, ModelInfo& info);
 
 	virtual LoadResult LoadAsset(const char* filename) override;
 	virtual void UnloadAsset(void* asset) override;

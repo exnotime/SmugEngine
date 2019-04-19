@@ -6,7 +6,7 @@ DeviceAllocator::DeviceAllocator() {
 
 }
 DeviceAllocator::~DeviceAllocator() {
-	vmaDestroyAllocator(m_Allocator);
+	
 }
 
 void DeviceAllocator::Init(VkDevice& device, VkPhysicalDevice& physicalDevice) {
@@ -41,6 +41,11 @@ void DeviceAllocator::Init(VkDevice& device, VkPhysicalDevice& physicalDevice) {
 
 	m_Device = &device;
 }
+
+void DeviceAllocator::DeInit() {
+	vmaDestroyAllocator(m_Allocator);
+}
+
 VkImageHandle DeviceAllocator::AllocateImage(VkImageCreateInfo* createInfo, uint64_t size, void* data) {
 	VkImageLayout finalLayout = createInfo->initialLayout;
 	createInfo->initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -126,7 +131,7 @@ VkImageHandle DeviceAllocator::AllocateImage(VkImageCreateInfo* createInfo, uint
 	return handle;
 }
 
-VkBufferHandle DeviceAllocator::AllocateBuffer(const VkBufferUsageFlags usage, uint64_t size, void * data, uint32_t memoryTypeBits) {
+VkBufferHandle DeviceAllocator::AllocateBuffer(const VkBufferUsageFlags usage, uint64_t size, void * data, uint32_t memoryTypeBits, uint64_t dataSize) {
 	VkBufferHandle ret;
 
 	VkBufferCreateInfo createInfo = {};
@@ -157,10 +162,10 @@ VkBufferHandle DeviceAllocator::AllocateBuffer(const VkBufferUsageFlags usage, u
 			printf("Error allocating memory for intermediate buffer\n");
 			return ret;
 		}
-
+		uint64_t realSize = dataSize > 0 ? dataSize : size;
 		void* ptr = nullptr;
 		vmaMapMemory(m_Allocator, transfer.memory, &ptr);
-		memcpy(ptr, data, size);
+		memcpy(ptr, data, realSize);
 		VkMappedMemoryRange range = {};
 		range.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
 		range.pNext = nullptr;
@@ -173,16 +178,19 @@ VkBufferHandle DeviceAllocator::AllocateBuffer(const VkBufferUsageFlags usage, u
 		transfer.dst = ret.buffer;
 		transfer.copy.dstOffset = 0;
 		transfer.copy.srcOffset = 0;
-		transfer.copy.size = size;
+		transfer.copy.size = realSize;
 		m_BufferCopies.push_back(transfer);
 		m_BufferCounter++;
 		m_BufferSet.insert(transfer.src);
 	}
+	//if ((int)ret.buffer == 0x0000000000000070) {
+	//	DebugBreak();
+	//}
 	m_BufferSet.insert(ret.buffer);
 	return ret;
 }
 
-void DeviceAllocator::UpdateBuffer(VkBufferHandle& handle, uint64_t size, void* data) {
+void DeviceAllocator::UpdateBuffer(VkBufferHandle& handle, uint64_t size, void* data, uint64_t offset) {
 	if (data) {
 		VmaAllocationInfo info;
 		BufferTransfer transfer;
@@ -203,13 +211,13 @@ void DeviceAllocator::UpdateBuffer(VkBufferHandle& handle, uint64_t size, void* 
 		}
 		void* ptr = nullptr;
 		vmaMapMemory(m_Allocator, transfer.memory, &ptr);
-		memcpy(ptr, data, size);
+		memcpy((char*)ptr + offset, data, size);
 
 		VkMappedMemoryRange range = {};
 		range.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
 		range.pNext = nullptr;
 		range.memory = info.deviceMemory;
-		range.offset = info.offset;
+		range.offset = info.offset + offset;
 		range.size = info.size;
 		vkFlushMappedMemoryRanges(*m_Device, 1, &range);
 		vmaUnmapMemory(m_Allocator, transfer.memory);
@@ -234,6 +242,18 @@ void DeviceAllocator::DeAllocateImage(VkImageHandle& handle) {
 	vmaDestroyImage(m_Allocator, handle.image, handle.memory);
 	m_ImageCounter--;
 	m_ImageSet.erase(handle.image);
+}
+
+VkDeviceMemory DeviceAllocator::GetMemory(const VmaAllocation& a) {
+	VmaAllocationInfo allocInfo;
+	vmaGetAllocationInfo(m_Allocator, a, &allocInfo);
+	return allocInfo.deviceMemory;
+}
+
+VkDeviceSize DeviceAllocator::GetMemoryOffset(const VmaAllocation& a) {
+	VmaAllocationInfo allocInfo;
+	vmaGetAllocationInfo(m_Allocator, a, &allocInfo);
+	return allocInfo.offset;
 }
 
 void DeviceAllocator::ScheduleTransfers(CommandBuffer* cmdBuffer) {

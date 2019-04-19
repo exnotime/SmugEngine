@@ -1,9 +1,9 @@
 #pragma once
-#include <string>
+#include <EASTL/string.h>
 #include <Utility/Filebuffer.h>
 namespace smug {
 struct LoadResult {
-	std::string Error = "Unknown";
+	eastl::string Error = "Unknown";
 	void* Data = nullptr;
 	uint32_t Hash;
 	RESOURCE_TYPE Type;

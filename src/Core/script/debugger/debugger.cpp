@@ -18,7 +18,7 @@ CDebugger::~CDebugger() {
 	SetEngine(0);
 }
 
-string CDebugger::ToString(void *value, asUINT typeId, int expandMembers, asIScriptEngine *engine) {
+eastl::string CDebugger::ToString(void *value, asUINT typeId, int expandMembers, asIScriptEngine *engine) {
 	if( value == 0 )
 		return "<null>";
 
@@ -94,7 +94,7 @@ string CDebugger::ToString(void *value, asUINT typeId, int expandMembers, asIScr
 				else
 					s << ", ";
 
-				s << type->GetPropertyDeclaration(n) << " = " << ToString(obj->GetAddressOfProperty(n), obj->GetPropertyTypeId(n), expandMembers - 1, type->GetEngine());
+				s << type->GetPropertyDeclaration(n) << " = " << ToString(obj->GetAddressOfProperty(n), obj->GetPropertyTypeId(n), expandMembers - 1, type->GetEngine()).c_str();
 			}
 		}
 	} else {
@@ -126,7 +126,7 @@ string CDebugger::ToString(void *value, asUINT typeId, int expandMembers, asIScr
 						s << " ";
 
 					// Invoke the callback to get the string representation of this type
-					string str = it->second(value, expandMembers, this);
+					string str = it->second(value, expandMembers, this).c_str();
 					s << str;
 				}
 			}
@@ -134,7 +134,7 @@ string CDebugger::ToString(void *value, asUINT typeId, int expandMembers, asIScr
 			s << "{no engine}";
 	}
 
-	return s.str();
+	return s.str().c_str();
 }
 
 void CDebugger::RegisterToStringCallback(const asITypeInfo *ot, ToStringCallback callback) {
@@ -179,7 +179,7 @@ void CDebugger::LineCallback(asIScriptContext *ctx) {
 	const char *file = 0;
 	int lineNbr = ctx->GetLineNumber(0, 0, &file);
 	s << (file ? file : "{unnamed}") << ":" << lineNbr << "; " << ctx->GetFunction()->GetDeclaration() << endl;
-	Output(s.str());
+	Output(s.str().c_str());
 
 	TakeCommands(ctx);
 }
@@ -210,11 +210,11 @@ bool CDebugger::CheckBreakPoint(asIScriptContext *ctx) {
 			if( m_breakPoints[n].func ) {
 				if( m_breakPoints[n].name == func->GetName() ) {
 					stringstream s;
-					s << "Entering function '" << m_breakPoints[n].name << "'. Transforming it into break point" << endl;
-					Output(s.str());
+					s << "Entering function '" << m_breakPoints[n].name.c_str() << "'. Transforming it into break point" << endl;
+					Output(s.str().c_str());
 
 					// Transform the function breakpoint into a file breakpoint
-					m_breakPoints[n].name           = file;
+					m_breakPoints[n].name           = file.c_str();
 					m_breakPoints[n].lineNbr        = lineNbr;
 					m_breakPoints[n].func           = false;
 					m_breakPoints[n].needsAdjusting = false;
@@ -222,14 +222,14 @@ bool CDebugger::CheckBreakPoint(asIScriptContext *ctx) {
 			}
 			// Check if a given breakpoint fall on a line with code or else adjust it to the next line
 			else if( m_breakPoints[n].needsAdjusting &&
-			         m_breakPoints[n].name == file ) {
+			         m_breakPoints[n].name == file.c_str()) {
 				int line = func->FindNextLineWithCode(m_breakPoints[n].lineNbr);
 				if( line >= 0 ) {
 					m_breakPoints[n].needsAdjusting = false;
 					if( line != m_breakPoints[n].lineNbr ) {
 						stringstream s;
 						s << "Moving break point " << n << " in file '" << file << "' to next line with code at line " << line << endl;
-						Output(s.str());
+						Output(s.str().c_str());
 
 						// Move the breakpoint to the next line
 						m_breakPoints[n].lineNbr = line;
@@ -247,10 +247,10 @@ bool CDebugger::CheckBreakPoint(asIScriptContext *ctx) {
 		// Should we break?
 		if( !m_breakPoints[n].func &&
 		        m_breakPoints[n].lineNbr == lineNbr &&
-		        m_breakPoints[n].name == file ) {
+		        m_breakPoints[n].name == file.c_str()) {
 			stringstream s;
 			s << "Reached break point " << n << " in file '" << file << "' at line " << lineNbr << endl;
-			Output(s.str());
+			Output(s.str().c_str());
 			return true;
 		}
 	}
@@ -265,12 +265,12 @@ void CDebugger::TakeCommands(asIScriptContext *ctx) {
 		Output("[dbg]> ");
 		cin.getline(buf, 512);
 
-		if( InterpretCommand(string(buf), ctx) )
+		if( InterpretCommand(string(buf).c_str(), ctx) )
 			break;
 	}
 }
 
-bool CDebugger::InterpretCommand(const string &cmd, asIScriptContext *ctx) {
+bool CDebugger::InterpretCommand(const eastl::string &cmd, asIScriptContext *ctx) {
 	if( cmd.length() == 0 ) return true;
 
 	switch( cmd[0] ) {
@@ -304,16 +304,16 @@ bool CDebugger::InterpretCommand(const string &cmd, asIScriptContext *ctx) {
 		// Set break point
 		size_t div = cmd.find(':');
 		if( div != string::npos && div > 2 ) {
-			string file = cmd.substr(2, div-2);
-			string line = cmd.substr(div+1);
+			string file = cmd.substr(2, div-2).c_str();
+			string line = cmd.substr(div+1).c_str();
 
 			int nbr = atoi(line.c_str());
 
-			AddFileBreakPoint(file, nbr);
+			AddFileBreakPoint(file.c_str(), nbr);
 		} else if( div == string::npos && (div = cmd.find_first_not_of(" \t", 1)) != string::npos ) {
-			string func = cmd.substr(div);
+			string func = cmd.substr(div).c_str();
 
-			AddFuncBreakPoint(func);
+			AddFuncBreakPoint(func.c_str());
 		} else {
 			Output("Incorrect format for setting break point, expected one of:\n"
 			       "b <file name>:<line number>\n"
@@ -326,7 +326,7 @@ bool CDebugger::InterpretCommand(const string &cmd, asIScriptContext *ctx) {
 	case 'r': {
 		// Remove break point
 		if( cmd.length() > 2 ) {
-			string br = cmd.substr(2);
+			string br = cmd.substr(2).c_str();
 			if( br == "all" ) {
 				m_breakPoints.clear();
 				Output("All break points have been removed\n");
@@ -417,7 +417,7 @@ bool CDebugger::InterpretCommand(const string &cmd, asIScriptContext *ctx) {
 	return true;
 }
 
-void CDebugger::PrintValue(const std::string &expr, asIScriptContext *ctx) {
+void CDebugger::PrintValue(const eastl::string &expr, asIScriptContext *ctx) {
 	if( ctx == 0 ) {
 		Output("No script is running\n");
 		return;
@@ -427,9 +427,9 @@ void CDebugger::PrintValue(const std::string &expr, asIScriptContext *ctx) {
 
 	// Tokenize the input string to get the variable scope and name
 	asUINT len = 0;
-	string scope;
-	string name;
-	string str = expr;
+	eastl::string scope;
+	eastl::string name;
+	eastl::string str = expr;
 	asETokenClass t = engine->ParseToken(str.c_str(), 0, &len);
 	while( t == asTC_IDENTIFIER || (t == asTC_KEYWORD && len == 2 && str.compare("::")) ) {
 		if( t == asTC_KEYWORD ) {
@@ -521,8 +521,8 @@ void CDebugger::PrintValue(const std::string &expr, asIScriptContext *ctx) {
 			stringstream s;
 			// TODO: Allow user to set if members should be expanded
 			// Expand members by default to 3 recursive levels only
-			s << ToString(ptr, typeId, 3, engine) << endl;
-			Output(s.str());
+			s << ToString(ptr, typeId, 3, engine).c_str() << endl;
+			Output(s.str().c_str());
 		}
 	} else {
 		Output("Invalid expression. Expected identifier\n");
@@ -534,10 +534,10 @@ void CDebugger::ListBreakPoints() {
 	stringstream s;
 	for( size_t b = 0; b < m_breakPoints.size(); b++ )
 		if( m_breakPoints[b].func )
-			s << b << " - " << m_breakPoints[b].name << endl;
+			s << b << " - " << m_breakPoints[b].name.c_str() << endl;
 		else
-			s << b << " - " << m_breakPoints[b].name << ":" << m_breakPoints[b].lineNbr << endl;
-	Output(s.str());
+			s << b << " - " << m_breakPoints[b].name.c_str() << ":" << m_breakPoints[b].lineNbr << endl;
+	Output(s.str().c_str());
 }
 
 void CDebugger::ListMemberProperties(asIScriptContext *ctx) {
@@ -551,8 +551,8 @@ void CDebugger::ListMemberProperties(asIScriptContext *ctx) {
 		stringstream s;
 		// TODO: Allow user to define if members should be expanded or not
 		// Expand members by default to 3 recursive levels only
-		s << "this = " << ToString(ptr, ctx->GetThisTypeId(), 3, ctx->GetEngine()) << endl;
-		Output(s.str());
+		s << "this = " << ToString(ptr, ctx->GetThisTypeId(), 3, ctx->GetEngine()).c_str() << endl;
+		Output(s.str().c_str());
 	}
 }
 
@@ -570,10 +570,10 @@ void CDebugger::ListLocalVariables(asIScriptContext *ctx) {
 		if( ctx->IsVarInScope(n) ) {
 			// TODO: Allow user to set if members should be expanded or not
 			// Expand members by default to 3 recursive levels only
-			s << func->GetVarDecl(n) << " = " << ToString(ctx->GetAddressOfVar(n), ctx->GetVarTypeId(n), 3, ctx->GetEngine()) << endl;
+			s << func->GetVarDecl(n) << " = " << ToString(ctx->GetAddressOfVar(n), ctx->GetVarTypeId(n), 3, ctx->GetEngine()).c_str() << endl;
 		}
 	}
-	Output(s.str());
+	Output(s.str().c_str());
 }
 
 void CDebugger::ListGlobalVariables(asIScriptContext *ctx) {
@@ -595,9 +595,9 @@ void CDebugger::ListGlobalVariables(asIScriptContext *ctx) {
 		mod->GetGlobalVar(n, 0, 0, &typeId);
 		// TODO: Allow user to set how many recursive expansions should be done
 		// Expand members by default to 3 recursive levels only
-		s << mod->GetGlobalVarDeclaration(n) << " = " << ToString(mod->GetAddressOfGlobalVar(n), typeId, 3, ctx->GetEngine()) << endl;
+		s << mod->GetGlobalVarDeclaration(n) << " = " << ToString(mod->GetAddressOfGlobalVar(n), typeId, 3, ctx->GetEngine()).c_str() << endl;
 	}
-	Output(s.str());
+	Output(s.str().c_str());
 }
 
 void CDebugger::ListStatistics(asIScriptContext *ctx) {
@@ -619,7 +619,7 @@ void CDebugger::ListStatistics(asIScriptContext *ctx) {
 	s << " new objects:           " << gcNewObjects << endl;
 	s << " new objects destroyed: " << gcTotalNewDestr << endl;
 
-	Output(s.str());
+	Output(s.str().c_str());
 }
 
 void CDebugger::PrintCallstack(asIScriptContext *ctx) {
@@ -635,31 +635,31 @@ void CDebugger::PrintCallstack(asIScriptContext *ctx) {
 		lineNbr = ctx->GetLineNumber(n, 0, &file);
 		s << file << ":" << lineNbr << "; " << ctx->GetFunction(n)->GetDeclaration() << endl;
 	}
-	Output(s.str());
+	Output(s.str().c_str());
 }
 
-void CDebugger::AddFuncBreakPoint(const string &func) {
+void CDebugger::AddFuncBreakPoint(const eastl::string &func) {
 	// Trim the function name
 	size_t b = func.find_first_not_of(" \t");
 	size_t e = func.find_last_not_of(" \t");
-	string actual = func.substr(b, e != string::npos ? e-b+1 : string::npos);
+	string actual = func.substr(b, e != string::npos ? e-b+1 : string::npos).c_str();
 
 	stringstream s;
 	s << "Adding deferred break point for function '" << actual << "'" << endl;
-	Output(s.str());
+	Output(s.str().c_str());
 
-	BreakPoint bp(actual, 0, true);
+	BreakPoint bp(actual.c_str(), 0, true);
 	m_breakPoints.push_back(bp);
 }
 
-void CDebugger::AddFileBreakPoint(const string &file, int lineNbr) {
+void CDebugger::AddFileBreakPoint(const eastl::string &file, int lineNbr) {
 	// Store just file name, not entire path
 	size_t r = file.find_last_of("\\/");
 	string actual;
 	if( r != string::npos )
-		actual = file.substr(r+1);
+		actual = file.substr(r+1).c_str();
 	else
-		actual = file;
+		actual = file.c_str();
 
 	// Trim the file name
 	size_t b = actual.find_first_not_of(" \t");
@@ -668,9 +668,9 @@ void CDebugger::AddFileBreakPoint(const string &file, int lineNbr) {
 
 	stringstream s;
 	s << "Setting break point in file '" << actual << "' at line " << lineNbr << endl;
-	Output(s.str());
+	Output(s.str().c_str());
 
-	BreakPoint bp(actual, lineNbr, false);
+	BreakPoint bp(actual.c_str(), lineNbr, false);
 	m_breakPoints.push_back(bp);
 }
 
@@ -688,9 +688,9 @@ void CDebugger::PrintHelp() {
 	       "h - Print this help text\n");
 }
 
-void CDebugger::Output(const string &str) {
+void CDebugger::Output(const eastl::string &str) {
 	// By default we just output to stdout
-	cout << str;
+	cout << str.c_str();
 }
 
 void CDebugger::SetEngine(asIScriptEngine *engine) {

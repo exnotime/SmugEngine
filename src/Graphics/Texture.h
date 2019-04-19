@@ -9,8 +9,9 @@ class VkTexture {
 	VkTexture();
 	~VkTexture();
 
-	void Init(const std::string& filename, DeviceAllocator* allocator, const VkDevice& device);
+	void Init(const eastl::string& filename, DeviceAllocator* allocator, const VkDevice& device);
 	void Init(const TextureInfo& texInfo, DeviceAllocator* allocator, const VkDevice& device);
+	void Release(DeviceAllocator& allocator);
 
 	VkDescriptorImageInfo GetDescriptorInfo();
 	VkImage GetImage() {
@@ -21,8 +22,6 @@ class VkTexture {
 	}
 
   private:
-	int m_Width;
-	int m_Height;
 	int m_Channels;
 	VkImageHandle m_Image;
 	VkSampler m_Sampler;

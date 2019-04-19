@@ -31,10 +31,10 @@
 #pragma warning (disable:4786)
 #endif
 
-#include <string>
-#include <map>
+#include <EASTL/string.h>
+#include <EASTL/map.h>
 #include <set>
-#include <vector>
+#include <EASTL/vector.h>
 #include <string.h> // _strcmpi
 
 BEGIN_AS_NAMESPACE
@@ -85,7 +85,7 @@ class CScriptBuilder {
 
 	// Enumerate included script sections
 	unsigned int GetSectionCount() const;
-	std::string  GetSectionName(unsigned int idx) const;
+	eastl::string  GetSectionName(unsigned int idx) const;
 
 #if AS_PROCESS_METADATA == 1
 	// Get metadata declared for class types and interfaces
@@ -118,41 +118,41 @@ class CScriptBuilder {
 
 	asIScriptEngine           *engine;
 	asIScriptModule           *module;
-	std::string                modifiedScript;
+	eastl::string                modifiedScript;
 
 	INCLUDECALLBACK_t  includeCallback;
 	void              *callbackParam;
 
 #if AS_PROCESS_METADATA == 1
-	int  ExtractMetadataString(int pos, std::string &outMetadata);
-	int  ExtractDeclaration(int pos, std::string &outDeclaration, int &outType);
+	int  ExtractMetadataString(int pos, eastl::string &outMetadata);
+	int  ExtractDeclaration(int pos, eastl::string &outDeclaration, int &outType);
 
 	// Temporary structure for storing metadata and declaration
 	struct SMetadataDecl {
-		SMetadataDecl(std::string m, std::string d, int t, std::string c, std::string ns) : metadata(m), declaration(d), type(t), parentClass(c), nameSpace(ns) {}
-		std::string metadata;
-		std::string declaration;
+		SMetadataDecl(eastl::string m, eastl::string d, int t, eastl::string c, eastl::string ns) : metadata(m), declaration(d), type(t), parentClass(c), nameSpace(ns) {}
+		eastl::string metadata;
+		eastl::string declaration;
 		int         type;
-		std::string parentClass;
-		std::string nameSpace;
+		eastl::string parentClass;
+		eastl::string nameSpace;
 	};
-	std::vector<SMetadataDecl> foundDeclarations;
-	std::string currentClass;
-	std::string currentNamespace;
+	eastl::vector<SMetadataDecl> foundDeclarations;
+	eastl::string currentClass;
+	eastl::string currentNamespace;
 
 	// Storage of metadata for global declarations
-	std::map<int, std::string> typeMetadataMap;
-	std::map<int, std::string> funcMetadataMap;
-	std::map<int, std::string> varMetadataMap;
+	eastl::map<int, eastl::string> typeMetadataMap;
+	eastl::map<int, eastl::string> funcMetadataMap;
+	eastl::map<int, eastl::string> varMetadataMap;
 
 	// Storage of metadata for class member declarations
 	struct SClassMetadata {
-		SClassMetadata(const std::string& aName) : className(aName) {}
-		std::string className;
-		std::map<int, std::string> funcMetadataMap;
-		std::map<int, std::string> varMetadataMap;
+		SClassMetadata(const eastl::string& aName) : className(aName) {}
+		eastl::string className;
+		eastl::map<int, eastl::string> funcMetadataMap;
+		eastl::map<int, eastl::string> varMetadataMap;
 	};
-	std::map<int, SClassMetadata> classMetadataMap;
+	eastl::map<int, SClassMetadata> classMetadataMap;
 
 #endif
 
@@ -170,16 +170,16 @@ class CScriptBuilder {
 	//       use a different encoding, the comparison algorithm should be adjusted as well
 
 	struct ci_less {
-		bool operator()(const std::string &a, const std::string &b) const {
+		bool operator()(const eastl::string &a, const eastl::string &b) const {
 			return _strcmpi(a.c_str(), b.c_str()) < 0;
 		}
 	};
-	std::set<std::string, ci_less> includedScripts;
+	std::set<eastl::string, ci_less> includedScripts;
 #else
-	std::set<std::string>      includedScripts;
+	std::set<eastl::string>      includedScripts;
 #endif
 
-	std::set<std::string>      definedWords;
+	std::set<eastl::string>      definedWords;
 };
 
 END_AS_NAMESPACE

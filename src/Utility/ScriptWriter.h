@@ -1,6 +1,6 @@
 #pragma once
-#include <string>
-#include <vector>
+#include <EASTL/string.h>
+#include <EASTL/vector.h>
 #include <glm/glm.hpp>
 
 //Built in variable types
@@ -46,7 +46,7 @@ static const char* VariableTypeNames[VARIABLE_TYPE_COUNT] = {
 };
 
 struct Variable {
-	std::string Name;
+	eastl::string Name;
 	VariableType Type;
 	void* Data;
 	bool Array;
@@ -54,11 +54,11 @@ struct Variable {
 };
 
 struct Scope {
-	std::string Name;
+	eastl::string Name;
 	Variable ReturnVariable;
-	std::vector<Variable> InputVariables;
-	std::vector<Variable> LocalVariables;
-	std::string Code;
+	eastl::vector<Variable> InputVariables;
+	eastl::vector<Variable> LocalVariables;
+	eastl::string Code;
 	bool Function;
 };
 
@@ -84,9 +84,9 @@ public:
 private:
 	void* AllocateVariable(uint32_t size);
 
-	std::vector<Variable> m_Variables;
-	std::vector<uint8_t> m_VariableData;
-	std::vector<Scope> m_Scopes;
+	eastl::vector<Variable> m_Variables;
+	eastl::vector<uint8_t> m_VariableData;
+	eastl::vector<Scope> m_Scopes;
 	Scope* m_GlobalScope;
 
 	Scope* m_CurrentScope;

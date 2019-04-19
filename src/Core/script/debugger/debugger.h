@@ -5,9 +5,8 @@
 // Avoid having to inform include path if header is already include before
 #include <angelscript.h>
 #endif
-
-#include <string>
-#include <vector>
+#include <EASTL/string.h>
+#include <EASTL/vector.h>
 #include <map>
 
 BEGIN_AS_NAMESPACE
@@ -21,32 +20,32 @@ class CDebugger {
 	// The expandMembersLevel is a counter for how many recursive levels the members should be expanded.
 	// If the object that is being converted to a string has members of its own the callback should call
 	// the debugger's ToString passing in expandMembersLevel - 1.
-	typedef std::string (*ToStringCallback)(void *obj, int expandMembersLevel, CDebugger *dbg);
+	typedef eastl::string (*ToStringCallback)(void *obj, int expandMembersLevel, CDebugger *dbg);
 	virtual void RegisterToStringCallback(const asITypeInfo *ti, ToStringCallback callback);
 
 	// User interaction
 	virtual void TakeCommands(asIScriptContext *ctx);
-	virtual void Output(const std::string &str);
+	virtual void Output(const eastl::string &str);
 
 	// Line callback invoked by context
 	virtual void LineCallback(asIScriptContext *ctx);
 
 	// Commands
 	virtual void PrintHelp();
-	virtual void AddFileBreakPoint(const std::string &file, int lineNbr);
-	virtual void AddFuncBreakPoint(const std::string &func);
+	virtual void AddFileBreakPoint(const eastl::string &file, int lineNbr);
+	virtual void AddFuncBreakPoint(const eastl::string &func);
 	virtual void ListBreakPoints();
 	virtual void ListLocalVariables(asIScriptContext *ctx);
 	virtual void ListGlobalVariables(asIScriptContext *ctx);
 	virtual void ListMemberProperties(asIScriptContext *ctx);
 	virtual void ListStatistics(asIScriptContext *ctx);
 	virtual void PrintCallstack(asIScriptContext *ctx);
-	virtual void PrintValue(const std::string &expr, asIScriptContext *ctx);
+	virtual void PrintValue(const eastl::string &expr, asIScriptContext *ctx);
 
 	// Helpers
-	virtual bool InterpretCommand(const std::string &cmd, asIScriptContext *ctx);
+	virtual bool InterpretCommand(const eastl::string &cmd, asIScriptContext *ctx);
 	virtual bool CheckBreakPoint(asIScriptContext *ctx);
-	virtual std::string ToString(void *value, asUINT typeId, int expandMembersLevel, asIScriptEngine *engine);
+	virtual eastl::string ToString(void *value, asUINT typeId, int expandMembersLevel, asIScriptEngine *engine);
 
 	// Optionally set the engine pointer in the debugger so it can be retrieved
 	// by callbacks that need it. This will hold a reference to the engine.
@@ -65,13 +64,13 @@ class CDebugger {
 	asIScriptFunction *m_lastFunction;
 
 	struct BreakPoint {
-		BreakPoint(std::string f, int n, bool _func) : name(f), lineNbr(n), func(_func), needsAdjusting(true) {}
-		std::string name;
+		BreakPoint(eastl::string f, int n, bool _func) : name(f), lineNbr(n), func(_func), needsAdjusting(true) {}
+		eastl::string name;
 		int         lineNbr;
 		bool        func;
 		bool        needsAdjusting;
 	};
-	std::vector<BreakPoint> m_breakPoints;
+	eastl::vector<BreakPoint> m_breakPoints;
 
 	asIScriptEngine *m_engine;
 

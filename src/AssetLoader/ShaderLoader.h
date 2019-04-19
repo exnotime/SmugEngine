@@ -1,5 +1,5 @@
 #pragma once
-#include <string>
+#include <EASTL/string.h>
 #include "Resources.h"
 #include "LoaderInterface.h"
 
@@ -8,7 +8,7 @@ class ShaderLoader : public LoaderInterface {
   public:
 	ShaderLoader();
 	~ShaderLoader();
-	char* LoadShaders(const std::string& filename, ShaderInfo& info);
+	char* LoadShaders(const eastl::string& filename, ShaderInfo& info);
 
 	virtual LoadResult LoadAsset(const char* filename) override;
 	virtual void UnloadAsset(void* asset) override;

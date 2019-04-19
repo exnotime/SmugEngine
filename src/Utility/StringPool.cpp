@@ -1,17 +1,17 @@
 #include "StringPool.h"
 #include <stdio.h>
-#include <vector>
+#include <EASTL/vector.h>
 
 using namespace smug;
 StringPool* g_StringPool = nullptr;
 
-void StringPool::AddToPool(uint32_t hash, std::string string) {
+void StringPool::AddToPool(uint32_t hash, eastl::string string) {
 	if (m_Strings.find(hash) == m_Strings.end()) {
 		m_Strings[hash] = string;
 	}
 }
 
-void StringPool::Serialize(const std::string& filename) {
+void StringPool::Serialize(const eastl::string& filename) {
 	FILE* fout = fopen(filename.c_str(), "wb");
 	if (!fout)
 		return;
@@ -22,8 +22,8 @@ void StringPool::Serialize(const std::string& filename) {
 		uint32_t Padding;
 	};
 
-	std::vector<StringHeader> headers;
-	std::vector<std::string> strings; //keep string in this list to ensure that they are in order
+	eastl::vector<StringHeader> headers;
+	eastl::vector<eastl::string> strings; //keep string in this list to ensure that they are in order
 	uint64_t offset = sizeof(uint32_t) + sizeof(StringHeader) * m_Strings.size();
 
 	for (auto& s : m_Strings) {
@@ -44,7 +44,7 @@ void StringPool::Serialize(const std::string& filename) {
 	fclose(fout);
 }
 
-void StringPool::DeSerialize(const std::string& filename) {
+void StringPool::DeSerialize(const eastl::string& filename) {
 	FILE* fin = fopen(filename.c_str(), "rb");
 	if (!fin)
 		return;
@@ -58,7 +58,7 @@ void StringPool::DeSerialize(const std::string& filename) {
 
 	uint32_t headerCount;
 	fread(&headerCount, sizeof(uint32_t), 1, fin);
-	std::vector<StringHeader> headers;
+	eastl::vector<StringHeader> headers;
 	for (uint32_t i = 0; i < headerCount; ++i) {
 		StringHeader sh;
 		fread(&sh, sizeof(StringHeader), 1, fin);
@@ -70,14 +70,14 @@ void StringPool::DeSerialize(const std::string& filename) {
 		fseek(fin, h.Offset, SEEK_SET);
 		char* buffer = (char*)malloc(h.Length);
 		fread(buffer, sizeof(char), h.Length, fin);
-		m_Strings[h.Hash] = std::string(buffer);
+		m_Strings[h.Hash] = eastl::string(buffer);
 		free(buffer);
 	}
 	fclose(fin);
 
 }
 
-std::string StringPool::GetString(uint32_t hash) const {
+eastl::string StringPool::GetString(uint32_t hash) const {
 	auto& s = m_Strings.find(hash);
 	if (s != m_Strings.end())
 		return s->second;

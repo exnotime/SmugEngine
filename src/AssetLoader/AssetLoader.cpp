@@ -35,22 +35,22 @@ void AssetLoader::Init(const char* dataFolder, bool isCompiler) {
 	ResourceLoader shaderLoader;
 	shaderLoader.buffer = new FileBuffer();
 	shaderLoader.loader = new ShaderLoader();
-	shaderLoader.LedgerFile = dataFolder + std::string("/Shaders.ledger");
-	shaderLoader.BankFile = dataFolder + std::string("/Shaders.bank");
+	shaderLoader.LedgerFile = dataFolder + eastl::string("/Shaders.ledger");
+	shaderLoader.BankFile = dataFolder + eastl::string("/Shaders.bank");
 	m_Loaders.push_back(shaderLoader);
 
 	ResourceLoader textureLoader;
 	textureLoader.buffer = new FileBuffer();
 	textureLoader.loader = new TextureLoader();
-	textureLoader.LedgerFile = dataFolder + std::string("/Textures.ledger");
-	textureLoader.BankFile = dataFolder + std::string("/Textures.bank");
+	textureLoader.LedgerFile = dataFolder + eastl::string("/Textures.ledger");
+	textureLoader.BankFile = dataFolder + eastl::string("/Textures.bank");
 	m_Loaders.push_back(textureLoader);
 
 	ResourceLoader modelLoader;
 	modelLoader.buffer = new FileBuffer();
 	modelLoader.loader = new ModelLoader();
-	modelLoader.LedgerFile = dataFolder + std::string("/Models.ledger");
-	modelLoader.BankFile = dataFolder + std::string("/Models.bank");
+	modelLoader.LedgerFile = dataFolder + eastl::string("/Models.ledger");
+	modelLoader.BankFile = dataFolder + eastl::string("/Models.bank");
 	m_Loaders.push_back(modelLoader);
 
 	if (m_IsCompiler) {
@@ -88,8 +88,8 @@ ResourceHandle AssetLoader::LoadAsset(const char* filename) {
 
 	m_StringPool.AddToPool(hash, filename);
 
-	const std::string file(filename);
-	const std::string extention = file.substr(file.find_last_of('.') + 1);
+	const eastl::string file(filename);
+	const eastl::string extention = file.substr(file.find_last_of('.') + 1);
 
 	for (auto& l : m_Loaders) {
 		if (l.loader->IsExtensionSupported(extention.c_str())) {
@@ -122,7 +122,7 @@ ResourceHandle AssetLoader::LoadAsset(const char* filename) {
 			ResourceHandle h = CreateHandle(hash, r.Type);
 			m_ResourceCache[hash] = h;
 			m_ResourceData[h] = r.Data;
-			m_FilenameCache[h] = std::string(filename);
+			m_FilenameCache[h] = eastl::string(filename);
 			return h;
 		}
 	}
@@ -145,7 +145,7 @@ void AssetLoader::UpdateModel(ResourceHandle handle, ModelInfo& modelInfo) {
 }
 
 ResourceHandle AssetLoader::LoadAsset(uint32_t hash) {
-	std::string name = m_StringPool.GetString(hash);
+	eastl::string name = m_StringPool.GetString(hash);
 	if (!name.empty()) {
 		return LoadAsset(name.c_str());
 	}
@@ -174,7 +174,7 @@ void AssetLoader::UnloadAllAssets() {
 	}
 }
 
-std::string AssetLoader::GetFilenameFromCache(ResourceHandle handle) {
+eastl::string AssetLoader::GetFilenameFromCache(ResourceHandle handle) {
 	auto& f = m_FilenameCache.find(handle);
 	if (f != m_FilenameCache.end()) {
 		return f->second;

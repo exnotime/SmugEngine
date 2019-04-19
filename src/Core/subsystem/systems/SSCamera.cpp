@@ -14,7 +14,7 @@
 #include "../../Camera.h"
 
 using namespace smug;
-#define CAMERA_SPEED 2.5f
+#define CAMERA_SPEED 5.0f
 #define SPRINT_FACTOR 4.0f
 #define MOUSE_ROTATION_SPEED 0.001f
 #define GAMEPAD_ROTATION_SPEED 0.015f
@@ -140,7 +140,7 @@ void SSCamera::Update(const double deltaTime) {
 				cc->Cam.PitchRelative((float)g_Input.GetMouseDelta().y * MOUSE_ROTATION_SPEED);
 				//calc velocity 
 				glm::vec3 velocity = glm::vec3(0.0f);
-				float speed = CAMERA_SPEED * deltaTime;
+				float speed = CAMERA_SPEED;
 
 				if (g_Input.IsKeyDown(GLFW_KEY_LEFT_SHIFT)) {
 					speed *= SPRINT_FACTOR;
@@ -166,14 +166,16 @@ void SSCamera::Update(const double deltaTime) {
 					velocity += r * speed;
 				}
 				if (g_Input.IsKeyPushed(GLFW_KEY_SPACE) && rc->Body->IsOnGround) {
-					m_JumpVelocity = 5.0f;
+					m_JumpVelocity = 10.0f;
 				}
-				m_JumpVelocity += -9.82f * deltaTime;
+				m_JumpVelocity += -9.82f * (float)deltaTime;
 
 				//get last physics position
 				cc->Cam.SetPosition(rc->Body->Position + glm::vec3(0, 0.5f,0));
 				//update body
-				rc->Body->Force = velocity + m_JumpVelocity * glm::vec3(0,1,0) * (float)deltaTime;
+				rc->Body->Force = (velocity + m_JumpVelocity * glm::vec3(0,1,0)) * (float)(deltaTime);
+
+				ImGui::Text("Force: x:%f y:%f :z%f", rc->Body->Force.x, rc->Body->Force.y, rc->Body->Force.z);
 			}
 			cc->Cam.CalculateViewProjection();
 

@@ -1,7 +1,7 @@
 #pragma once
 #include "PhysicsExport.h"
 #include <PhysX4.0/PxPhysicsAPI.h>
-#include <vector>
+#include <EASTL/vector.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 namespace smug {
@@ -29,8 +29,8 @@ struct PHYSICS_DLL PhysicsBody {
 };
 
 struct PHYSICS_DLL PhysicsMesh {
-	std::vector<glm::vec3> Vertices;
-	std::vector<uint32_t> Indices;
+	eastl::vector<glm::vec3> Vertices;
+	eastl::vector<uint32_t> Indices;
 };
 
 class PHYSICS_DLL PhysicsEngine {
@@ -68,10 +68,10 @@ class PHYSICS_DLL PhysicsEngine {
 	double m_Accumulator = 0.0f;
 	const double m_StepTime = 1.0 / 60.0;
 
-	std::vector<physx::PxRigidActor*> m_Actors;
-	std::vector<physx::PxController*> m_Controllers;
-	std::vector<uint32_t> m_FreeActors;
-	std::vector<PhysicsBody*> m_Bodies;
+	eastl::vector<physx::PxRigidActor*> m_Actors;
+	eastl::vector<physx::PxController*> m_Controllers;
+	eastl::vector<uint32_t> m_FreeActors;
+	eastl::vector<PhysicsBody*> m_Bodies;
 	glm::vec3 m_GravityPoint;
 	float m_GravityFactor;
 	bool m_HasActiveCustomGravity = false;

@@ -39,7 +39,7 @@ solution "SmugEngine"
 		kind "ConsoleApp"
 		files { "src/Core/**", "src/Imgui/**"}
 		includedirs { "include", "src" }
-		links {  "Graphics", "AssetLoader", "Physics", "glfw3", "Utility" }
+		links {  "Graphics", "AssetLoader", "Physics", "glfw3", "Utility",}
         configuration { "Debug" }
                 links { "angelscript64d", "as_integrationD" }
         configuration { "Release" }
@@ -87,6 +87,7 @@ solution "SmugEngine"
         kind "SharedLib"
         files { "src/Physics/**"}
         includedirs { "include", "src", "include/PhysX4.0" }
+        links { "Utility" }
         configuration { "Debug" }
         	libdirs{ "lib/physx4.0/debug" }
             links { "PhysX_64", "PhysXCommon_64", "PhysXFoundation_64", "PhysXExtensions_static_64", "PhysXCharacterKinematic_static_64", "PhysXCooking_64", "PhysXPvdSDK_static_64"}
@@ -102,6 +103,6 @@ solution "SmugEngine"
         language("C++")
         files { "src/Utility/**"}
     	includedirs { "include", "src" }
-        links { }
+        links { "EASTL"}
     	kind "StaticLib"
         

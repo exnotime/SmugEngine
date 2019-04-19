@@ -11,7 +11,6 @@
 #include "ShadowMapProgram.h"
 #include "PipelineStateEditor.h"
 #include "RenderPipeline.h"
-#include "RaytracingProgram.h"
 #include "VulkanProfiler.h"
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -24,6 +23,8 @@
 #endif
 
 namespace smug {
+
+	class RaytracingProgram;
 
 struct PerFrameBuffer {
 	glm::mat4 ViewProj;
@@ -47,15 +48,16 @@ class GFX_DLL GraphicsEngine {
 	GraphicsEngine();
 	~GraphicsEngine();
 	void Init(glm::vec2 windowSize, bool vsync, HWND hWnd);
+	void DeInit();
 	void TransferToGPU();
 	void Render();
 	void Swap();
 	RenderQueue* GetRenderQueue();
 	RenderQueue* GetStaticQueue();
-	ResourceAllocator& GetResourceAllocator() { return m_Resources.GetResourceAllocator(); }
+	ResourceAllocator& GetResourceAllocator() { return m_Resources->GetResourceAllocator(); }
 	FrameBufferManager& GetFrameBufferManager() { return m_FrameBuffer; }
-	RenderPipeline& GetRenderPipeline() { return m_RenderPipeline; }
-	ResourceHandler& GetResourceHandler() { return m_Resources; }
+	//RenderPipeline& GetRenderPipeline() { return m_RenderPipeline; }
+	ResourceHandler& GetResourceHandler() { return *m_Resources; }
 	void PrintStats();
 
   private:
@@ -65,11 +67,10 @@ class GFX_DLL GraphicsEngine {
 
 	VulkanContext m_VKContext;
 	VulkanSwapChain m_VKSwapChain;
-	VulkanCommandBufferFactory m_CmdBufferFactory;
+	VulkanCommandBufferFactory* m_CmdBufferFactory;
 
 	DeviceQueue m_vkQueue;
 	PipelineState m_Pipeline;
-	int m_CurrentPipeline;
 
 	VkRenderPass m_RenderPass;
 	VkSemaphore m_ImageAquiredSemaphore;
@@ -81,7 +82,6 @@ class GFX_DLL GraphicsEngine {
 
 	VkBufferHandle m_PerFrameBuffer;
 	SkyBox m_SkyBox;
-	//VkDescriptorPool m_DescriptorPool;
 	VkDescriptorSet m_PerFrameSet;
 	//ibl TODO: MOVE SOMEWHERE ELSE
 	VkTexture m_IBLTex;
@@ -90,24 +90,20 @@ class GFX_DLL GraphicsEngine {
 	VkDescriptorSet m_IBLDescSet;
 
 	FrameBufferManager m_FrameBuffer;
-
+	
 	bool m_VSync;
 	glm::vec2 m_ScreenSize;
 	VkPipelineMultisampleStateCreateInfo m_MSState;
-	ShadowMapProgram m_ShadowProgram;
-	ToneMapProgram m_ToneMapping;
-
+	ShadowMapProgram* m_ShadowProgram;
+	ToneMapProgram* m_ToneMapping;
+	RaytracingProgram* m_RaytracingProgram;
 	VkDebugReportCallbackEXT m_DebugCallbacks;
-	RenderQueue m_RenderQueues[BUFFER_COUNT];
-	RenderQueue m_StaticRenderQueue;
-	ResourceHandler m_Resources;
+	RenderQueue* m_RenderQueues;
+	RenderQueue* m_StaticRenderQueue;
+	ResourceHandler* m_Resources;
 	PerFrameStatistics m_Stats;
 	DeviceAllocator m_DeviceAllocator;
-	RenderPipeline m_RenderPipeline;
 	VulkanProfiler m_Profiler;
-#if defined(RTX_ON)
-	RaytracingProgram m_RaytracingProgram;
-#endif
 
 #ifdef USE_IMGUI
   public:
@@ -115,9 +111,6 @@ class GFX_DLL GraphicsEngine {
 	void CreateImguiFont(ImGuiContext* imguiCtx);
   private:
 	VkSemaphore m_ImguiComplete;
-	ImGuiContext* m_ImguiCtx;
-
-	//PipelineStateEditor pipelineEditor;
 #endif
 
 #define VK_DEVICE m_VKContext.Device

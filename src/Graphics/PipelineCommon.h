@@ -1,10 +1,9 @@
 #pragma once
 #include "volk.h"
-
 namespace smug {
 #pragma region mappings
 //static mappings to vulkan enums
-static std::unordered_map<std::string, VkDescriptorType> ToDescriptorType = {
+static eastl::unordered_map<eastl::string, VkDescriptorType> ToDescriptorType = {
 	{ "Sampler", VkDescriptorType::VK_DESCRIPTOR_TYPE_SAMPLER },
 	{ "CombinedImageSampler", VkDescriptorType::VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER },
 	{ "SampledImage", VkDescriptorType::VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE },
@@ -18,7 +17,7 @@ static std::unordered_map<std::string, VkDescriptorType> ToDescriptorType = {
 	{ "InputAttachment", VkDescriptorType::VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT }
 };
 
-static std::unordered_map<std::string, VkBlendFactor> ToBlendFactor = {
+static eastl::unordered_map<eastl::string, VkBlendFactor> ToBlendFactor = {
 	{ "Zero", VkBlendFactor::VK_BLEND_FACTOR_ZERO },
 	{ "One", VkBlendFactor::VK_BLEND_FACTOR_ONE },
 	{ "SrcColor", VkBlendFactor::VK_BLEND_FACTOR_SRC_COLOR },
@@ -40,7 +39,7 @@ static std::unordered_map<std::string, VkBlendFactor> ToBlendFactor = {
 	{ "OneMinusSrc1Alpha", VkBlendFactor::VK_BLEND_FACTOR_ONE_MINUS_SRC1_ALPHA },
 };
 
-static std::unordered_map<std::string, VkBlendOp> ToBlendOp = {
+static eastl::unordered_map<eastl::string, VkBlendOp> ToBlendOp = {
 	{ "Add", VkBlendOp::VK_BLEND_OP_ADD },
 	{ "Subtract", VkBlendOp::VK_BLEND_OP_SUBTRACT },
 	{ "ReverseSubtract", VkBlendOp::VK_BLEND_OP_REVERSE_SUBTRACT },
@@ -48,7 +47,7 @@ static std::unordered_map<std::string, VkBlendOp> ToBlendOp = {
 	{ "Max", VkBlendOp::VK_BLEND_OP_MAX }
 };
 
-static std::unordered_map<int, VkShaderStageFlagBits> ToShaderStage = {
+static eastl::unordered_map<int, VkShaderStageFlagBits> ToShaderStage = {
 	{ 0, VkShaderStageFlagBits::VK_SHADER_STAGE_VERTEX_BIT },
 	{ 1, VkShaderStageFlagBits::VK_SHADER_STAGE_FRAGMENT_BIT },
 	{ 2, VkShaderStageFlagBits::VK_SHADER_STAGE_GEOMETRY_BIT },
@@ -57,7 +56,7 @@ static std::unordered_map<int, VkShaderStageFlagBits> ToShaderStage = {
 	{ 5, VkShaderStageFlagBits::VK_SHADER_STAGE_COMPUTE_BIT }
 };
 
-static std::unordered_map<std::string, VkLogicOp> ToLogicOp = {
+static eastl::unordered_map<eastl::string, VkLogicOp> ToLogicOp = {
 	{ "Clear", VkLogicOp::VK_LOGIC_OP_CLEAR },
 	{ "And", VkLogicOp::VK_LOGIC_OP_AND },
 	{ "AndReverse", VkLogicOp::VK_LOGIC_OP_AND_REVERSE },
@@ -76,7 +75,7 @@ static std::unordered_map<std::string, VkLogicOp> ToLogicOp = {
 	{ "Set", VkLogicOp::VK_LOGIC_OP_SET }
 };
 
-static std::unordered_map<std::string, VkStencilOp> ToStencilOp = {
+static eastl::unordered_map<eastl::string, VkStencilOp> ToStencilOp = {
 	{ "Keep", VkStencilOp::VK_STENCIL_OP_KEEP },
 	{ "Zero", VkStencilOp::VK_STENCIL_OP_ZERO },
 	{ "Replace", VkStencilOp::VK_STENCIL_OP_REPLACE },
@@ -87,7 +86,7 @@ static std::unordered_map<std::string, VkStencilOp> ToStencilOp = {
 	{ "DecrementAndWrap", VkStencilOp::VK_STENCIL_OP_DECREMENT_AND_WRAP }
 };
 
-static std::unordered_map<std::string, VkCompareOp> ToCompareOp = {
+static eastl::unordered_map<eastl::string, VkCompareOp> ToCompareOp = {
 	{ "Never", VkCompareOp::VK_COMPARE_OP_NEVER },
 	{ "Less", VkCompareOp::VK_COMPARE_OP_LESS },
 	{ "Equal", VkCompareOp::VK_COMPARE_OP_EQUAL },
@@ -98,7 +97,7 @@ static std::unordered_map<std::string, VkCompareOp> ToCompareOp = {
 	{ "Always", VkCompareOp::VK_COMPARE_OP_ALWAYS }
 };
 
-static std::unordered_map<std::string, VkPrimitiveTopology> ToPrimitiveTopology = {
+static eastl::unordered_map<eastl::string, VkPrimitiveTopology> ToPrimitiveTopology = {
 	{ "PointList", VkPrimitiveTopology::VK_PRIMITIVE_TOPOLOGY_POINT_LIST },
 	{ "LineList", VkPrimitiveTopology::VK_PRIMITIVE_TOPOLOGY_LINE_LIST },
 	{ "LineStrip", VkPrimitiveTopology::VK_PRIMITIVE_TOPOLOGY_LINE_STRIP },
@@ -113,7 +112,7 @@ static std::unordered_map<std::string, VkPrimitiveTopology> ToPrimitiveTopology 
 };
 
 
-static std::unordered_map<int, VkSampleCountFlagBits> ToSampleCount = {
+static eastl::unordered_map<int, VkSampleCountFlagBits> ToSampleCount = {
 	{ 1, VkSampleCountFlagBits::VK_SAMPLE_COUNT_1_BIT },
 	{ 2, VkSampleCountFlagBits::VK_SAMPLE_COUNT_2_BIT },
 	{ 4, VkSampleCountFlagBits::VK_SAMPLE_COUNT_4_BIT },
@@ -123,30 +122,30 @@ static std::unordered_map<int, VkSampleCountFlagBits> ToSampleCount = {
 	{ 64, VkSampleCountFlagBits::VK_SAMPLE_COUNT_64_BIT }
 };
 
-static std::unordered_map<std::string, VkCullModeFlagBits> ToCullMode = {
+static eastl::unordered_map<eastl::string, VkCullModeFlagBits> ToCullMode = {
 	{ "None", VkCullModeFlagBits::VK_CULL_MODE_NONE },
 	{ "Front", VkCullModeFlagBits::VK_CULL_MODE_FRONT_BIT },
 	{ "Back", VkCullModeFlagBits::VK_CULL_MODE_BACK_BIT },
 	{ "FrontAndBack", VkCullModeFlagBits::VK_CULL_MODE_FRONT_AND_BACK }
 };
 
-static std::unordered_map<std::string, VkFrontFace> ToFrontFace = {
+static eastl::unordered_map<eastl::string, VkFrontFace> ToFrontFace = {
 	{ "CounterClockwise", VkFrontFace::VK_FRONT_FACE_COUNTER_CLOCKWISE },
 	{ "Clockwise", VkFrontFace::VK_FRONT_FACE_CLOCKWISE }
 };
 
-static std::unordered_map<std::string, VkPolygonMode> ToPolygonMode = {
+static eastl::unordered_map<eastl::string, VkPolygonMode> ToPolygonMode = {
 	{ "Fill", VkPolygonMode::VK_POLYGON_MODE_FILL },
 	{ "Line", VkPolygonMode::VK_POLYGON_MODE_LINE },
 	{ "Point", VkPolygonMode::VK_POLYGON_MODE_POINT }
 };
 
-static std::unordered_map<std::string, VkVertexInputRate> ToVertexInputRate = {
+static eastl::unordered_map<eastl::string, VkVertexInputRate> ToVertexInputRate = {
 	{ "Instance", VkVertexInputRate::VK_VERTEX_INPUT_RATE_INSTANCE },
 	{ "Vertex", VkVertexInputRate::VK_VERTEX_INPUT_RATE_VERTEX }
 };
 
-static std::unordered_map<std::string, VkFormat> ToFormat = {
+static eastl::unordered_map<eastl::string, VkFormat> ToFormat = {
 	{ "Undefined", VkFormat::VK_FORMAT_UNDEFINED },
 	{ "R4G4UnormPack8", VkFormat::VK_FORMAT_R4G4_UNORM_PACK8 },
 	{ "R4G4B4A4UnormPack16", VkFormat::VK_FORMAT_R4G4B4A4_UNORM_PACK16 },

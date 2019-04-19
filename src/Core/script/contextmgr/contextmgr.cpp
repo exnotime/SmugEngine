@@ -23,7 +23,7 @@ const asPWORD CONTEXT_MGR = 1002;
 
 struct SContextInfo {
 	asUINT                    sleepUntil;
-	vector<asIScriptContext*> coRoutines;
+	eastl::vector<asIScriptContext*> coRoutines;
 	asUINT                    currentCoRoutine;
 	asIScriptContext *        keepCtxAfterExecution;
 };

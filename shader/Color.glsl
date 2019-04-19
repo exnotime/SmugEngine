@@ -26,7 +26,7 @@ layout (set = 0, binding = 0) uniform WVP{
 };
 
 struct PerObject{
-    mat4 World;
+    mat3x4 World;
 	vec4 Color;
 };
 
@@ -40,12 +40,12 @@ layout (push_constant) uniform pc{
 } pushConstants;
 
 void main(){
-    mat4 world = g_PerObjects[pushConstants.index + gl_InstanceIndex].World;
-    PosW = (world * vec4(posL,1)).xyz;
+    mat3x4 world = g_PerObjects[pushConstants.index + gl_InstanceIndex].World;
+    PosW = (vec4(posL,1) * world).xyz;
     gl_Position = viewProj * vec4(PosW,1);
     ViewOut = (view * vec4(PosW,1)).xyz;
-    NormalW = (world * vec4(NormalL,0)).xyz;
-    TangentW = (world * vec4(TangentL,0)).xyz;
+    NormalW = (vec4(NormalL,0) * world).xyz;
+    TangentW = (vec4(TangentL,0) * world).xyz;
     BiNormOut = cross(NormalW, TangentW);
     TexCoordOut = TexCoord;
     ColorOut = g_PerObjects[pushConstants.index + gl_InstanceIndex].Color.rgb;

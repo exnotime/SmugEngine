@@ -764,7 +764,7 @@ int ConfigEngineFromStream(asIScriptEngine *engine, istream &strm, const char *c
 	return 0;
 }
 
-string GetExceptionInfo(asIScriptContext *ctx, bool showStack) {
+eastl::string GetExceptionInfo(asIScriptContext *ctx, bool showStack) {
 	if( ctx->GetState() != asEXECUTION_EXCEPTION ) return "";
 
 	stringstream text;
@@ -794,7 +794,7 @@ string GetExceptionInfo(asIScriptContext *ctx, bool showStack) {
 		}
 	}
 
-	return text.str();
+	return text.str().c_str();
 }
 
 END_AS_NAMESPACE

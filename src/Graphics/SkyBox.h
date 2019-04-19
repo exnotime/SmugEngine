@@ -8,7 +8,7 @@ class SkyBox {
   public:
 	SkyBox();
 	~SkyBox();
-	void Init(const VkDevice& device, const VkPhysicalDevice& physDev, const std::string& filename, const VkViewport& vp, const VkRenderPass& rp, DeviceAllocator& allocator);
+	void Init(const VkDevice& device, const VkPhysicalDevice& physDev, const eastl::string& filename, const VkViewport& vp, const VkRenderPass& rp, DeviceAllocator& allocator);
 	void PrepareUniformBuffer(DeviceAllocator& allocator, const glm::mat4& viewProj, const glm::mat4& world);
 	void Render(CommandBuffer* cmdBuffer);
 	void DeInit(DeviceAllocator& allocator);

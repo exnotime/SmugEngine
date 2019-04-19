@@ -1,5 +1,6 @@
 #include "if_Components.h"
 #include <Core/script/ScriptEngine.h>
+#include <Core/datasystem/ComponentManager.h>
 #include <Core/entity/EntityManager.h>
 #include <Core/GlobalSystems.h>
 #include "TransformComponent.h"

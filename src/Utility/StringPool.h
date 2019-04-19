@@ -1,16 +1,16 @@
 #pragma once
-#include <string>
+#include <EASTL/string.h>
 #include <map>
 namespace smug {
 class StringPool {
   public:
-	void AddToPool(uint32_t hash, std::string string);
-	void Serialize(const std::string& filename);
-	void DeSerialize(const std::string& filename);
-	std::string GetString(uint32_t hash) const;
+	void AddToPool(uint32_t hash, eastl::string string);
+	void Serialize(const eastl::string& filename);
+	void DeSerialize(const eastl::string& filename);
+	eastl::string GetString(uint32_t hash) const;
 	void Print();
   private:
-	std::map<uint32_t, std::string> m_Strings;
+	std::map<uint32_t, eastl::string> m_Strings;
 };
 //initialized at start of compiler main
 extern StringPool* g_StringPool;

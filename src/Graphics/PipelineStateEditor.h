@@ -4,10 +4,10 @@
 namespace smug {
 
 struct JsonShader {
-	std::string EntryPoint;
+	eastl::string EntryPoint;
 	SHADER_LANGUAGE Lang;
 	SHADER_KIND Stage;
-	std::string SourceFile;
+	eastl::string SourceFile;
 	bool EditorOpen = false;
 	bool FileOpened = false;
 	char* TextBuffer = nullptr;
@@ -25,12 +25,12 @@ class PipelineStateEditor {
 
   private:
 	VkDevice m_Device;
-	std::vector<JsonShader> m_Shaders;
+	eastl::vector<JsonShader> m_Shaders;
 	PipelineState m_PipelineState;
-	std::string m_CurrentPipelineFile;
+	eastl::string m_CurrentPipelineFile;
 	VkPipelineDepthStencilStateCreateInfo m_DepthStencilState;
 	VkPipelineRasterizationStateCreateInfo m_RasterState;
-	std::vector<VkPipelineColorBlendAttachmentState> m_AttachmentStates;
+	eastl::vector<VkPipelineColorBlendAttachmentState> m_AttachmentStates;
 	int m_ActiveAttachmentEditor;
 
 };

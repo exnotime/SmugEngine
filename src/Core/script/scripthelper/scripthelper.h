@@ -2,7 +2,7 @@
 #define SCRIPTHELPER_H
 
 #include <sstream>
-#include <string>
+#include <EASTL/string.h>
 
 #ifndef ANGELSCRIPT_H
 // Avoid having to inform include path if header is already include before
@@ -41,7 +41,7 @@ int WriteConfigToStream(asIScriptEngine *engine, std::ostream &strm);
 int ConfigEngineFromStream(asIScriptEngine *engine, std::istream &strm, const char *nameOfStream = "config");
 
 // Format the details of the script exception into a human readable text
-std::string GetExceptionInfo(asIScriptContext *ctx, bool showStack = false);
+eastl::string GetExceptionInfo(asIScriptContext *ctx, bool showStack = false);
 
 END_AS_NAMESPACE
 

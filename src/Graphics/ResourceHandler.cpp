@@ -11,7 +11,7 @@ ResourceHandler::~ResourceHandler() {
 }
 
 #pragma region AllocatorInterface
-void AllocateAssetCallback(const void* data, void* userData, const std::string& filename, const RESOURCE_TYPE type) {
+void AllocateAssetCallback(const void* data, void* userData, const eastl::string& filename, const RESOURCE_TYPE type) {
 	printf("Allocating asset %s\n", filename.c_str());
 	if (type == RESOURCE_TYPE::RT_TEXTURE) {
 		TextureInfo* info = (TextureInfo*)data;
@@ -136,11 +136,11 @@ const VkBufferHandle& ResourceHandler::GetBuffer(ResourceHandle handle) const {
 
 void ResourceHandler::AllocateModel(const ModelInfo& model, ResourceHandle handle) {
 	Model internalModel;
-	std::vector<glm::vec3> positions;
-	std::vector<glm::vec3> normals;
-	std::vector<glm::vec3> tangents;
-	std::vector<glm::vec2> texcoords;
-	std::vector<uint32_t> indices;
+	eastl::vector<glm::vec3> positions;
+	eastl::vector<glm::vec3> normals;
+	eastl::vector<glm::vec3> tangents;
+	eastl::vector<glm::vec2> texcoords;
+	eastl::vector<uint32_t> indices;
 	internalModel.MeshCount = model.MeshCount;
 	internalModel.Meshes = new Mesh[model.MeshCount];
 	uint32_t indexCounter = 0;
@@ -180,7 +180,6 @@ void ResourceHandler::AllocateModel(const ModelInfo& model, ResourceHandle handl
 		materialWrite.dstSet = internalModel.Meshes[m].Material.DescSet;
 		materialWrite.dstBinding = 0;
 		VkDescriptorImageInfo imageInfo[MATERIAL_SIZE];
-		VkTexture albedo, normalTex, roughness, metal;
 		//albedo
 		if (model.Materials && model.Materials[mesh.Material].Albedo != RESOURCE_INVALID) {
 			auto& t = m_Textures.find(model.Materials[mesh.Material].Albedo);
@@ -220,7 +219,7 @@ void ResourceHandler::AllocateModel(const ModelInfo& model, ResourceHandle handl
 	internalModel.IndexBuffer = m_DeviceAllocator->AllocateBuffer(VK_BUFFER_USAGE_INDEX_BUFFER_BIT, sizeof(uint32_t) * indices.size(), indices.data());
 	internalModel.IndexCount = (uint32_t)indices.size();
 
-	VkBufferCreateInfo vertBufferCreateInfo[NUM_VERTEX_CHANNELS];
+	//VkBufferCreateInfo vertBufferCreateInfo[NUM_VERTEX_CHANNELS];
 	uint32_t sizes[] = { (uint32_t)positions.size() * sizeof(glm::vec3), (uint32_t)normals.size() * sizeof(glm::vec3),
 	                     (uint32_t)tangents.size() * sizeof(glm::vec3), (uint32_t)texcoords.size() * sizeof(glm::vec2)
 	                   };
@@ -229,6 +228,69 @@ void ResourceHandler::AllocateModel(const ModelInfo& model, ResourceHandle handl
 	for (uint32_t i = 0; i < NUM_VERTEX_CHANNELS; ++i) {
 		internalModel.VertexBuffers[i] = m_DeviceAllocator->AllocateBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, sizes[i], datas[i]);
 	}
+
+#ifdef RTX_ON
+	//allocate blas
+	VkGeometryNV blasGeometry = {};
+	blasGeometry.geometryType = VK_GEOMETRY_TYPE_TRIANGLES_NV;
+	blasGeometry.geometry.triangles.indexCount = internalModel.IndexCount;
+	blasGeometry.geometry.triangles.indexData = internalModel.IndexBuffer.buffer;
+	blasGeometry.geometry.triangles.indexOffset = 0;
+	blasGeometry.geometry.triangles.indexType = VkIndexType::VK_INDEX_TYPE_UINT32;
+	blasGeometry.geometry.triangles.vertexCount = positions.size();
+	blasGeometry.geometry.triangles.vertexData = internalModel.VertexBuffers[POSITION].buffer;
+	blasGeometry.geometry.triangles.vertexFormat = VK_FORMAT_R32G32B32_SFLOAT;
+	blasGeometry.geometry.triangles.vertexOffset = 0;
+	blasGeometry.geometry.triangles.vertexStride = sizeof(glm::vec3);
+	blasGeometry.geometry.triangles.sType = VK_STRUCTURE_TYPE_GEOMETRY_TRIANGLES_NV;
+	blasGeometry.geometry.triangles.pNext = nullptr;
+	blasGeometry.geometry.triangles.transformData = nullptr;
+	blasGeometry.geometry.triangles.transformOffset = 0;
+	blasGeometry.geometry.aabbs.sType = VK_STRUCTURE_TYPE_GEOMETRY_AABB_NV;
+	blasGeometry.geometry.aabbs.pNext = nullptr;
+	blasGeometry.geometry.aabbs.aabbData = nullptr;
+	blasGeometry.geometry.aabbs.numAABBs = 0;
+	blasGeometry.geometry.aabbs.offset = 0;
+	blasGeometry.geometry.aabbs.stride = 0;
+	blasGeometry.flags = VK_GEOMETRY_OPAQUE_BIT_NV;
+	blasGeometry.sType = VK_STRUCTURE_TYPE_GEOMETRY_NV;
+	blasGeometry.pNext = nullptr;
+
+	VkAccelerationStructureCreateInfoNV blasCreateInfo = {};
+	blasCreateInfo.info.instanceCount = 0;
+	blasCreateInfo.info.geometryCount = 1;
+	blasCreateInfo.info.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_NV;
+	blasCreateInfo.info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_INFO_NV;
+	blasCreateInfo.info.pNext = nullptr;
+	blasCreateInfo.info.pGeometries = &blasGeometry;
+	blasCreateInfo.info.flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_NV;
+	blasCreateInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_NV;
+	blasCreateInfo.pNext = nullptr;
+	//create blas
+	vkCreateAccelerationStructureNV(*m_Device, &blasCreateInfo, nullptr, &internalModel.Blas.Handle);
+	//calc scratch buffer size
+	VkAccelerationStructureMemoryRequirementsInfoNV asMemReqInfo = {};
+	asMemReqInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_INFO_NV;
+	asMemReqInfo.pNext = nullptr;
+	asMemReqInfo.type = VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_OBJECT_NV;
+	asMemReqInfo.accelerationStructure = internalModel.Blas.Handle;
+	VkMemoryRequirements2KHR memReqs = {};
+	memReqs.sType = VK_STRUCTURE_TYPE_MEMORY_REQUIREMENTS_2_KHR;
+	memReqs.pNext = nullptr;
+	vkGetAccelerationStructureMemoryRequirementsNV(*m_Device, &asMemReqInfo, &memReqs);
+	internalModel.Blas.Size = memReqs.memoryRequirements.size;
+	internalModel.Blas.Memory = m_DeviceAllocator->AllocateBuffer(VK_BUFFER_USAGE_RAY_TRACING_BIT_NV, internalModel.Blas.Size, nullptr, memReqs.memoryRequirements.memoryTypeBits);
+
+	VkBindAccelerationStructureMemoryInfoNV blasBindInfo = {};
+	blasBindInfo.accelerationStructure = internalModel.Blas.Handle;
+	blasBindInfo.memory = m_DeviceAllocator->GetMemory(internalModel.Blas.Memory.memory);
+	blasBindInfo.sType = VK_STRUCTURE_TYPE_BIND_ACCELERATION_STRUCTURE_MEMORY_INFO_NV;
+	blasBindInfo.pNext = nullptr;
+	blasBindInfo.memoryOffset = m_DeviceAllocator->GetMemoryOffset(internalModel.Blas.Memory.memory);
+	blasBindInfo.deviceIndexCount = 0;
+	blasBindInfo.pDeviceIndices = nullptr;
+	vkBindAccelerationStructureMemoryNV(*m_Device, 1, &blasBindInfo);
+#endif
 
 	m_Models[handle] = internalModel;
 }

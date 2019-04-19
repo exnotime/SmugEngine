@@ -88,7 +88,7 @@ CScriptArray *CScriptFileSystem::GetFiles() const {
 #if defined(_WIN32)
 	// Windows uses UTF16 so it is necessary to convert the string
 	wchar_t bufUTF16[10000];
-	string searchPattern = currentPath + "/*";
+	eastl::string searchPattern = currentPath + "/*";
 	MultiByteToWideChar(CP_UTF8, 0, searchPattern.c_str(), -1, bufUTF16, 10000);
 
 	WIN32_FIND_DATAW ffd;
@@ -107,7 +107,7 @@ CScriptArray *CScriptFileSystem::GetFiles() const {
 
 		// Add the file to the array
 		array->Resize(array->GetSize()+1);
-		((string*)(array->At(array->GetSize()-1)))->assign(bufUTF8);
+		((eastl::string*)(array->At(array->GetSize()-1)))->assign(bufUTF8);
 	} while( FindNextFileW(hFind, &ffd) != 0 );
 
 	FindClose(hFind);
@@ -154,7 +154,7 @@ CScriptArray *CScriptFileSystem::GetDirs() const {
 #if defined(_WIN32)
 	// Windows uses UTF16 so it is necessary to convert the string
 	wchar_t bufUTF16[10000];
-	string searchPattern = currentPath + "/*";
+	eastl::string searchPattern = currentPath + "/*";
 	MultiByteToWideChar(CP_UTF8, 0, searchPattern.c_str(), -1, bufUTF16, 10000);
 
 	WIN32_FIND_DATAW ffd;
@@ -176,7 +176,7 @@ CScriptArray *CScriptFileSystem::GetDirs() const {
 
 		// Add the dir to the array
 		array->Resize(array->GetSize()+1);
-		((string*)(array->At(array->GetSize()-1)))->assign(bufUTF8);
+		((eastl::string*)(array->At(array->GetSize()-1)))->assign(bufUTF8);
 	} while( FindNextFileW(hFind, &ffd) != 0 );
 
 	FindClose(hFind);
@@ -208,8 +208,8 @@ CScriptArray *CScriptFileSystem::GetDirs() const {
 	return array;
 }
 
-bool CScriptFileSystem::ChangeCurrentPath(const string &path) {
-	if( path.find(":") != string::npos || path.find("/") == 0 || path.find("\\") == 0 )
+bool CScriptFileSystem::ChangeCurrentPath(const eastl::string &path) {
+	if( path.find(":") != eastl::string::npos || path.find("/") == 0 || path.find("\\") == 0 )
 		currentPath = path;
 	else
 		currentPath += "/" + path;
@@ -221,9 +221,9 @@ bool CScriptFileSystem::ChangeCurrentPath(const string &path) {
 	return IsDir(currentPath);
 }
 
-bool CScriptFileSystem::IsDir(const string &path) const {
-	string search;
-	if( path.find(":") != string::npos || path.find("/") == 0 || path.find("\\") == 0 )
+bool CScriptFileSystem::IsDir(const eastl::string &path) const {
+	eastl::string search;
+	if( path.find(":") != eastl::string::npos || path.find("/") == 0 || path.find("\\") == 0 )
 		search = path;
 	else
 		search = currentPath + "/" + path;
@@ -250,7 +250,7 @@ bool CScriptFileSystem::IsDir(const string &path) const {
 	return true;
 }
 
-string CScriptFileSystem::GetCurrentPath() const {
+eastl::string CScriptFileSystem::GetCurrentPath() const {
 	return currentPath;
 }
 

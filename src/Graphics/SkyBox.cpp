@@ -10,7 +10,7 @@ SkyBox::SkyBox() {
 SkyBox::~SkyBox() {
 }
 
-void SkyBox::Init(const VkDevice& device, const VkPhysicalDevice& physDev, const std::string& filename,const VkViewport& vp, const VkRenderPass& rp, DeviceAllocator& allocator) {
+void SkyBox::Init(const VkDevice& device, const VkPhysicalDevice& physDev, const eastl::string& filename,const VkViewport& vp, const VkRenderPass& rp, DeviceAllocator& allocator) {
 	//load pipestate
 	m_Pipeline.LoadPipelineFromFile(device, "shader/Skybox.json", rp);
 	//allocate memory
@@ -19,7 +19,7 @@ void SkyBox::Init(const VkDevice& device, const VkPhysicalDevice& physDev, const
 	par_shapes_mesh* mesh = par_shapes_create_cube();
 	par_shapes_scale(mesh, 2, 2, 2);
 	par_shapes_translate(mesh, -1, -1, -1);
-	std::vector<glm::vec3> vertices;
+	eastl::vector<glm::vec3> vertices;
 	for (int i = 0; i < mesh->ntriangles * 3; i += 3) {
 		for (int k = 0; k < 3; k++) {
 			glm::vec3 p = glm::vec3(mesh->points[mesh->triangles[i + k] * 3], mesh->points[mesh->triangles[i + k] * 3 + 1], mesh->points[mesh->triangles[i + k] * 3 + 2]);

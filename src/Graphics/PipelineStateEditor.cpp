@@ -48,14 +48,15 @@ void PipelineStateEditor::Open(const char* filename) {
 	if (root.find("Shaders") != root.end()) {
 		json shaders = root["Shaders"];
 
-		std::string shader_types[] = { "Vertex", "Fragment", "Geometry", "EVALUATION", "Control", "Compute" };
+		const char* shader_types[] = { "Vertex", "Fragment", "Geometry", "EVALUATION", "Control", "Compute" };
 		for (int i = 0; i < SHADER_KIND::COMPUTE + 1; ++i) {
 			if (shaders.find(shader_types[i]) != shaders.end()) {
 				json shader = shaders[shader_types[i]];
 				JsonShader shaderEntry;
 
 				if (shader.find("EntryPoint") != shader.end()) {
-					shaderEntry.EntryPoint = shader["EntryPoint"];
+					std::string entryPoint = shader["EntryPoint"];
+					shaderEntry.EntryPoint = entryPoint.c_str();
 				} else {
 					shaderEntry.EntryPoint = "main";
 				}
@@ -69,7 +70,8 @@ void PipelineStateEditor::Open(const char* filename) {
 					shaderEntry.Lang = SHADER_LANGUAGE::GLSL;
 				}
 				shaderEntry.Stage = (SHADER_KIND)i;
-				shaderEntry.SourceFile = shader["Source"];
+				std::string source = shader["Source"];
+				shaderEntry.SourceFile = source.c_str();
 				m_Shaders.push_back(shaderEntry);
 			}
 		}
@@ -87,7 +89,7 @@ void RenderTextEditor(const char* name, char* text, uint32_t bufferSize) {
 void RenderDepthStencilStateEditor(VkPipelineDepthStencilStateCreateInfo& depthInfo) {
 	//ImGui::LabelText("", "Depth");
 	//ImGui::Checkbox("Enable depth test", (bool*)&depthInfo.depthTestEnable);
-	//std::vector<const char*> compareOPslabels;
+	//eastl::vector<const char*> compareOPslabels;
 	//int currentIndex = 0;
 	//int i = 0;
 	//for (auto& comp : ToCompareOp) {
@@ -104,7 +106,7 @@ void RenderDepthStencilStateEditor(VkPipelineDepthStencilStateCreateInfo& depthI
 	//ImGui::InputFloat("Max depth bounds", &depthInfo.minDepthBounds);
 	//ImGui::LabelText("", "Stencil");
 	//ImGui::Checkbox("Enable stencil test", (bool*)&depthInfo.stencilTestEnable);
-	//std::vector<const char*> stencilOpLabels;
+	//eastl::vector<const char*> stencilOpLabels;
 	//int frontIndex = 0;
 	//int backIndex = 0;
 	//i = 0;
@@ -124,7 +126,7 @@ void RenderDepthStencilStateEditor(VkPipelineDepthStencilStateCreateInfo& depthI
 
 void RenderRasterizerStateEditor(VkPipelineRasterizationStateCreateInfo& rasterInfo) {
 	//cull mode
-	std::vector<const char*> cullModelabels;
+	eastl::vector<const char*> cullModelabels;
 	int cullIndex = 0;
 	int i = 0;
 	for (auto& cull : ToCullMode) {
@@ -136,7 +138,7 @@ void RenderRasterizerStateEditor(VkPipelineRasterizationStateCreateInfo& rasterI
 	ImGui::Combo("Cull mode", &cullIndex, cullModelabels.data(), (uint32_t)cullModelabels.size());
 	rasterInfo.cullMode = ToCullMode[cullModelabels[cullIndex]];
 	//front face
-	std::vector<const char*> frontFacelabels;
+	eastl::vector<const char*> frontFacelabels;
 	int frontFaceIndex = 0;
 	i = 0;
 	for (auto& face : ToFrontFace) {
@@ -148,7 +150,7 @@ void RenderRasterizerStateEditor(VkPipelineRasterizationStateCreateInfo& rasterI
 	ImGui::Combo("Front face", &frontFaceIndex, frontFacelabels.data(), (uint32_t)frontFacelabels.size());
 	rasterInfo.frontFace = ToFrontFace[frontFacelabels[frontFaceIndex]];
 	//polygon mode
-	std::vector<const char*> polygonModeLabels;
+	eastl::vector<const char*> polygonModeLabels;
 	int polygonIndex = 0;
 	i = 0;
 	for (auto& mode : ToPolygonMode) {
@@ -167,7 +169,7 @@ void RenderRasterizerStateEditor(VkPipelineRasterizationStateCreateInfo& rasterI
 	ImGui::InputFloat("Depth bias clamp", &rasterInfo.depthBiasClamp);
 }
 
-int RenderAttachmentStatesChooser(std::vector<VkPipelineColorBlendAttachmentState>& states, int activeAttachment) {
+int RenderAttachmentStatesChooser(eastl::vector<VkPipelineColorBlendAttachmentState>& states, int activeAttachment) {
 	uint32_t stateCount = (uint32_t)states.size();
 	for (uint32_t i = 0; i < stateCount; i++) {
 		ImGui::Text("Attachment %d", i);
@@ -189,7 +191,7 @@ int RenderAttachmentStatesChooser(std::vector<VkPipelineColorBlendAttachmentStat
 
 void RenderAttachmentStateEditor(VkPipelineColorBlendAttachmentState& attachmentState) {
 	ImGui::Checkbox("Enable blend", (bool*)&attachmentState.blendEnable);
-	std::vector<const char*> blendOplabels;
+	eastl::vector<const char*> blendOplabels;
 	int alphaOpIndex = 0;
 	int colorOpIndex = 0;
 	int i = 0;
@@ -202,7 +204,7 @@ void RenderAttachmentStateEditor(VkPipelineColorBlendAttachmentState& attachment
 		i++;
 	}
 
-	std::vector<const char*> blendFactorLabels;
+	eastl::vector<const char*> blendFactorLabels;
 	int srcAlphaIndex = 0;
 	int dstAlphaIndex = 0;
 	int srcColorIndex = 0;
@@ -242,7 +244,7 @@ void PipelineStateEditor::Update() {
 	//ImGui::ShowDemoWindow();
 	//main window
 	//shaders
-	const static std::vector<const char*> shaderStrings = { "Vertex", "Fragment", "Geometry", "Evaluation", "Control", "Compute" };
+	const static eastl::vector<const char*> shaderStrings = { "Vertex", "Fragment", "Geometry", "Evaluation", "Control", "Compute" };
 	bool anyShaderOpen = false;
 	ImGui::Begin("PipelineState Editor");
 	ImGui::BeginGroup();

@@ -5,12 +5,13 @@
 int main(int argc, char* argv[]) {
 #if defined(_DEBUG)
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF); //detect memory leaks
-	//_CrtSetBreakAlloc(25859); // mem leak debugger
+	//_CrtSetBreakAlloc(2967); // mem leak debugger
 #endif
 
 	smug::Engine eng;
 	eng.Init();
 	eng.Run();
 	eng.Shutdown();
+
 	return 0;
 }

@@ -1,4 +1,5 @@
 #include "DescriptorSetLayout.h"
+#include <EASTL/vector.h>
 #include <spirv_cross/spirv_glsl.hpp>
 
 DescriptorSetLayout::DescriptorSetLayout() {
@@ -21,7 +22,7 @@ void DescriptorSetLayout::InitFromSpirV(const uint32_t* buffer, uint32_t bufferL
 	spirv_cross::ShaderResources resources = glslCompiler.get_shader_resources();
 
 	VkDescriptorSetLayoutCreateInfo descSetCreateInfo;
-	std::vector<VkDescriptorSetLayoutBinding> bindings;
+	eastl::vector<VkDescriptorSetLayoutBinding> bindings;
 
 	VkDescriptorSetLayoutBinding binding;
 	binding.descriptorType;

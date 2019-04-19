@@ -41,22 +41,28 @@ VkPipelineColorBlendAttachmentState ReadColorBlendAttachmentState(const json& bl
 		blendAttachStateInfo.blendEnable = TO_VK_BOOL(blendJson["BlendEnable"]);
 	}
 	if (blendJson.find("SrcColorBlendFactor") != blendJson.end()) {
-		blendAttachStateInfo.srcColorBlendFactor = ToBlendFactor[blendJson["SrcColorBlendFactor"]];
+		std::string srcColorBlendFactor = blendJson["SrcColorBlendFactor"];
+		blendAttachStateInfo.srcColorBlendFactor = ToBlendFactor[srcColorBlendFactor.c_str()];
 	}
 	if (blendJson.find("DstColorBlendFactor") != blendJson.end()) {
-		blendAttachStateInfo.dstColorBlendFactor = ToBlendFactor[blendJson["DstColorBlendFactor"]];
+		std::string dstColorBlendFactor = blendJson["DstColorBlendFactor"];
+		blendAttachStateInfo.dstColorBlendFactor = ToBlendFactor[dstColorBlendFactor.c_str()];
 	}
 	if (blendJson.find("ColorBlendOp") != blendJson.end()) {
-		blendAttachStateInfo.colorBlendOp = ToBlendOp[blendJson["ColorBlendOp"]];
+		std::string colorBlendOp = blendJson["ColorBlendOp"];
+		blendAttachStateInfo.colorBlendOp = ToBlendOp[colorBlendOp.c_str()];
 	}
 	if (blendJson.find("SrcAlphaBlendFactor") != blendJson.end()) {
-		blendAttachStateInfo.srcAlphaBlendFactor = ToBlendFactor[blendJson["SrcAlphaBlendFactor"]];
+		std::string srcAlphaBlendFactor = blendJson["SrcAlphaBlendFactor"];
+		blendAttachStateInfo.srcAlphaBlendFactor = ToBlendFactor[srcAlphaBlendFactor.c_str()];
 	}
 	if (blendJson.find("DstAlphaBlendFactor") != blendJson.end()) {
-		blendAttachStateInfo.dstAlphaBlendFactor = ToBlendFactor[blendJson["DstAlphaBlendFactor"]];
+		std::string dstAlphaBlendFactor = blendJson["DstAlphaBlendFactor"];
+		blendAttachStateInfo.dstAlphaBlendFactor = ToBlendFactor[dstAlphaBlendFactor.c_str()];
 	}
 	if (blendJson.find("AlphaBlendOp") != blendJson.end()) {
-		blendAttachStateInfo.alphaBlendOp = ToBlendOp[blendJson["AlphaBlendOp"]];
+		std::string alphaBlendOp = blendJson["AlphaBlendOp"];
+		blendAttachStateInfo.alphaBlendOp = ToBlendOp[alphaBlendOp.c_str()];
 	}
 	//add color write mask
 	return blendAttachStateInfo;
@@ -65,7 +71,8 @@ VkPipelineColorBlendAttachmentState ReadColorBlendAttachmentState(const json& bl
 VkPipelineColorBlendStateCreateInfo ReadColorBlendState(const json& blendState) {
 	VkPipelineColorBlendStateCreateInfo blendStateInfo = GetDefaultColorBlendState();
 	if (blendState.find("LogicOp") != blendState.end()) {
-		blendStateInfo.logicOp = ToLogicOp[blendState["LogicOp"]];
+		std::string logicOP = blendState["LogicOp"];
+		blendStateInfo.logicOp = ToLogicOp[logicOP.c_str()];
 	}
 	if (blendState.find("logicOpEnable") != blendState.end()) {
 		blendStateInfo.logicOpEnable = TO_VK_BOOL(blendState["logicOpEnable"]);
@@ -82,16 +89,19 @@ VkPipelineColorBlendStateCreateInfo ReadColorBlendState(const json& blendState) 
 VkPipelineDepthStencilStateCreateInfo ReadDepthStencilstate(const json& depthState) {
 	VkPipelineDepthStencilStateCreateInfo depthStencilCreateInfo = GetDefaultDepthStencilstate();
 	if (depthState.find("Back") != depthState.end()) {
-		depthStencilCreateInfo.back.failOp = ToStencilOp[depthState["Back"]];
+		std::string back = depthState["Back"];
+		depthStencilCreateInfo.back.failOp = ToStencilOp[back.c_str()];
 	}
 	if (depthState.find("Front") != depthState.end()) {
-		depthStencilCreateInfo.front.failOp = ToStencilOp[depthState["Front"]];
+		std::string front = depthState["Front"];
+		depthStencilCreateInfo.front.failOp = ToStencilOp[front.c_str()];
 	}
 	if (depthState.find("DepthBoundsTestEnable") != depthState.end()) {
 		depthStencilCreateInfo.depthBoundsTestEnable = TO_VK_BOOL(depthState["DepthBoundsTestEnable"]);
 	}
 	if (depthState.find("DepthCompareOp") != depthState.end()) {
-		depthStencilCreateInfo.depthCompareOp = ToCompareOp[depthState["DepthCompareOp"]];
+		std::string depthCompareMode = depthState["DepthCompareOp"];
+		depthStencilCreateInfo.depthCompareOp = ToCompareOp[depthCompareMode.c_str()];
 	}
 	if (depthState.find("DepthTestEnable") != depthState.end()) {
 		depthStencilCreateInfo.depthTestEnable = TO_VK_BOOL(depthState["DepthTestEnable"]);
@@ -144,13 +154,16 @@ VkPipelineMultisampleStateCreateInfo ReadMultiSampleState(const json& msStateJso
 VkPipelineRasterizationStateCreateInfo ReadRasterState(const json& rasterStateJson) {
 	VkPipelineRasterizationStateCreateInfo rState = GetDefaultRasterState();
 	if (rasterStateJson.find("CullMode") != rasterStateJson.end()) {
-		rState.cullMode = ToCullMode[rasterStateJson["CullMode"]];
+		std::string cullmode = rasterStateJson["CullMode"];
+		rState.cullMode = ToCullMode[cullmode.c_str()];
 	}
 	if (rasterStateJson.find("FrontFace") != rasterStateJson.end()) {
-		rState.frontFace = ToFrontFace[rasterStateJson["FrontFace"]];
+		std::string frontFace = rasterStateJson["FrontFace"];
+		rState.frontFace = ToFrontFace[frontFace.c_str()];
 	}
 	if (rasterStateJson.find("PolygonMode") != rasterStateJson.end()) {
-		rState.polygonMode = ToPolygonMode[rasterStateJson["PolygonMode"]];
+		std::string polygonMode = rasterStateJson["PolygonMode"];
+		rState.polygonMode = ToPolygonMode[polygonMode.c_str()];
 	}
 	if (rasterStateJson.find("DepthClampEnable") != rasterStateJson.end()) {
 		rState.depthClampEnable = TO_VK_BOOL(rasterStateJson["DepthClampEnable"]);
@@ -176,8 +189,8 @@ VkPipelineRasterizationStateCreateInfo ReadRasterState(const json& rasterStateJs
 	return rState;
 }
 
-void PipelineState::LoadPipelineFromFile(const VkDevice& device, const std::string& filename, VkRenderPass renderPass) {
-	std::ifstream fin(filename);
+void PipelineState::LoadPipelineFromFile(const VkDevice& device, const eastl::string& filename, VkRenderPass renderPass) {
+	std::ifstream fin(filename.c_str());
 	if (!fin.is_open()) {
 		printf("Error opening pipeline file %s\n", filename.c_str());
 		fin.close();
@@ -197,14 +210,15 @@ void PipelineState::LoadPipelineFromFile(const VkDevice& device, const std::stri
 	if (root.find("Shaders") != root.end()) {
 		json shaders = root["Shaders"];
 
-		std::string shader_types[] = { "Vertex", "Fragment", "Geometry", "EVALUATION", "Control", "Compute", "Mesh", "Task", "RayGen", "RayInt", "RayAnyHit", "RayClosestHit", "RayMiss", "RayCall" };
+		const char* shader_types[] = { "Vertex", "Fragment", "Geometry", "EVALUATION", "Control", "Compute", "Mesh", "Task", "RayGen", "RayInt", "RayAnyHit", "RayClosestHit", "RayMiss", "RayCall" };
 		for (int i = 0; i < SHADER_TYPE_COUNT; ++i) {
 			if (shaders.find(shader_types[i]) != shaders.end()) {
 				json shader = shaders[shader_types[i]];
-				std::string entry;
+				eastl::string entry;
 				SHADER_LANGUAGE lang = GLSL;
 				if (shader.find("EntryPoint") != shader.end()) {
-					entry = shader["EntryPoint"];
+					std::string entry_point = shader["EntryPoint"];
+					entry = entry_point.c_str();
 				}
 				else {
 					entry = "main";
@@ -217,8 +231,8 @@ void PipelineState::LoadPipelineFromFile(const VkDevice& device, const std::stri
 						lang = HLSL;
 					}
 				}
-
-				m_Shaders.push_back(LoadShader(device, shader["Source"], SHADER_KIND(i), entry, lang));
+				std::string source = shader["Source"];
+				m_Shaders.push_back(LoadShader(device, source.c_str(), SHADER_KIND(i), entry, lang));
 				m_ShaderBits |= 1 << i;
 			}
 			else {
@@ -233,13 +247,15 @@ void PipelineState::LoadPipelineFromFile(const VkDevice& device, const std::stri
 	if (root.find("DescriptorSetLayouts") != root.end()) {
 		json descSetLayouts = root["DescriptorSetLayouts"];
 		for (auto& layout : descSetLayouts) {
-			std::vector<VkDescriptorSetLayoutBinding> bindings;
+			eastl::vector<VkDescriptorSetLayoutBinding> bindings;
 
 			for (auto& bind : layout) {
 				VkDescriptorSetLayoutBinding binding = {};
 				binding.binding = bind["Binding"];
 				binding.descriptorCount = bind["Count"];
-				binding.descriptorType = ToDescriptorType[bind["Type"]];
+				
+				std::string type = bind["Type"];
+				binding.descriptorType = ToDescriptorType[type.c_str()];
 				binding.stageFlags = VkShaderStageFlagBits::VK_SHADER_STAGE_ALL; //keep the stage set to all for now
 				bindings.push_back(binding);
 			}
@@ -254,7 +270,7 @@ void PipelineState::LoadPipelineFromFile(const VkDevice& device, const std::stri
 		}
 	}
 	//push constants
-	std::vector<VkPushConstantRange> pushConstRanges;
+	eastl::vector<VkPushConstantRange> pushConstRanges;
 	if (root.find("PushConstantRanges") != root.end()) {
 		json pushConstants = root["PushConstantRanges"];
 		for (auto& pc : pushConstants) {
@@ -296,7 +312,7 @@ void PipelineState::LoadPipelineFromFile(const VkDevice& device, const std::stri
 	VkPipelineColorBlendStateCreateInfo blendStateInfo = {};
 	blendStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
 	blendStateInfo.pNext = nullptr;
-	std::vector<VkPipelineColorBlendAttachmentState> ColorblendAttachmentStates;
+	eastl::vector<VkPipelineColorBlendAttachmentState> ColorblendAttachmentStates;
 	if (root.find("ColorBlendState") != root.end()) {
 		json ColorBlendStateJson = root["ColorBlendState"];
 		blendStateInfo = ReadColorBlendState(ColorBlendStateJson);
@@ -340,7 +356,8 @@ void PipelineState::LoadPipelineFromFile(const VkDevice& device, const std::stri
 			inputAssemblyInfo.primitiveRestartEnable = false;
 		}
 		if (inputAssemJson.find("Topology") != inputAssemJson.end()) {
-			inputAssemblyInfo.topology = ToPrimitiveTopology[inputAssemJson["Topology"]];
+			std::string topology = inputAssemJson["Topology"];
+			inputAssemblyInfo.topology = ToPrimitiveTopology[topology.c_str()];
 		}
 		else {
 			inputAssemblyInfo.topology = VkPrimitiveTopology::VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
@@ -388,7 +405,7 @@ void PipelineState::LoadPipelineFromFile(const VkDevice& device, const std::stri
 		}
 	}
 	//shader stages
-	std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
+	eastl::vector<VkPipelineShaderStageCreateInfo> shaderStages;
 	for (int i = 0; i < 6; i++) {
 		VkPipelineShaderStageCreateInfo stage = {};
 		stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -406,8 +423,8 @@ void PipelineState::LoadPipelineFromFile(const VkDevice& device, const std::stri
 	//vertex state
 	//Vertex state must either be set in json or provided with a default before calling this function
 	VkPipelineVertexInputStateCreateInfo* vertexState = nullptr;
-	std::vector<VkVertexInputBindingDescription> vertexBindings;
-	std::vector<VkVertexInputAttributeDescription> vertexInputDescs;
+	eastl::vector<VkVertexInputBindingDescription> vertexBindings;
+	eastl::vector<VkVertexInputAttributeDescription> vertexInputDescs;
 	if (root.find("VertexInputState") != root.end()) {
 		json vertexStateJson = root["VertexInputState"];
 		//bindings
@@ -416,7 +433,8 @@ void PipelineState::LoadPipelineFromFile(const VkDevice& device, const std::stri
 			for (auto& bind : bindings) {
 				VkVertexInputBindingDescription bindDesc;
 				bindDesc.binding = bind["Binding"];
-				bindDesc.inputRate = ToVertexInputRate[bind["InputRate"]];
+				std::string inputRate = bind["InputRate"];
+				bindDesc.inputRate = ToVertexInputRate[inputRate.c_str()];
 				bindDesc.stride = bind["Stride"];
 				vertexBindings.push_back(bindDesc);
 			}
@@ -427,7 +445,8 @@ void PipelineState::LoadPipelineFromFile(const VkDevice& device, const std::stri
 			for (auto& attr : attributes) {
 				VkVertexInputAttributeDescription attrDesc;
 				attrDesc.binding = attr["Binding"];
-				attrDesc.format = ToFormat[attr["Format"]];
+				std::string format = attr["Format"];
+				attrDesc.format = ToFormat[format.c_str()];
 				attrDesc.location = attr["Location"];
 				attrDesc.offset = attr["Offset"];
 				vertexInputDescs.push_back(attrDesc);
@@ -457,7 +476,7 @@ void PipelineState::LoadPipelineFromFile(const VkDevice& device, const std::stri
 	viewportState.pViewports = nullptr;
 	viewportState.pScissors = nullptr;
 
-	std::vector<VkDynamicState> dynamicStates;
+	eastl::vector<VkDynamicState> dynamicStates;
 	dynamicStates.push_back(VkDynamicState::VK_DYNAMIC_STATE_VIEWPORT);
 	dynamicStates.push_back(VkDynamicState::VK_DYNAMIC_STATE_SCISSOR);
 	VkPipelineDynamicStateCreateInfo dynamicStateCreateInfo = {};
@@ -520,8 +539,8 @@ VkShaderStageFlagBits ShaderKindToVkStage(SHADER_KIND k) {
 
 void PipelineState::LoadPipelineFromInfo(const VkDevice& device, const PipelineStateInfo& psInfo, VkRenderPass rp) {
 	VkPipelineLayoutCreateInfo layoutCreateInfo = {};
-	std::vector<VkDescriptorSetLayout> setLayouts;
-	std::unordered_map<uint32_t, std::vector<VkDescriptorSetLayoutBinding>> bindings;
+	eastl::vector<VkDescriptorSetLayout> setLayouts;
+	eastl::unordered_map<uint32_t, eastl::vector<VkDescriptorSetLayoutBinding>> bindings;
 
 	for (uint32_t i = 0; i < psInfo.DescriptorCount; ++i) {
 		Descriptor& desc = psInfo.Descriptors[i];
@@ -563,7 +582,7 @@ void PipelineState::LoadPipelineFromInfo(const VkDevice& device, const PipelineS
 
 	//create descriptor sets
 
-	std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
+	eastl::vector<VkPipelineShaderStageCreateInfo> shaderStages;
 	for (uint32_t i = 0; i < psInfo.Shader.ShaderCount; ++i) {
 		VkShaderModuleCreateInfo moduleInfo;
 		moduleInfo.codeSize = psInfo.Shader.Shaders[i].ByteCodeSize;
@@ -591,7 +610,7 @@ void PipelineState::LoadPipelineFromInfo(const VkDevice& device, const PipelineS
 	pipelineCreateInfo.basePipelineHandle = nullptr;
 	pipelineCreateInfo.basePipelineIndex = 0;
 	
-	std::vector<VkDynamicState> dynamicStates;
+	eastl::vector<VkDynamicState> dynamicStates;
 	dynamicStates.push_back(VkDynamicState::VK_DYNAMIC_STATE_VIEWPORT);
 	dynamicStates.push_back(VkDynamicState::VK_DYNAMIC_STATE_SCISSOR);
 	dynamicStates.push_back(VkDynamicState::VK_DYNAMIC_STATE_BLEND_CONSTANTS);
@@ -623,7 +642,7 @@ void PipelineState::LoadPipelineFromInfo(const VkDevice& device, const PipelineS
 }
 
 
-void PipelineState::ReloadPipelineFromFile(const VkDevice& device, const std::string& filename, VkRenderPass rp) {
+void PipelineState::ReloadPipelineFromFile(const VkDevice& device, const eastl::string& filename, VkRenderPass rp) {
 	m_DescSetLayouts.clear();
 	m_ShaderBits = 0;
 	m_Shaders.clear();
@@ -642,7 +661,7 @@ void PipelineState::SetDefaultMulitSampleState(const VkPipelineMultisampleStateC
 	m_DefaultMultiSampleStateSet = true;
 }
 
-std::vector<VkDescriptorSetLayout>& PipelineState::GetDescriptorSetLayouts() {
+eastl::vector<VkDescriptorSetLayout>& PipelineState::GetDescriptorSetLayouts() {
 	return m_DescSetLayouts;
 }
 

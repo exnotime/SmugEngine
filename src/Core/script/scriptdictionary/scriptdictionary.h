@@ -10,14 +10,14 @@
 #include <angelscript.h>
 #endif
 
-// By default the CScriptDictionary use the std::string for the keys.
+// By default the CScriptDictionary use the eastl::string for the keys.
 // If the application uses a custom string type, then this typedef
 // can be changed accordingly. Remember, if the application uses
 // a ref counted string type, then further changes will be needed,
 // for example in the code for GetKeys() and the constructor that
 // takes an initialization list.
-#include <string>
-typedef std::string dictKey_t;
+#include <EASTL/string.h>
+typedef eastl::string dictKey_t;
 
 // Forward declare CScriptDictValue so we can typedef the internal map type
 BEGIN_AS_NAMESPACE
@@ -29,8 +29,8 @@ END_AS_NAMESPACE
 // binary tree.
 // TODO: memory: The map allocator should use the asAllocMem and asFreeMem
 #if AS_CAN_USE_CPP11
-#include <unordered_map>
-typedef std::unordered_map<dictKey_t, AS_NAMESPACE_QUALIFIER CScriptDictValue> dictMap_t;
+#include <EASTL/unordered_map.h>
+typedef eastl::unordered_map<dictKey_t, AS_NAMESPACE_QUALIFIER CScriptDictValue> dictMap_t;
 #else
 #include <map>
 typedef std::map<dictKey_t, AS_NAMESPACE_QUALIFIER CScriptDictValue> dictMap_t;

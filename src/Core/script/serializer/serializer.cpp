@@ -35,7 +35,7 @@ CSerializer::~CSerializer() {
 	m_root.Uninit();
 
 	// Delete the user types
-	std::map<std::string, CUserType*>::iterator it;
+	std::map<eastl::string, CUserType*>::iterator it;
 	for( it = m_userTypes.begin(); it != m_userTypes.end(); it++  )
 		delete it->second;
 
@@ -43,7 +43,7 @@ CSerializer::~CSerializer() {
 		m_engine->Release();
 }
 
-void CSerializer::AddUserType(CUserType *ref, const std::string &name) {
+void CSerializer::AddUserType(CUserType *ref, const eastl::string &name) {
 	m_userTypes[name] = ref;
 }
 
@@ -152,7 +152,7 @@ CSerializedValue::CSerializedValue() {
 	Init();
 }
 
-CSerializedValue::CSerializedValue(CSerializedValue *parent, const std::string &name, const std::string &nameSpace, void *ref, int typeId) {
+CSerializedValue::CSerializedValue(CSerializedValue *parent, const eastl::string &name, const eastl::string &nameSpace, void *ref, int typeId) {
 	Init();
 
 	m_name       = name;
@@ -200,7 +200,7 @@ CSerializedValue::~CSerializedValue() {
 	Uninit();
 }
 
-CSerializedValue *CSerializedValue::FindByName(const std::string &name, const std::string &nameSpace) {
+CSerializedValue *CSerializedValue::FindByName(const eastl::string &name, const eastl::string &nameSpace) {
 	for( size_t i = 0; i < m_children.size(); i++ )
 		if( m_children[i]->m_name      == name &&
 		        m_children[i]->m_nameSpace == nameSpace )
@@ -209,7 +209,7 @@ CSerializedValue *CSerializedValue::FindByName(const std::string &name, const st
 	return 0;
 }
 
-void  CSerializedValue::GetAllPointersOfChildren(std::vector<void*> *ptrs) {
+void  CSerializedValue::GetAllPointersOfChildren(eastl::vector<void*> *ptrs) {
 	ptrs->push_back(m_originalPtr);
 
 	for( size_t i = 0; i < m_children.size(); ++i )
@@ -360,7 +360,7 @@ void CSerializedValue::Restore(void *ref, int typeId) {
 			// user type restore
 			m_serializer->m_userTypes[m_typeName]->Restore(this, m_restorePtr);
 		} else {
-			std::string str = "Cannot restore type '";
+			eastl::string str = "Cannot restore type '";
 			str += type->GetName();
 			str += "'";
 			m_serializer->m_engine->WriteMessage("", 0, 0, asMSGTYPE_ERROR, str.c_str());
@@ -369,7 +369,7 @@ void CSerializedValue::Restore(void *ref, int typeId) {
 }
 
 void CSerializedValue::CancelDuplicates(CSerializedValue *from) {
-	std::vector<void*> ptrs;
+	eastl::vector<void*> ptrs;
 	from->GetAllPointersOfChildren(&ptrs);
 
 	for( size_t i = 0; i < ptrs.size(); ++i ) {

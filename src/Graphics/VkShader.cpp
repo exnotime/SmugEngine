@@ -27,10 +27,10 @@ const char* StageString(SHADER_KIND stage) {
 #define USE_GLSLANG_VALIDATOR
 
 #ifdef USE_SHADERC
-VkShaderModule smug::LoadShader(const VkDevice& device, const std::string& filename, SHADER_KIND stage, const std::string& entryPoint, SHADER_LANGUAGE language) {
+VkShaderModule smug::LoadShader(const VkDevice& device, const eastl::string& filename, SHADER_KIND stage, const eastl::string& entryPoint, SHADER_LANGUAGE language) {
 	//read file ending and figure out shader type
 	size_t lastDot = filename.find_last_of('.');
-	std::string fileEnding = filename.substr(lastDot + 1);
+	eastl::string fileEnding = filename.substr(lastDot + 1);
 	shaderc_shader_kind shaderType;
 	if (stage == VERTEX) {
 		shaderType = shaderc_glsl_vertex_shader;
@@ -62,7 +62,7 @@ VkShaderModule smug::LoadShader(const VkDevice& device, const std::string& filen
 	}
 
 	//check if there is an up to date shader cache
-	std::string cacheName = SHADER_CACHE_DIR + filename.substr(filename.find_last_of('/') + 1) + "." + StageString(stage) + ".spv";
+	eastl::string cacheName = SHADER_CACHE_DIR + filename.substr(filename.find_last_of('/') + 1) + "." + StageString(stage) + ".spv";
 	struct stat cacheBuf, fileBuf;
 	stat(cacheName.c_str(), &cacheBuf);
 	stat(filename.c_str(), &fileBuf);
@@ -111,12 +111,12 @@ VkShaderModule smug::LoadShader(const VkDevice& device, const std::string& filen
 	//include resolver lambda
 	auto includeResolver = [](void* user_data, const char* requested_source, int type,
 	const char* requesting_source, size_t include_depth) -> shaderc_include_result* {
-		std::string filename;
+		eastl::string filename;
 		if (type == shaderc_include_type_relative) {
-			std::string reqSrc = std::string(requesting_source);
-			filename = reqSrc.substr(0, reqSrc.find_last_of('/')) + '/' + std::string(requested_source);
+			eastl::string reqSrc = eastl::string(requesting_source);
+			filename = reqSrc.substr(0, reqSrc.find_last_of('/')) + '/' + eastl::string(requested_source);
 		} else if (type == shaderc_include_type_standard) {
-			filename = "shaders/" + std::string(requested_source);
+			filename = "shaders/" + eastl::string(requested_source);
 		}
 		FILE* fin = fopen(filename.c_str(), "rb");
 		fseek(fin, 0, SEEK_END);
@@ -175,9 +175,9 @@ VkShaderModule smug::LoadShader(const VkDevice& device, const std::string& filen
 #endif
 
 #ifdef USE_GLSLANG_VALIDATOR
-VkShaderModule smug::LoadShader(const VkDevice& device, const std::string& file, SHADER_KIND kind, const std::string& entryPoint, SHADER_LANGUAGE lang) {
+VkShaderModule smug::LoadShader(const VkDevice& device, const eastl::string& file, SHADER_KIND kind, const eastl::string& entryPoint, SHADER_LANGUAGE lang) {
 	//use the program glslangvalidator
-	std::string command;
+	eastl::string command;
 	command += "%VULKAN_SDK%/Bin/glslangValidator.exe -V ";
 	switch (kind) {
 	case smug::VERTEX:
@@ -230,7 +230,7 @@ VkShaderModule smug::LoadShader(const VkDevice& device, const std::string& file,
 	command += " -o ./temp.spv";
 	command += " ./" + file;
 
-	system(command.c_str());
+	int ret = system(command.c_str());
 	VkShaderModule module = nullptr;
 	FILE* fin = fopen("./temp.spv", "rb");
 	if (fin) {

@@ -19,7 +19,7 @@ void MessageCallback(const AngelScript::asSMessageInfo *msg, void *param) {
 	printf("%s (%d, %d) : %s : %s\n", msg->section, msg->row, msg->col, type, msg->message);
 }
 
-void Print(const std::string& msg) {
+void Print(const eastl::string& msg) {
 	printf("%s\n", msg.c_str());
 }
 
@@ -70,7 +70,7 @@ void ScriptEngine::Init() {
 	m_Context = m_Engine->CreateContext();
 }
 
-void ScriptEngine::CompileScript(const std::string& scriptname) {
+void ScriptEngine::CompileScript(const eastl::string& scriptname) {
 	AngelScript::CScriptBuilder scriptBuilder;
 	int r = 0;
 	r = scriptBuilder.StartNewModule(m_Engine, scriptname.c_str());
@@ -83,7 +83,7 @@ void ScriptEngine::CompileScript(const std::string& scriptname) {
 	printf("Compiled script :%s\n", scriptname.c_str());
 }
 
-AngelScript::asIScriptModule* ScriptEngine::CompileScriptToModule(const std::string& scriptname) {
+AngelScript::asIScriptModule* ScriptEngine::CompileScriptToModule(const eastl::string& scriptname) {
 	AngelScript::CScriptBuilder scriptBuilder;
 	int r = 0;
 	r = scriptBuilder.StartNewModule(m_Engine, scriptname.c_str());
@@ -97,7 +97,7 @@ AngelScript::asIScriptModule* ScriptEngine::CompileScriptToModule(const std::str
 	return m_Engine->GetModule(scriptname.c_str());
 }
 
-AngelScript::asIScriptModule* ScriptEngine::CompileStringToModule(const std::string& name, const std::string& script) {
+AngelScript::asIScriptModule* ScriptEngine::CompileStringToModule(const eastl::string& name, const eastl::string& script) {
 	AngelScript::CScriptBuilder scriptBuilder;
 	int r = 0;
 	r = scriptBuilder.StartNewModule(m_Engine, name.c_str());
@@ -111,14 +111,14 @@ AngelScript::asIScriptModule* ScriptEngine::CompileStringToModule(const std::str
 	return m_Engine->GetModule(name.c_str());
 }
 
-void ScriptEngine::RunScript(const std::string& scriptname, const std::string& entry) {
+void ScriptEngine::RunScript(const eastl::string& scriptname, const eastl::string& entry) {
 	AngelScript::asIScriptModule* module = m_Engine->GetModule(scriptname.c_str());
 	AngelScript::asIScriptFunction* func = module->GetFunctionByDecl(entry.c_str());
 	m_Context->Prepare(func);
 	m_Context->Execute();
 }
 
-void ScriptEngine::RecompileScript(const std::string& scriptname) {
+void ScriptEngine::RecompileScript(const eastl::string& scriptname) {
 	m_Engine->DiscardModule(scriptname.c_str());
 	AngelScript::CScriptBuilder scriptBuilder;
 	int r = 0;
@@ -136,11 +136,11 @@ void ScriptEngine::RecompileAllScripts() {
 	}
 }
 
-void ScriptEngine::ExecuteString(const std::string& code) {
+void ScriptEngine::ExecuteString(const eastl::string& code) {
 	AngelScript::ExecuteString(m_Engine, code.c_str(), nullptr, m_Context);
 }
 
-void ScriptEngine::ExecuteModule(AngelScript::asIScriptModule* module, const std::string& entry) {
+void ScriptEngine::ExecuteModule(AngelScript::asIScriptModule* module, const eastl::string& entry) {
 	AngelScript::asIScriptFunction* func = module->GetFunctionByDecl(entry.c_str());
 	m_Context->Prepare(func);
 	m_Context->Execute();

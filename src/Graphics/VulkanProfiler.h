@@ -1,7 +1,7 @@
 #pragma once
 #include "volk.h"
 #include "DeviceAllocator.h"
-#include <string>
+#include <EASTL/string.h>
 namespace smug {
 	class VulkanProfiler {
 	public:
@@ -15,11 +15,11 @@ namespace smug {
 
 	private:
 		struct TimeStamp {
-			std::string name;
+			eastl::string name;
 			uint64_t offset;
 			uint64_t timeStamp;
 		};
-		std::vector<TimeStamp> m_TimeStamps[BUFFER_COUNT];
+		eastl::vector<TimeStamp> m_TimeStamps[BUFFER_COUNT];
 		uint32_t m_QueryOffset[BUFFER_COUNT];
 
 		VkQueryPool m_Pool[BUFFER_COUNT];

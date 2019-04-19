@@ -7,19 +7,20 @@
 #include "VulkanContext.h"
 #include "DeviceAllocator.h"
 #include <AssetLoader/Resources.h>
-#include <vector>
+#include <EASTL/vector.h>
 #include <map>
 #include <glm/glm.hpp>
-#include <Utility/Vector.h>
+
+#define MAX_INSTANCES 64 * 1024
 
 namespace smug {
 struct ShaderInput {
-	glm::mat4x4 Transform;
+	glm::mat3x4 Transform;
 	glm::vec4 Color;
 };
 
 struct ModelInstance {
-	std::vector<ShaderInput> Inputs;
+	eastl::vector<ShaderInput> Inputs;
 	uint32_t Count;
 	uint32_t Offset;
 };
@@ -31,14 +32,14 @@ class GFX_DLL RenderQueue {
 	void Init(ResourceHandler& resources, int index);
 	void Clear();
 	void AddCamera(const CameraData& cd);
-	void AddModel(ResourceHandle handle, const glm::mat4& transform, const glm::vec4& tint);
+	void AddModel(ResourceHandle handle, const glm::mat3x4& transform, const glm::vec4& tint);
 	void ScheduleTransfer(DeviceAllocator& memory);
 	void Destroy(ResourceHandler& resources);
 
-	const std::vector<CameraData>& GetCameras() const {
+	const eastl::vector<CameraData>& GetCameras() const {
 		return m_Cameras;
 	}
-	const std::vector<ShaderInput>& GetInputs() const {
+	const eastl::vector<ShaderInput>& GetInputs() const {
 		return m_Inputs;
 	}
 	const std::map<ResourceHandle, ModelInstance>& GetModels() const {
@@ -56,8 +57,8 @@ class GFX_DLL RenderQueue {
 	}
 
   private:
-	std::vector<CameraData> m_Cameras;
-	std::vector<ShaderInput> m_Inputs;
+	eastl::vector<CameraData> m_Cameras;
+	eastl::vector<ShaderInput> m_Inputs;
 	std::map<ResourceHandle, ModelInstance> m_Models;
 	VkDescriptorSet m_DescSet;
 	ResourceHandle m_Buffer;

@@ -4,7 +4,8 @@
 #include "Vertex.h"
 #include "Core/Timer.h"
 #include "Core/Input.h"
-#define USE_DEBUG_LAYER
+#include "RaytracingProgram.h"
+//#define USE_DEBUG_LAYER
 
 using namespace smug;
 
@@ -13,20 +14,6 @@ GraphicsEngine::GraphicsEngine() {
 }
 
 GraphicsEngine::~GraphicsEngine() {
-	m_DeviceAllocator.Clear();
-	for (int i = 0; i < BUFFER_COUNT; ++i) {
-		m_RenderQueues[i].Destroy(m_Resources);
-	}
-	m_StaticRenderQueue.Destroy(m_Resources);
-	
-	m_Resources.Clear();
-	m_DeviceAllocator.DeAllocateBuffer(m_PerFrameBuffer);
-	m_DeviceAllocator.DeAllocateImage(m_IBLTex.GetImageHandle());
-	m_DeviceAllocator.DeAllocateImage(m_SkyIrr.GetImageHandle());
-	m_DeviceAllocator.DeAllocateImage(m_SkyRad.GetImageHandle());
-	m_SkyBox.DeInit(m_DeviceAllocator);
-	m_ShadowProgram.DeInit(m_DeviceAllocator);
-	m_ToneMapping.DeInit(m_DeviceAllocator);
 }
 
 VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDebugCallback(
@@ -68,12 +55,11 @@ void GraphicsEngine::CreateContext() {
 	appInfo.engineVersion = 1;
 	appInfo.apiVersion = VK_API_VERSION_1_1;
 
-	std::vector<const char*> layers;
-	std::vector<const char*> extensions;
+	eastl::vector<const char*> layers;
+	eastl::vector<const char*> extensions;
 
 #if defined(_DEBUG) && defined(USE_DEBUG_LAYER)
 	extensions.push_back("VK_EXT_debug_utils");
-	//layers.push_back("VK_LAYER_RENDERDOC_Capture");
 	layers.push_back("VK_LAYER_LUNARG_standard_validation");
 	VkDebugUtilsMessengerCreateInfoEXT messengerCreateInfo = {};
 	messengerCreateInfo.flags = 0;
@@ -110,12 +96,11 @@ void GraphicsEngine::CreateContext() {
 
 #if defined(_DEBUG) && defined(USE_DEBUG_LAYER)
 	VkDebugUtilsMessengerEXT messenger;
-	//PFN_vkCreateDebugUtilsMessengerEXT CreateDebugUtilsMessengerEXT = (PFN_vkCreateDebugUtilsMessengerEXT)m_VKContext.Instance.getProcAddr("vkCreateDebugUtilsMessengerEXT");
 	vkCreateDebugUtilsMessengerEXT(m_VKContext.Instance, &messengerCreateInfo, nullptr, &messenger);
 #endif
 	uint32_t gpuCount = 0;
 	vkEnumeratePhysicalDevices(m_VKContext.Instance, &gpuCount, nullptr);
-	std::vector<VkPhysicalDevice> gpus(gpuCount);
+	eastl::vector<VkPhysicalDevice> gpus(gpuCount);
 	vkEnumeratePhysicalDevices(m_VKContext.Instance, &gpuCount, &gpus[0]);
 	if (gpus.size() == 0) {
 		return;
@@ -133,8 +118,8 @@ void GraphicsEngine::CreateContext() {
 
 	m_vkQueue.Init(VK_PHYS_DEVICE, VkQueueFlagBits::VK_QUEUE_GRAPHICS_BIT);
 
-	std::vector<const char*> devicelayers;
-	std::vector<const char*> deviceExtensions;
+	eastl::vector<const char*> devicelayers;
+	eastl::vector<const char*> deviceExtensions;
 	//device extensions
 	deviceExtensions.push_back("VK_KHR_swapchain");
 	deviceExtensions.push_back("VK_KHR_dedicated_allocation");
@@ -171,7 +156,8 @@ void GraphicsEngine::CreateContext() {
 	m_vkQueue.SetQueue(VK_DEVICE);
 
 	//set up command buffers
-	m_CmdBufferFactory.Init(VK_DEVICE, m_vkQueue.GetQueueIndex(), 8);
+	m_CmdBufferFactory = new VulkanCommandBufferFactory;
+	m_CmdBufferFactory->Init(VK_DEVICE, m_vkQueue.GetQueueIndex(), 8);
 }
 
 void GraphicsEngine::CreateSwapChain(VkSurfaceKHR surface) {
@@ -185,7 +171,7 @@ void GraphicsEngine::CreateSwapChain(VkSurfaceKHR surface) {
 	}
 	uint32_t formatCount = 0;
 	vkGetPhysicalDeviceSurfaceFormatsKHR(VK_PHYS_DEVICE, surface, &formatCount, nullptr);
-	std::vector<VkSurfaceFormatKHR> formats(formatCount);
+	eastl::vector<VkSurfaceFormatKHR> formats(formatCount);
 	vkGetPhysicalDeviceSurfaceFormatsKHR(VK_PHYS_DEVICE, surface, &formatCount, &formats[0]);
 	VkSurfaceFormatKHR format = formats[0];
 	for (auto& f : formats) {
@@ -242,7 +228,7 @@ void GraphicsEngine::CreateSwapChain(VkSurfaceKHR surface) {
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
 	renderPassInfo.pNext = nullptr;
 	renderPassInfo.dependencyCount = 0;
-	std::vector<VkAttachmentDescription> attachments;
+	eastl::vector<VkAttachmentDescription> attachments;
 	VkAttachmentDescription attachmentDesc = {};
 	attachmentDesc.format = format.format;
 	attachmentDesc.finalLayout = VkImageLayout::VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
@@ -291,10 +277,10 @@ void GraphicsEngine::CreateSwapChain(VkSurfaceKHR surface) {
 
 
 	//hdr offscreen framebuffer
-	std::vector<VkFormat> fboFormats;
+	eastl::vector<VkFormat> fboFormats;
 	fboFormats.push_back(VkFormat::VK_FORMAT_R16G16B16A16_UNORM);
 	fboFormats.push_back(VkFormat::VK_FORMAT_D24_UNORM_S8_UINT);
-	std::vector<VkImageUsageFlags> usages;
+	eastl::vector<VkImageUsageFlags> usages;
 	usages.push_back(VkImageUsageFlagBits::VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VkImageUsageFlagBits::VK_IMAGE_USAGE_STORAGE_BIT | VkImageUsageFlagBits::VK_IMAGE_USAGE_SAMPLED_BIT);
 	usages.push_back(VkImageUsageFlagBits::VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VkImageUsageFlagBits::VK_IMAGE_USAGE_SAMPLED_BIT);
 	m_FrameBuffer.Init(VK_DEVICE, VK_PHYS_DEVICE, m_ScreenSize, fboFormats, usages);
@@ -352,18 +338,20 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	MemoryBudget memBudget;
 	memBudget.GeometryBudget = 0;
 	memBudget.MaterialBudget = 0;
-	m_Resources.Init(&VK_DEVICE, VK_PHYS_DEVICE, memBudget, m_DeviceAllocator, m_FrameBuffer);
-
+	m_Resources = new ResourceHandler();
+	m_Resources->Init(&VK_DEVICE, VK_PHYS_DEVICE, memBudget, m_DeviceAllocator, m_FrameBuffer);
+	m_RenderQueues = new RenderQueue[BUFFER_COUNT];
 	for (int q = 0; q < BUFFER_COUNT; ++q) {
-		m_RenderQueues[q].Init(m_Resources, q);
+		m_RenderQueues[q].Init(*m_Resources, q);
 	}
-	m_StaticRenderQueue.Init(m_Resources, BUFFER_COUNT);
+	m_StaticRenderQueue = new RenderQueue();
+	m_StaticRenderQueue->Init(*m_Resources, BUFFER_COUNT);
 
 	VkDescriptorPoolCreateInfo descPoolInfo = {};
 	descPoolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 	descPoolInfo.pNext = nullptr;
 	descPoolInfo.maxSets = 16 * 1024;
-	std::vector<VkDescriptorPoolSize> poolSizes;
+	eastl::vector<VkDescriptorPoolSize> poolSizes;
 	poolSizes.push_back({ VkDescriptorType::VK_DESCRIPTOR_TYPE_SAMPLER, 50 });
 	poolSizes.push_back({ VkDescriptorType::VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 });
 	poolSizes.push_back({ VkDescriptorType::VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 100 });
@@ -379,10 +367,13 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	vkCreateDescriptorPool(VK_DEVICE, &descPoolInfo, nullptr, &VK_DESC_POOL);
 
 	//tonemapping
-	m_ToneMapping.Init(VK_DEVICE, m_ScreenSize, m_FrameBuffer, VK_DESC_POOL, m_RenderPass, m_DeviceAllocator);
-	m_ShadowProgram.Init(m_VKContext, m_DeviceAllocator);
+	m_ToneMapping = new ToneMapProgram();
+	m_ToneMapping->Init(VK_DEVICE, m_ScreenSize, m_FrameBuffer, VK_DESC_POOL, m_RenderPass, m_DeviceAllocator);
+	m_ShadowProgram = new ShadowMapProgram();
+	m_ShadowProgram->Init(m_VKContext, m_DeviceAllocator);
 #if defined(RTX_ON)
-	m_RaytracingProgram.Init(VK_DEVICE, VK_PHYS_DEVICE, m_VKContext.Instance, m_VKContext.DescriptorPool, m_FrameBuffer.GetView(0, 0), &m_DeviceAllocator);
+	m_RaytracingProgram = new RaytracingProgram();
+	m_RaytracingProgram->Init(VK_DEVICE, VK_PHYS_DEVICE, m_VKContext.Instance, m_VKContext.DescriptorPool, m_FrameBuffer.GetView(0, 0), m_DeviceAllocator);
 #endif
 	{
 		//uniform set
@@ -407,7 +398,7 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 			m_RenderQueues[i].SetDescSet(set);
 		}
 		vkAllocateDescriptorSets(VK_DEVICE, &descSetAllocInfo, &set);
-		m_StaticRenderQueue.SetDescSet(set);
+		m_StaticRenderQueue->SetDescSet(set);
 	}
 
 	VkWriteDescriptorSet descWrites[6 + BUFFER_COUNT];
@@ -446,7 +437,7 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	descWrites[c].descriptorType = VkDescriptorType::VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	descWrites[c].dstArrayElement = 0;
 	descWrites[c].dstBinding = 2;
-	descWrites[c].pImageInfo = &m_ShadowProgram.GetFrameBuffer().GetDescriptors()[0];
+	descWrites[c].pImageInfo = &m_ShadowProgram->GetFrameBuffer().GetDescriptors()[0];
 	descWrites[c++].dstSet = m_IBLDescSet;
 
 	VkDescriptorBufferInfo bufferInfos[BUFFER_COUNT + 1];
@@ -467,9 +458,9 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	descWrites[c + 2].descriptorType = VkDescriptorType::VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 	descWrites[c + 2].dstArrayElement = 0;
 	descWrites[c + 2].dstBinding = 0;
-	descWrites[c + 2].dstSet = m_StaticRenderQueue.GetDescriptorSet();
+	descWrites[c + 2].dstSet = m_StaticRenderQueue->GetDescriptorSet();
 
-	bufferInfos[2].buffer = m_StaticRenderQueue.GetUniformBuffer().buffer;
+	bufferInfos[2].buffer = m_StaticRenderQueue->GetUniformBuffer().buffer;
 	bufferInfos[2].offset = 0;
 	bufferInfos[2].range = VK_WHOLE_SIZE;
 	descWrites[c + 2].pBufferInfo = &bufferInfos[2];
@@ -482,32 +473,53 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	vkUpdateDescriptorSets(VK_DEVICE, c + BUFFER_COUNT + 1, descWrites, 0, nullptr);
 	m_SkyBox.Init(VK_DEVICE, VK_PHYS_DEVICE, "assets/textures/skybox.dds", m_Viewport, m_FrameBuffer.GetRenderPass(), m_DeviceAllocator);
 	//prepare initial transfer
-	CommandBuffer* cmdBuffer = m_CmdBufferFactory.GetNextBuffer();
+	CommandBuffer* cmdBuffer = m_CmdBufferFactory->GetNextBuffer();
 	cmdBuffer->Begin(nullptr, nullptr);
 
 	for (int i = 0; i < BUFFER_COUNT; i++) {
 		cmdBuffer->ImageBarrier(m_VKSwapChain.Images[i], VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED, VkImageLayout::VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 	}
 
-	std::vector<VkImageLayout> layouts;
+	eastl::vector<VkImageLayout> layouts;
 	layouts.push_back(VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 	layouts.push_back(VkImageLayout::VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 	m_FrameBuffer.ChangeLayout(*cmdBuffer, layouts);
 	m_DeviceAllocator.ScheduleTransfers(cmdBuffer);
-	
-#if defined(RTX_ON)
-	m_RaytracingProgram.Update(cmdBuffer, &m_DeviceAllocator);
-#endif
 
-	m_CmdBufferFactory.EndBuffer(cmdBuffer);
+	m_CmdBufferFactory->EndBuffer(cmdBuffer);
 	m_vkQueue.Submit(cmdBuffer->CmdBuffer());
-	//m_vkQueue.waitIdle();
 	vkQueueWaitIdle(m_vkQueue.GetQueue());
-
-	//pipelineEditor.Init(VK_DEVICE);
-	//pipelineEditor.Open("shader/filled.json");
-
 	m_Profiler.Init(VK_DEVICE, VK_PHYS_DEVICE);
+}
+
+void GraphicsEngine::DeInit() {
+	m_DeviceAllocator.Clear();
+	for (int i = 0; i < BUFFER_COUNT; ++i) {
+		m_RenderQueues[i].Destroy(*m_Resources);
+	}
+	delete[] m_RenderQueues;
+	m_StaticRenderQueue->Destroy(*m_Resources);
+	delete m_StaticRenderQueue;
+
+	m_Resources->Clear();
+	delete m_Resources;
+
+#if defined(RTX_ON)
+	m_RaytracingProgram->DeInit(&m_DeviceAllocator);
+	delete m_RaytracingProgram;
+#endif
+	m_DeviceAllocator.DeAllocateBuffer(m_PerFrameBuffer);
+	m_DeviceAllocator.DeAllocateImage(m_IBLTex.GetImageHandle());
+	m_DeviceAllocator.DeAllocateImage(m_SkyIrr.GetImageHandle());
+	m_DeviceAllocator.DeAllocateImage(m_SkyRad.GetImageHandle());
+	m_SkyBox.DeInit(m_DeviceAllocator);
+	m_ShadowProgram->DeInit(m_DeviceAllocator);
+	delete m_ShadowProgram;
+	m_ToneMapping->DeInit(m_DeviceAllocator);
+	delete m_ToneMapping;
+	m_CmdBufferFactory->Shutdown();
+	delete m_CmdBufferFactory;
+	m_DeviceAllocator.DeInit();
 }
 
 void GraphicsEngine::RenderModels(RenderQueue& rq, CommandBuffer& cmdBuffer) {
@@ -521,7 +533,7 @@ void GraphicsEngine::RenderModels(RenderQueue& rq, CommandBuffer& cmdBuffer) {
 		uint32_t instanceCount = m.second.Count;
 		m_Stats.ModelCount += instanceCount;
 
-		const Model& model = m_Resources.GetModel(m.first);
+		const Model& model = m_Resources->GetModel(m.first);
 		const VkBuffer vertexBuffers[4] = { model.VertexBuffers[0].buffer, model.VertexBuffers[1].buffer,
 		                                      model.VertexBuffers[2].buffer, model.VertexBuffers[3].buffer
 		                                    };
@@ -555,14 +567,14 @@ void GraphicsEngine::Render() {
 	}
 
 	if (ImGui::Button("Recompile Shader")) {
-		m_ShadowProgram.Recompile();
+		m_ShadowProgram->Recompile();
 		m_Pipeline.ReloadPipelineFromFile(VK_DEVICE, "shader/filled.json", m_RenderPass);
 	}
 	//Transfer new frame data to GPU
 	{
 		const CameraData& cd = rq.GetCameras()[0];
 
-		m_ShadowProgram.Update(m_DeviceAllocator, rq);
+		m_ShadowProgram->Update(m_DeviceAllocator, rq);
 		PerFrameBuffer uniformBuffer;
 		static int shadowIndex = 0;
 		uniformBuffer.ViewProj = cd.ProjView;
@@ -579,32 +591,36 @@ void GraphicsEngine::Render() {
 		uniformBuffer.LightDir = glm::normalize(glm::vec4(lightDir, 1.0f));
 		uniformBuffer.Material.x = globalRoughness;
 		uniformBuffer.Material.y = metallic ? 1.0f : 0.0f;
-		uniformBuffer.LightViewProj[0] = m_ShadowProgram.GetShadowMatrix(0);
-		uniformBuffer.LightViewProj[1] = m_ShadowProgram.GetShadowMatrix(1);
-		uniformBuffer.LightViewProj[2] = m_ShadowProgram.GetShadowMatrix(2);
-		uniformBuffer.LightViewProj[3] = m_ShadowProgram.GetShadowMatrix(3);
+		uniformBuffer.LightViewProj[0] = m_ShadowProgram->GetShadowMatrix(0);
+		uniformBuffer.LightViewProj[1] = m_ShadowProgram->GetShadowMatrix(1);
+		uniformBuffer.LightViewProj[2] = m_ShadowProgram->GetShadowMatrix(2);
+		uniformBuffer.LightViewProj[3] = m_ShadowProgram->GetShadowMatrix(3);
 		uniformBuffer.NearFarPadding = glm::vec4(cd.Near, cd.Far, 0, 0);
-		uniformBuffer.ShadowSplits = m_ShadowProgram.GetShadowSplits();
+		uniformBuffer.ShadowSplits = m_ShadowProgram->GetShadowSplits();
 
 		m_DeviceAllocator.UpdateBuffer(m_PerFrameBuffer, sizeof(PerFrameBuffer), &uniformBuffer);
-		m_ToneMapping.Update(m_DeviceAllocator);
+		m_ToneMapping->Update(m_DeviceAllocator);
+		
 		rq.ScheduleTransfer(m_DeviceAllocator);
 
-		m_CmdBufferFactory.Reset(VK_DEVICE, VK_FRAME_INDEX);
+		m_CmdBufferFactory->Reset(VK_DEVICE, VK_FRAME_INDEX);
 
-		CommandBuffer* cmdBuffer = m_CmdBufferFactory.GetNextBuffer();
+		CommandBuffer* cmdBuffer = m_CmdBufferFactory->GetNextBuffer();
 		cmdBuffer->Begin(nullptr, nullptr);
 		m_Profiler.Stamp(cmdBuffer->CmdBuffer(), "Start");
+#ifdef RTX_ON
+		m_RaytracingProgram->Update(cmdBuffer, &m_DeviceAllocator, &cd);
+#endif
 		m_SkyBox.PrepareUniformBuffer(m_DeviceAllocator, cd.ProjView, glm::translate(cd.Position));
 		m_DeviceAllocator.ScheduleTransfers(cmdBuffer);
 		m_Profiler.Stamp(cmdBuffer->CmdBuffer(), "Transfer frame data");
-		m_CmdBufferFactory.EndBuffer(cmdBuffer);
+		m_CmdBufferFactory->EndBuffer(cmdBuffer);
 
 		m_vkQueue.Submit(cmdBuffer->CmdBuffer(), nullptr, m_TransferComplete, nullptr);
 
 	}
 
-	std::vector<VkCommandBuffer> cmdBuffers;
+	eastl::vector<VkCommandBuffer> cmdBuffers;
 	//render pass
 	{
 		//CommandBuffer* cmdBuffer = m_CmdBufferFactory.GetNextBuffer();
@@ -612,10 +628,10 @@ void GraphicsEngine::Render() {
 		//m_CmdBufferFactory.EndBuffer(cmdBuffer);
 		//cmdBuffers.push_back(*cmdBuffer);
 
-		CommandBuffer* cmdBuffer = m_CmdBufferFactory.GetNextBuffer();
+		CommandBuffer* cmdBuffer = m_CmdBufferFactory->GetNextBuffer();
 		cmdBuffer->Begin(m_FrameBuffer.GetFrameBuffer(), m_FrameBuffer.GetRenderPass());
 
-		std::vector<VkImageLayout> newLayouts;
+		eastl::vector<VkImageLayout> newLayouts;
 		newLayouts.push_back(VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 		newLayouts.push_back(VkImageLayout::VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 
@@ -647,22 +663,26 @@ void GraphicsEngine::Render() {
 		//render here
 		vkCmdBindPipeline(cmdBuffer->CmdBuffer(), VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline.GetPipeline());
 		m_Profiler.Stamp(cmdBuffer->CmdBuffer(), "Render Statics");
-		RenderModels(m_StaticRenderQueue, *cmdBuffer);
+		RenderModels(*m_StaticRenderQueue, *cmdBuffer);
 		m_Profiler.Stamp(cmdBuffer->CmdBuffer(), "Render Dynamics");
 		RenderModels(rq, *cmdBuffer);
 		vkCmdEndRenderPass(cmdBuffer->CmdBuffer());
 #if defined(RTX_ON)
-		//render raytraced geometry
-		m_RaytracingProgram.Render(cmdBuffer);
+		m_RaytracingProgram->Render(cmdBuffer);
 #endif
-		m_CmdBufferFactory.EndBuffer(cmdBuffer);
+		m_CmdBufferFactory->EndBuffer(cmdBuffer);
 		cmdBuffers.push_back(cmdBuffer->CmdBuffer());
 
-		m_vkQueue.Submit(cmdBuffers, { m_TransferComplete, m_ImageAquiredSemaphore }, { m_RenderCompleteSemaphore }, nullptr);
+		eastl::vector<VkSemaphore> waitSemaphores, signalSemaphores;
+		waitSemaphores.push_back(m_TransferComplete);
+		waitSemaphores.push_back(m_ImageAquiredSemaphore);
+		signalSemaphores.push_back(m_RenderCompleteSemaphore);
+
+		m_vkQueue.Submit(cmdBuffers, waitSemaphores, signalSemaphores, nullptr);
 	}
 	//Perform tonemapping and render Imgui
 	{
-		CommandBuffer* cmdBuffer = m_CmdBufferFactory.GetNextBuffer();
+		CommandBuffer* cmdBuffer = m_CmdBufferFactory->GetNextBuffer();
 		cmdBuffer->Begin(m_VKSwapChain.FrameBuffers[VK_FRAME_INDEX], m_RenderPass);
 		// dont trust the renderpass inital layout
 		cmdBuffer->ImageBarrier(m_VKSwapChain.Images[VK_FRAME_INDEX], VkImageLayout::VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
@@ -684,9 +704,9 @@ void GraphicsEngine::Render() {
 		VkClearValue cv = { cc };
 		rpBeginInfo.pClearValues = &cv;
 
-		std::vector<VkImageLayout> newLayouts;
+		eastl::vector<VkImageLayout> newLayouts;
 		newLayouts.push_back(VkImageLayout::VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-		newLayouts.push_back(VkImageLayout::VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL);
+		newLayouts.push_back(VkImageLayout::VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 
 		m_FrameBuffer.ChangeLayout(*cmdBuffer, newLayouts);
 		cmdBuffer->PushPipelineBarrier();
@@ -695,17 +715,18 @@ void GraphicsEngine::Render() {
 		vkCmdSetScissor(cmdBuffer->CmdBuffer(), 0, 1, &m_Scissor);
 		//transfer from fbo to back buffer
 		m_Profiler.Stamp(cmdBuffer->CmdBuffer(), "Tonemapping");
-		m_ToneMapping.Render(*cmdBuffer, m_Viewport, VK_FRAME_INDEX);
+		m_ToneMapping->Render(*cmdBuffer, m_Viewport, VK_FRAME_INDEX);
 		//render imgui on top
 		m_Profiler.Stamp(cmdBuffer->CmdBuffer(), "ImGui");
 		ImGui_ImplGlfwVulkan_Render(cmdBuffer->CmdBuffer());
 		m_Profiler.Stamp(cmdBuffer->CmdBuffer(), "End");
 		vkCmdEndRenderPass(cmdBuffer->CmdBuffer());
 
-		m_CmdBufferFactory.EndBuffer(cmdBuffer);
+		m_CmdBufferFactory->EndBuffer(cmdBuffer);
 
 		m_vkQueue.Submit(cmdBuffer->CmdBuffer(), m_RenderCompleteSemaphore, m_ImguiComplete, m_Fence[VK_FRAME_INDEX]);
 	}
+
 }
 
 void GraphicsEngine::Swap() {
@@ -735,15 +756,15 @@ RenderQueue* GraphicsEngine::GetRenderQueue() {
 }
 
 RenderQueue* GraphicsEngine::GetStaticQueue() {
-	return &m_StaticRenderQueue;
+	return m_StaticRenderQueue;
 }
 
 void GraphicsEngine::TransferToGPU() {
-	CommandBuffer* cmdBuffer = m_CmdBufferFactory.GetNextBuffer();
+	CommandBuffer* cmdBuffer = m_CmdBufferFactory->GetNextBuffer();
 	cmdBuffer->Begin(nullptr, nullptr);
-	m_Resources.ScheduleTransfer(*cmdBuffer);
-	m_CmdBufferFactory.EndBuffer(cmdBuffer);
-	m_StaticRenderQueue.ScheduleTransfer(m_DeviceAllocator);
+	m_Resources->ScheduleTransfer(*cmdBuffer);
+	m_CmdBufferFactory->EndBuffer(cmdBuffer);
+	m_StaticRenderQueue->ScheduleTransfer(m_DeviceAllocator);
 	m_vkQueue.Submit(cmdBuffer->CmdBuffer());
 	vkQueueWaitIdle(m_vkQueue.GetQueue());
 }
@@ -769,20 +790,18 @@ ImGui_ImplGlfwVulkan_Init_Data* GraphicsEngine::GetImguiInit() {
 }
 
 void GraphicsEngine::CreateImguiFont(ImGuiContext* imguiCtx) {
-	m_ImguiCtx = imguiCtx;
 	ImGui::SetCurrentContext(imguiCtx);
 	//upload font texture
 	{
-		CommandBuffer* cmdBuffer = m_CmdBufferFactory.GetNextBuffer();
+		CommandBuffer* cmdBuffer = m_CmdBufferFactory->GetNextBuffer();
 		cmdBuffer->Begin(nullptr, nullptr);
 
 		ImGui_ImplGlfwVulkan_CreateFontsTexture(cmdBuffer->CmdBuffer());
 		
-		m_CmdBufferFactory.EndBuffer(cmdBuffer);
+		m_CmdBufferFactory->EndBuffer(cmdBuffer);
 		m_vkQueue.Submit(cmdBuffer->CmdBuffer());
-		
-		//vkQueueWaitIdle(m_vkQueue.GetQueue());
-		vkDeviceWaitIdle(VK_DEVICE);
+
+		vkQueueWaitIdle(m_vkQueue.GetQueue());
 		ImGui_ImplGlfwVulkan_InvalidateFontUploadObjects();
 	}
 }

@@ -1,4 +1,5 @@
 #include "EntityManager.h"
+#include <Core/datasystem/ComponentManager.h>
 #include <Core/GlobalSystems.h>
 
 using namespace smug;
@@ -37,7 +38,7 @@ void EntityManager::RemoveAllEntities() {
 	m_Entities.clear();
 }
 
-std::vector<Entity>& EntityManager::GetEntityList() {
+eastl::vector<Entity>& EntityManager::GetEntityList() {
 	return m_Entities;
 }
 

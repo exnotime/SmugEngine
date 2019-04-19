@@ -13,8 +13,8 @@
 #include <angelscript.h>
 #endif
 
-#include <vector>
-#include <string>
+#include <EASTL/vector.h>
+#include <EASTL/string.h>
 #include <map>
 
 BEGIN_AS_NAMESPACE
@@ -36,7 +36,7 @@ struct CUserType {
 class CSerializedValue {
   public:
 	CSerializedValue();
-	CSerializedValue(CSerializedValue *parent, const std::string &name, const std::string &nameSpace, void *ref, int typeId);
+	CSerializedValue(CSerializedValue *parent, const eastl::string &name, const eastl::string &nameSpace, void *ref, int typeId);
 	~CSerializedValue();
 
 	// Save the object and its children
@@ -52,7 +52,7 @@ class CSerializedValue {
 	asITypeInfo *GetType();
 
 	// Get child by name variable
-	CSerializedValue *FindByName(const std::string &name, const std::string &nameSpace);
+	CSerializedValue *FindByName(const eastl::string &name, const eastl::string &nameSpace);
 
 	// Find variable by ptr
 	CSerializedValue *FindByPtr(void *ptr);
@@ -64,7 +64,7 @@ class CSerializedValue {
 	// Children, e.g. properties of a script class, or elements
 	// of an array, or object pointed to by a handle unless it
 	// is already a variable)
-	std::vector<CSerializedValue*> m_children;
+	eastl::vector<CSerializedValue*> m_children;
 
   protected:
 	friend class CSerializer;
@@ -80,7 +80,7 @@ class CSerializedValue {
 	void RestoreHandles();
 
 	// Recursively get all ptrs of the children
-	void  GetAllPointersOfChildren(std::vector<void*> *ptrs);
+	void  GetAllPointersOfChildren(eastl::vector<void*> *ptrs);
 
 	// may be that the two references refer to the same variable.
 	// But this variable is not available in the global list.
@@ -109,11 +109,11 @@ class CSerializedValue {
 
 	// For non-primitives the typeId may change if the module is reloaded so
 	// it is necessary to store the type name to determine the new type id
-	std::string m_typeName;
+	eastl::string m_typeName;
 
 	// Name of variable or property
-	std::string m_name;
-	std::string m_nameSpace;
+	eastl::string m_name;
+	eastl::string m_nameSpace;
 
 	// Is initialized
 	bool m_isInit;
@@ -134,7 +134,7 @@ class CSerializedValue {
 	void *m_restorePtr;
 
 	// Serialized data for primitives
-	std::vector<char> m_mem;
+	eastl::vector<char> m_mem;
 };
 
 
@@ -151,7 +151,7 @@ class CSerializer {
 	~CSerializer();
 
 	// Add implementation for serializing user types
-	void AddUserType(CUserType *ref, const std::string &name);
+	void AddUserType(CUserType *ref, const eastl::string &name);
 
 	// Store all global variables in the module
 	int Store(asIScriptModule *mod);
@@ -172,15 +172,15 @@ class CSerializer {
 	asIScriptEngine  *m_engine;
 	asIScriptModule  *m_mod;
 
-	std::map<std::string, CUserType*> m_userTypes;
+	std::map<eastl::string, CUserType*> m_userTypes;
 
 	struct SExtraObject {
 		asIScriptObject *originalObject;
-		std::string      originalClassName;
+		eastl::string      originalClassName;
 		int              originalTypeId;
 	};
 
-	std::vector<SExtraObject> m_extraObjects;
+	eastl::vector<SExtraObject> m_extraObjects;
 };
 
 

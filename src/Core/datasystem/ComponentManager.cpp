@@ -70,7 +70,7 @@ void* ComponentManager::GetComponent(const Entity& ent, uint64_t type) {
 	}
 }
 
-void ComponentManager::CreateComponentBuffer(uint32_t count, uint32_t componentSize, uint64_t id, std::string name) {
+void ComponentManager::CreateComponentBuffer(uint32_t count, uint32_t componentSize, uint64_t id, eastl::string name) {
 	ComponentBuffer buffer;
 	buffer.CreateBuffer(count, componentSize, name);
 	uint32_t bit_index = fast_log2(id);

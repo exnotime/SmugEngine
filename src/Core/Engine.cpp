@@ -3,6 +3,8 @@
 #include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>
 #include <glm/glm.hpp>
+#include <Graphics/GraphicsEngine.h>
+#include "entity/EntityManager.h"
 #include "Input.h"
 #include "Window.h"
 #include "components/CameraComponent.h"
@@ -15,8 +17,6 @@
 #include "subsystem/systems/SSCamera.h"
 #include "subsystem/systems/SSRender.h"
 #include "subsystem/systems/SSPhysics.h"
-#include "subsystem/systems/SSLevel.h"
-#include "subsystem/systems/SSLevel.h"
 #include "GlobalSystems.h"
 #include "Timer.h"
 #include "if_Assets.h"
@@ -24,6 +24,7 @@
 #include "entity/if_Entity.h"
 #include "components/if_Components.h"
 #include "script/ScriptEngine.h"
+#include "Profiler.h"
 
 #include <Utility/ScriptWriter.h>
 using namespace smug;
@@ -60,6 +61,7 @@ void Engine::Init() {
 	g_AssetLoader.LoadStringPool("Assets.strings");
 
 	//set up graphics engine
+	uint32_t s = sizeof(GraphicsEngine);
 	globals::g_Gfx = new GraphicsEngine();
 	HWND hWnd = glfwGetWin32Window(m_Window->GetWindow());
 	globals::g_Gfx->Init(glm::vec2(ws.Width, ws.Height), ws.Vsync, hWnd);
@@ -79,10 +81,10 @@ void Engine::Init() {
 
 	//create component buffers
 	globals::g_Components = new ComponentManager();
-	globals::g_Components->AddComponentType(100, sizeof(TransformComponent), TransformComponent::Flag, "TransformComponent");
-	globals::g_Components->AddComponentType(100, sizeof(ModelComponent), ModelComponent::Flag, "ModelComponent");
-	globals::g_Components->AddComponentType(100, sizeof(RigidBodyComponent), RigidBodyComponent::Flag, "RigidBodyComponent");
-	globals::g_Components->AddComponentType(100, sizeof(ScriptComponent), ScriptComponent::Flag, "ScriptComponent");
+	globals::g_Components->AddComponentType(1000, sizeof(TransformComponent), TransformComponent::Flag, "TransformComponent");
+	globals::g_Components->AddComponentType(1000, sizeof(ModelComponent), ModelComponent::Flag, "ModelComponent");
+	globals::g_Components->AddComponentType(1000, sizeof(RigidBodyComponent), RigidBodyComponent::Flag, "RigidBodyComponent");
+	globals::g_Components->AddComponentType(1000, sizeof(ScriptComponent), ScriptComponent::Flag, "ScriptComponent");
 	globals::g_Components->AddComponentType(3, sizeof(CameraComponent), CameraComponent::Flag, "CameraComponent");
 
 
@@ -90,16 +92,14 @@ void Engine::Init() {
 	g_ScriptEngine.ExecuteModule(mod, "void Load()");
 
 	m_MainSubSystemSet = new SubSystemSet();
-	m_MainSubSystemSet->AddSubSystem(new SSCamera());
-	m_MainSubSystemSet->AddSubSystem(new SSLevel());
-	m_MainSubSystemSet->AddSubSystem(new SSPhysics());
-	m_MainSubSystemSet->AddSubSystem(new SSRender());
+	m_MainSubSystemSet->AddSubSystem(new SSCamera(), "SSCamera");
+	m_MainSubSystemSet->AddSubSystem(new SSPhysics(), "SSPhysics");
+	m_MainSubSystemSet->AddSubSystem(new SSRender(), "SSRender");
 	m_MainSubSystemSet->StartSubSystems();
 
 	m_GlobalTimer = new Timer();
 	m_GlobalTimer->Reset();
-
-	m_ProfilerTimer = new Timer();
+	m_Profiler = new Profiler();
 
 	m_ImguiCtx = ImGui::CreateContext();
 	ImGui_ImplGlfwVulkan_Init_Data* imguiData = globals::g_Gfx->GetImguiInit();
@@ -108,26 +108,10 @@ void Engine::Init() {
 	delete imguiData;
 	//assets need to be loaded before this
 	globals::g_Gfx->TransferToGPU();
-
-	//test script writer
-	//ScriptWriter sw;
-	//sw.AddVariable("test", VAR_INT);
-	//sw.AddVariable("test2", VAR_FLOAT);
-	//float test = 3.14f;
-	//sw.AddVariable("test_with_data", VAR_FLOAT, &test);
-	//sw.AddVariable("test3", VAR_BOOL);
-	//int* array_test = (int*)malloc(sizeof(int) * 100);
-	//for (int i = 0; i < 100; ++i) {
-	//	array_test[i] = i;
-	//}
-	//sw.AddVariableArray("array_test", VAR_INT, 100, array_test);
-	//sw.OpenFunction("TestFunction");
-	//sw.AddSnippet("print(\"Test printing from a generated script file\\n\")");
-	//sw.CloseFunction();
-	//sw.WriteToFile("script/TestScript.ss");
 }
 
 void Engine::Run() {
+	
 	int mode = GLFW_CURSOR_DISABLED;
 	while (!glfwWindowShouldClose(m_Window->GetWindow())) {
 		double tick = m_GlobalTimer->Tick();
@@ -150,18 +134,21 @@ void Engine::Run() {
 		if (g_Input.IsKeyDown(GLFW_KEY_ESCAPE)) {
 			break;
 		}
-		globals::g_Gfx->PrintStats();
-		m_MainSubSystemSet->UpdateSubSystems(tick);
-		globals::g_Physics->Update(tick);
+		m_Profiler->Print();
+		m_Profiler->NewFrame();
+		m_MainSubSystemSet->UpdateSubSystems(tick, m_Profiler);
 		globals::g_Gfx->Render();
+		m_Profiler->Stamp("GfxRender");
 		globals::g_Gfx->Swap();
-
-		char buffer[400];
-		sprintf(buffer, "Smug Engine : FPS = %f", 1.0 / tick);
-
-		glfwSetWindowTitle(m_Window->GetWindow(), buffer);
+		m_Profiler->Stamp("Swap");
 		g_Input.Update();
+		m_Profiler->Stamp("UpdateInput");
 		glfwPollEvents();
+		m_Profiler->Stamp("PollEvents");
+		char buffer[64];
+		sprintf(buffer, "Smug Engine : FPS = %f", 1.0 / tick);
+		glfwSetWindowTitle(m_Window->GetWindow(), buffer);
+
 	}
 
 }
@@ -174,7 +161,7 @@ void Engine::Shutdown() {
 	m_MainSubSystemSet->Clear();
 	delete m_MainSubSystemSet;
 	delete m_GlobalTimer;
-	delete m_ProfilerTimer;
+	delete m_Profiler;
 	globals::Clear();
 	glfwTerminate();
 

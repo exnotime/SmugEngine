@@ -36,15 +36,6 @@ void Window::Initialize(const WindowSettings& windowSettings) {
 		printf("error creating window\n");
 		return;
 	}
-	if (glfwVulkanSupported()) {
-		return;
-	}
-	//set up vsync
-	if (m_WindowSettings.Vsync) {
-		glfwSwapInterval(1);
-	} else {
-		glfwSwapInterval(0);
-	}
 }
 
 GLFWwindow* Window::GetWindow() const {

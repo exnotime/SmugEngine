@@ -1,6 +1,6 @@
 #pragma once
-#include <vector>
-#include <unordered_map>
+#include <EASTL/vector.h>
+#include <EASTL/unordered_map.h>
 #include <glm/glm.hpp>
 #include <AssetLoader/AssetLoader.h>
 #include "DeviceAllocator.h"
@@ -39,6 +39,16 @@ struct MaterialSet {
 	VkDescriptorSet DescSet;
 };
 
+#ifdef RTX_ON
+struct BLAS {
+	uint64_t Size;
+	VkBufferHandle Memory;
+	VkAccelerationStructureNV Handle;
+	bool Updatable = false;
+	bool Built = false;
+};
+#endif
+
 struct Mesh {
 	unsigned IndexCount;
 	unsigned IndexOffset;
@@ -51,6 +61,9 @@ struct Model {
 	VkBufferHandle VertexBuffers[NUM_VERTEX_CHANNELS];
 	unsigned MeshCount;
 	Mesh* Meshes;
+#ifdef RTX_ON
+	BLAS Blas;
+#endif
 };
 
 struct MemoryBudget {
@@ -85,10 +98,10 @@ class ResourceHandler {
 	DeviceAllocator* m_DeviceAllocator;
 	FrameBufferManager* m_FrameBufferManager;
 	ResourceAllocator m_ResourceAllocator;
-	std::unordered_map<ResourceHandle, Model> m_Models;
-	std::unordered_map<ResourceHandle, VkTexture> m_Textures;
-	std::unordered_map<ResourceHandle, PipelineState> m_PipelineStates;
-	std::unordered_map<ResourceHandle, VkBufferHandle> m_Buffers;
+	eastl::unordered_map<ResourceHandle, Model> m_Models;
+	eastl::unordered_map<ResourceHandle, VkTexture> m_Textures;
+	eastl::unordered_map<ResourceHandle, PipelineState> m_PipelineStates;
+	eastl::unordered_map<ResourceHandle, VkBufferHandle> m_Buffers;
 
 	VkTexture m_DefaultAlbedo;
 	VkTexture m_DefaultNormal;

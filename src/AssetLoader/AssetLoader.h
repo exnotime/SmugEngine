@@ -1,12 +1,13 @@
 #pragma once
 #include "AssetExport.h"
 #include "Resources.h"
-#include <unordered_map>
+#include <EASTL/unordered_map.h>
+#include <EASTL/vector.h>
 #include <Utility/StringPool.h>
 #include <Utility/Filebuffer.h>
 #include "LoaderInterface.h"
 namespace smug {
-typedef ASSET_DLL void(*AllocateAsset)(const void* data, void* userData, const std::string& filename, const RESOURCE_TYPE type);
+typedef ASSET_DLL void(*AllocateAsset)(const void* data, void* userData, const eastl::string& filename, const RESOURCE_TYPE type);
 typedef ASSET_DLL void(*ReAllocateAsset)(const void* data, void* userData, ResourceHandle handle);
 typedef ASSET_DLL void(*DeAllocateAsset)(ResourceHandle handle, void* userData);
 
@@ -22,8 +23,8 @@ struct ASSET_DLL ResourceAllocator {
 struct ResourceLoader {
 	FileBuffer* buffer;
 	LoaderInterface* loader;
-	std::string LedgerFile;
-	std::string BankFile;
+	eastl::string LedgerFile;
+	eastl::string BankFile;
 };
 
 class ASSET_DLL AssetLoader {
@@ -43,19 +44,19 @@ class ASSET_DLL AssetLoader {
 	void UnloadAllAssets();
 	void LoadStringPool(const char* filename);
 	void SaveStringPool(const char* filename);
-	std::string GetFilenameFromCache(ResourceHandle handle);
+	eastl::string GetFilenameFromCache(ResourceHandle handle);
 	StringPool& GetStringPool() { return m_StringPool; };
 	static AssetLoader& GetInstance();
   private:
 	AssetLoader();
 	ResourceAllocator m_Allocator;
-	std::unordered_map<uint32_t, ResourceHandle> m_ResourceCache;
-	std::unordered_map<ResourceHandle, void*> m_ResourceData;
+	eastl::unordered_map<uint32_t, ResourceHandle> m_ResourceCache;
+	eastl::unordered_map<ResourceHandle, void*> m_ResourceData;
 	StringPool m_StringPool;
 	bool m_IsCompiler = false;
-	std::vector<ResourceLoader> m_Loaders;
+	eastl::vector<ResourceLoader> m_Loaders;
 	//compiler extra
-	std::unordered_map< ResourceHandle, std::string> m_FilenameCache;
+	eastl::unordered_map< ResourceHandle, eastl::string> m_FilenameCache;
 };
 }
 

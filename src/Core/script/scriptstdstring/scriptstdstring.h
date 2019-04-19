@@ -1,7 +1,7 @@
 //
-// Script std::string
+// Script eastl::string
 //
-// This function registers the std::string type with AngelScript to be used as the default string type.
+// This function registers the eastl::string type with AngelScript to be used as the default string type.
 //
 // The string type is registered as a value type, thus may have performance issues if a lot of
 // string operations are performed in the script. However, for relatively few operations, this should
@@ -16,7 +16,7 @@
 #include <angelscript.h>
 #endif
 
-#include <string>
+#include <EASTL/string.h>
 
 //---------------------------
 // Compilation settings

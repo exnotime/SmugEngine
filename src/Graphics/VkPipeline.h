@@ -15,9 +15,9 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
 #pragma once
-#include <vector>
-#include <string>
-#include <unordered_map>
+#include <EASTL/vector.h>
+#include <EASTL/string.h>
+#include <EASTL/unordered_map.h>
 #include "volk.h"
 #include <AssetLoader/Resources.h>
 
@@ -28,23 +28,23 @@ class PipelineState {
   public:
 	PipelineState();
 	~PipelineState();
-	void LoadPipelineFromFile(const VkDevice& device, const std::string& filename, VkRenderPass rp);
+	void LoadPipelineFromFile(const VkDevice& device, const eastl::string& filename, VkRenderPass rp);
 	void LoadPipelineFromInfo(const VkDevice& device, const PipelineStateInfo& psInfo, VkRenderPass rp);
-	void ReloadPipelineFromFile(const VkDevice& device, const std::string& filename, VkRenderPass rp);
+	void ReloadPipelineFromFile(const VkDevice& device, const eastl::string& filename, VkRenderPass rp);
 	void SetDefaultVertexState(const VkPipelineVertexInputStateCreateInfo& vertexState);
 	void SetDefaultMulitSampleState(const VkPipelineMultisampleStateCreateInfo& msState);
 
-	std::vector<VkDescriptorSetLayout>& GetDescriptorSetLayouts();
+	eastl::vector<VkDescriptorSetLayout>& GetDescriptorSetLayouts();
 	VkPipeline GetPipeline() const;
 	VkPipelineLayout GetPipelineLayout() const;
 
   private:
-	std::vector<VkShaderModule> m_Shaders;
+	eastl::vector<VkShaderModule> m_Shaders;
 	int m_ShaderBits;
 
 	VkPipeline m_Pipeline;
-	std::vector<Descriptor> m_Descriptors;
-	std::vector<VkDescriptorSetLayout> m_DescSetLayouts;
+	eastl::vector<Descriptor> m_Descriptors;
+	eastl::vector<VkDescriptorSetLayout> m_DescSetLayouts;
 	VkPipelineLayout m_PipelineLayout;
 
 	VkPipelineVertexInputStateCreateInfo m_DefaultVertexState;
@@ -56,19 +56,19 @@ class PipelineState {
   public:
 	//mappings to vulkan
 #define TO_VK_BOOL(x) (x) ? 1 : 0;
-	/*static std::unordered_map<std::string, VkDescriptorType> ToDescriptorType;
-	static std::unordered_map<std::string, VkBlendFactor> ToBlendFactor;
-	static std::unordered_map<std::string, VkBlendOp> ToBlendOp;
-	static std::unordered_map<std::string, VkLogicOp> ToLogicOp;
-	static std::unordered_map<std::string, VkStencilOp> ToStencilOp;
-	static std::unordered_map<std::string, VkCompareOp> ToCompareOp;
-	static std::unordered_map<std::string, VkPrimitiveTopology> ToPrimitiveTopology;
+	/*static std::unordered_map<eastl::string, VkDescriptorType> ToDescriptorType;
+	static std::unordered_map<eastl::string, VkBlendFactor> ToBlendFactor;
+	static std::unordered_map<eastl::string, VkBlendOp> ToBlendOp;
+	static std::unordered_map<eastl::string, VkLogicOp> ToLogicOp;
+	static std::unordered_map<eastl::string, VkStencilOp> ToStencilOp;
+	static std::unordered_map<eastl::string, VkCompareOp> ToCompareOp;
+	static std::unordered_map<eastl::string, VkPrimitiveTopology> ToPrimitiveTopology;
 	static std::unordered_map<int, VkSampleCountFlagBits> ToSampleCount;
-	static std::unordered_map<std::string, VkCullModeFlagBits> ToCullMode;
-	static std::unordered_map<std::string, VkFrontFace> ToFrontFace;
-	static std::unordered_map<std::string, VkPolygonMode> ToPolygonMode;
-	static std::unordered_map<std::string, VkFormat> ToFormat;
+	static std::unordered_map<eastl::string, VkCullModeFlagBits> ToCullMode;
+	static std::unordered_map<eastl::string, VkFrontFace> ToFrontFace;
+	static std::unordered_map<eastl::string, VkPolygonMode> ToPolygonMode;
+	static std::unordered_map<eastl::string, VkFormat> ToFormat;
 	static std::unordered_map<int, VkShaderStageFlagBits> ToShaderStage;
-	static std::unordered_map<std::string, VkVertexInputRate> ToVertexInputRate;*/
+	static std::unordered_map<eastl::string, VkVertexInputRate> ToVertexInputRate;*/
 };
 };

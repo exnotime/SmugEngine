@@ -21,10 +21,10 @@ void WriteScopeToFile(std::ofstream& fout, Scope& scope) {
 	if (scope.Name != "Global") {
 		//write out function header
 		fout << VariableTypeNames[scope.ReturnVariable.Type];
-		fout << " " << scope.Name << "(";
+		fout << " " << scope.Name.c_str() << "(";
 		uint32_t inputVarCount = (uint32_t)scope.InputVariables.size();
 		for (uint32_t i = 0; i < inputVarCount; ++i) {
-			fout << VariableTypeNames[scope.InputVariables[i].Type] << " " << scope.InputVariables[i].Name;
+			fout << VariableTypeNames[scope.InputVariables[i].Type] << " " << scope.InputVariables[i].Name.c_str();
 			if (i != inputVarCount - 1) {
 				fout << ", ";
 			}
@@ -36,7 +36,7 @@ void WriteScopeToFile(std::ofstream& fout, Scope& scope) {
 	uint32_t localVarCount = (uint32_t)scope.LocalVariables.size();
 	for (uint32_t i = 0; i < localVarCount; ++i) {
 		auto& var = scope.LocalVariables[i];
-		fout << VariableTypeNames[var.Type] << " " << var.Name;
+		fout << VariableTypeNames[var.Type] << " " << var.Name.c_str();
 		if (var.Array) {
 			fout << "[" << var.ArrayCount << "]";
 		}
@@ -54,7 +54,7 @@ void WriteScopeToFile(std::ofstream& fout, Scope& scope) {
 					fout << ((bool*)(var.Data))[k] ? "true" : "false";
 					break;
 				case VAR_FLOAT:
-					fout << std::to_string(((float*)(var.Data))[k]);
+					fout << eastl::to_string(((float*)(var.Data))[k]).c_str();
 					break;
 				case VAR_VEC2:
 					fout << "vec2(" << ((glm::vec2*)(var.Data))[k].x << "," << ((glm::vec2*)(var.Data))[k].y << ")";
@@ -80,7 +80,7 @@ void WriteScopeToFile(std::ofstream& fout, Scope& scope) {
 		fout << ";" << std::endl;
 	}
 
-	fout << scope.Code << std::endl;
+	fout << scope.Code.c_str() << std::endl;
 	if (scope.Function)
 		fout << "}" << std::endl;
 	fout << std::endl;

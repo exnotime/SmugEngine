@@ -1,5 +1,5 @@
 #pragma once
-#include <vector>
+#include <EASTL/vector.h>
 #include <set>
 #include "VulkanContext.h"
 #include "vk_mem_alloc.h"
@@ -7,7 +7,7 @@ namespace smug {
 struct ImageTransfer {
 	VkBuffer src;
 	VkImage dst;
-	std::vector<VkBufferImageCopy> copies;
+	eastl::vector<VkBufferImageCopy> copies;
 	VkImageLayout finalLayout;
 	VmaAllocation memory;
 };
@@ -35,17 +35,20 @@ class DeviceAllocator {
 	DeviceAllocator();
 	~DeviceAllocator();
 	void Init(VkDevice& device, VkPhysicalDevice& physicalDevice);
+	void DeInit();
 	VkImageHandle AllocateImage(VkImageCreateInfo* createInfo, uint64_t size = 0, void* data = nullptr);
-	VkBufferHandle AllocateBuffer(const VkBufferUsageFlags usage, uint64_t size = 0, void * data = nullptr, uint32_t memoryTypeBits = 0);
-	void UpdateBuffer(VkBufferHandle& handle, uint64_t size, void* data = nullptr);
+	VkBufferHandle AllocateBuffer(const VkBufferUsageFlags usage, uint64_t size = 0, void * data = nullptr, uint32_t memoryTypeBits = 0, uint64_t dataSize = 0);
+	void UpdateBuffer(VkBufferHandle& handle, uint64_t size, void* data = nullptr, uint64_t offset = 0);
 	void DeAllocateBuffer(VkBufferHandle& handle);
 	void DeAllocateImage(VkImageHandle& handle);
+	VkDeviceMemory GetMemory(const VmaAllocation& a);
+	VkDeviceSize GetMemoryOffset(const VmaAllocation& a);
 	void ScheduleTransfers(CommandBuffer* cmdBuffer);
 	void Clear();
 	void PrintStats();
   private:
-	std::vector<ImageTransfer> m_ImageCopies;
-	std::vector<BufferTransfer> m_BufferCopies;
+	eastl::vector<ImageTransfer> m_ImageCopies;
+	eastl::vector<BufferTransfer> m_BufferCopies;
 	std::set<VkBuffer> m_BufferSet;
 	std::set<VkImage> m_ImageSet;
 	VmaAllocator m_Allocator;

@@ -36,8 +36,8 @@ void ScriptFile_Release_Generic(asIScriptGeneric *gen) {
 
 void ScriptFile_Open_Generic(asIScriptGeneric *gen) {
 	CScriptFile *file = (CScriptFile*)gen->GetObject();
-	std::string *f = (std::string*)gen->GetArgAddress(0);
-	std::string *m = (std::string*)gen->GetArgAddress(1);
+	eastl::string *f = (eastl::string*)gen->GetArgAddress(0);
+	eastl::string *m = (eastl::string*)gen->GetArgAddress(1);
 	int r = file->Open(*f, *m);
 	gen->SetReturnDWord(r);
 }
@@ -57,13 +57,13 @@ void ScriptFile_GetSize_Generic(asIScriptGeneric *gen) {
 void ScriptFile_ReadString_Generic(asIScriptGeneric *gen) {
 	CScriptFile *file = (CScriptFile*)gen->GetObject();
 	int len = gen->GetArgDWord(0);
-	string str = file->ReadString(len);
+	eastl::string str = file->ReadString(len);
 	gen->SetReturnObject(&str);
 }
 
 void ScriptFile_ReadLine_Generic(asIScriptGeneric *gen) {
 	CScriptFile *file = (CScriptFile*)gen->GetObject();
-	std::string str = file->ReadLine();
+	eastl::string str = file->ReadLine();
 	gen->SetReturnObject(&str);
 }
 
@@ -91,7 +91,7 @@ void ScriptFile_ReadDouble_Generic(asIScriptGeneric *gen) {
 
 void ScriptFile_WriteString_Generic(asIScriptGeneric *gen) {
 	CScriptFile *file = (CScriptFile*)gen->GetObject();
-	std::string *str = (std::string*)gen->GetArgAddress(0);
+	eastl::string *str = (eastl::string*)gen->GetArgAddress(0);
 	gen->SetReturnDWord(file->WriteString(*str));
 }
 
@@ -280,15 +280,15 @@ void CScriptFile::Release() const {
 		delete this;
 }
 
-int CScriptFile::Open(const std::string &filename, const std::string &mode) {
+int CScriptFile::Open(const eastl::string &filename, const eastl::string &mode) {
 	// Close the previously opened file handle
 	if( file )
 		Close();
 
-	std::string myFilename = filename;
+	eastl::string myFilename = filename;
 
 	// Validate the mode
-	string m;
+	eastl::string m;
 #if AS_WRITE_OPS == 1
 	if( mode != "r" && mode != "w" && mode != "a" )
 #else
@@ -390,12 +390,12 @@ int CScriptFile::MovePos(int delta) {
 	return r ? -1 : 0;
 }
 
-string CScriptFile::ReadString(unsigned int length) {
+eastl::string CScriptFile::ReadString(unsigned int length) {
 	if( file == 0 )
 		return "";
 
 	// Read the string
-	string str;
+	eastl::string str;
 	str.resize(length);
 	int size = (int)fread(&str[0], 1, length, file);
 	str.resize(size);
@@ -403,12 +403,12 @@ string CScriptFile::ReadString(unsigned int length) {
 	return str;
 }
 
-string CScriptFile::ReadLine() {
+eastl::string CScriptFile::ReadLine() {
 	if( file == 0 )
 		return "";
 
 	// Read until the first new-line character
-	string str;
+	eastl::string str;
 	char buf[256];
 
 	do {
@@ -546,7 +546,7 @@ bool CScriptFile::IsEOF() const {
 }
 
 #if AS_WRITE_OPS == 1
-int CScriptFile::WriteString(const std::string &str) {
+int CScriptFile::WriteString(const eastl::string &str) {
 	if( file == 0 )
 		return -1;
 

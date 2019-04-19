@@ -9,7 +9,7 @@ class TextureLoader : public LoaderInterface {
   public:
 	TextureLoader();
 	~TextureLoader();
-	char* LoadTexture(const std::string& filename, TextureInfo& info);
+	char* LoadTexture(const eastl::string& filename, TextureInfo& info);
 
 	virtual LoadResult LoadAsset(const char* filename) override;
 	virtual void UnloadAsset(void* asset) override;

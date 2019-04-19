@@ -14,15 +14,15 @@ layout(location = 0) rayPayloadNV vec4 ColorPayload;
 void main(){
     uvec2 screenPos = uvec2(gl_LaunchIDNV.xy);
     //spawn ray
-    vec2 uv = screenPos / vec2(gl_LaunchSizeNV.xy);
+    vec2 uv = (screenPos+ vec2(0.5)) / vec2(gl_LaunchSizeNV.xy);
     //calc clipspace pos
-    vec2 hcs = ((vec2(screenPos) + vec2(0.5)) * 2) / gl_LaunchSizeNV.xy - vec2(1);
+    vec2 hcs = uv * 2.0f - 1.0f;
     //transform back into world space at depth 0.0
     vec4 posH =  (invViewProj * vec4(hcs.x, hcs.y, 0.0, 1.0));
     vec3 ro = posH.xyz / posH.w;
     vec3 rd = normalize(ro - CamPos.xyz);
 
-    traceNV(g_WorldAS, 0, 0xff, 0, 0, 0, ro, 0.1f, rd, 1000.0f, 0);
-
-    imageStore(output_img, ivec2(screenPos), ColorPayload);
+    traceNV(g_WorldAS, gl_RayFlagsOpaqueNV, 0xff, 0, 0, 0, ro, 0.0, rd, 1000.0, 0);
+    if(ColorPayload.a > 0) 
+        imageStore(output_img, ivec2(screenPos), ColorPayload);
 }

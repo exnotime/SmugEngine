@@ -9,7 +9,6 @@
 #include <glm/gtx/transform.hpp>
 #include <glm/gtx/quaternion.hpp>
 #include "../../GlobalSystems.h"
-#include <Imgui/imgui.h>
 
 using namespace smug;
 SSRender::SSRender() {
@@ -51,9 +50,9 @@ void SSRender::Startup() {
 				globals::g_Components->CreateComponent(&rc, e, rc.Flag);
 
 				tc.Transform = glm::toMat4(tc.Orientation) * glm::scale(tc.Scale);
-				tc.Transform[3][0] = tc.Position.x;
-				tc.Transform[3][1] = tc.Position.y;
-				tc.Transform[3][2] = tc.Position.z;
+				tc.Transform[0][3] = tc.Position.x;
+				tc.Transform[1][3] = tc.Position.y;
+				tc.Transform[2][3] = tc.Position.z;
 
 				//rq->AddModel(mc.ModelHandle, tc.Transform, mc.Tint);
 			}
@@ -62,7 +61,6 @@ void SSRender::Startup() {
 }
 
 void SSRender::Update(const double deltaTime) {
-	m_Timer.Reset();
 	int flag = ModelComponent::Flag | TransformComponent::Flag;
 	RenderQueue* rq = globals::g_Gfx->GetRenderQueue();
 	//models
@@ -70,30 +68,26 @@ void SSRender::Update(const double deltaTime) {
 	uint32_t entityCount = (uint32_t)entities.size();
 
 	static glm::vec4 tint = glm::vec4(1.0f);
-	//ImGui::Begin("Scene");
-	//ImGui::ColorEdit4("Global Color", &tint[0], false);
-	//ImGui::End();
 
 	for (uint32_t e = 0; e < entityCount; ++e) {
 		auto& entity = entities[e];
 		if ((entity.ComponentBitfield & flag) == flag) {
 			ModelComponent* mc = (ModelComponent*)globals::g_Components->GetComponent(entity, ModelComponent::Flag);
-			if (mc->Static || !mc->Visible) //it will already be on the static queue
+			if (mc->Static || !mc->Visible) //it will already be on the static queue or not visible
 				continue;
 
 			TransformComponent* tc = (TransformComponent*)globals::g_Components->GetComponent(entity, TransformComponent::Flag);
-			tc->Transform = glm::toMat4(tc->Orientation) * glm::scale(tc->Scale);
-			tc->Transform[3][0] = tc->Position.x;
-			tc->Transform[3][1] = tc->Position.y;
-			tc->Transform[3][2] = tc->Position.z;
+			tc->Transform = glm::transpose(glm::toMat4(tc->Orientation));
+			tc->Transform[0] *= tc->Scale.x;
+			tc->Transform[1] *= tc->Scale.y;
+			tc->Transform[2] *= tc->Scale.z;
+			tc->Transform[0][3] = tc->Position.x;
+			tc->Transform[1][3] = tc->Position.y;
+			tc->Transform[2][3] = tc->Position.z;
 
 			rq->AddModel(mc->ModelHandle, tc->Transform, mc->Tint);
 		}
 	}
-	ImGui::Begin("Timing");
-	double t = m_Timer.Reset() * 1000.0;
-	ImGui::Text("SSRender: %f ms", t);
-	ImGui::End();
 }
 
 void SSRender::Shutdown() {
