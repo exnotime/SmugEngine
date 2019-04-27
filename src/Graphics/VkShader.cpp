@@ -175,11 +175,11 @@ VkShaderModule smug::LoadShader(const VkDevice& device, const eastl::string& fil
 #endif
 
 #ifdef USE_GLSLANG_VALIDATOR
-VkShaderModule smug::LoadShader(const VkDevice& device, const eastl::string& file, SHADER_KIND kind, const eastl::string& entryPoint, SHADER_LANGUAGE lang) {
+VkShaderModule smug::LoadShaderModule(const VkDevice& device, const eastl::string& filename, SHADER_KIND stage, const eastl::string& entryPoint, SHADER_LANGUAGE lang) {
 	//use the program glslangvalidator
 	eastl::string command;
 	command += "%VULKAN_SDK%/Bin/glslangValidator.exe -V ";
-	switch (kind) {
+	switch (stage) {
 	case smug::VERTEX:
 		command += "-S vert -DVERTEX";
 		break;
@@ -228,7 +228,7 @@ VkShaderModule smug::LoadShader(const VkDevice& device, const eastl::string& fil
 
 	command += " -I./shader";
 	command += " -o ./temp.spv";
-	command += " ./" + file;
+	command += " ./" + filename;
 
 	int ret = system(command.c_str());
 	VkShaderModule module = nullptr;
@@ -250,8 +250,10 @@ VkShaderModule smug::LoadShader(const VkDevice& device, const eastl::string& fil
 		free(buffer);
 	}
 	fclose(fin);
-	system("rm ./temp.spv");
+	system("del ./temp.spv");
 	
 	return module;
 }
+
+
 #endif

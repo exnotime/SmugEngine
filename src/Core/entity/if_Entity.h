@@ -1,5 +1,5 @@
 #pragma once
-#include <Core/script/ScriptEngine.h>
+#include <AngelScript/ScriptEngine.h>
 #include <Core/entity/EntityManager.h>
 #include <Core/GlobalSystems.h>
 

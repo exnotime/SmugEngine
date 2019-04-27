@@ -26,5 +26,6 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 namespace smug {
-VkShaderModule LoadShader(const VkDevice& device, const eastl::string& filename, SHADER_KIND stage, const eastl::string& entryPoint = "main", SHADER_LANGUAGE language = GLSL);
+VkShaderModule LoadShaderModule(const VkDevice& device, const eastl::string& filename, SHADER_KIND stage, const eastl::string& entryPoint = "main", SHADER_LANGUAGE language = GLSL);
+
 };

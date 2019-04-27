@@ -17,13 +17,15 @@
 #include "subsystem/systems/SSCamera.h"
 #include "subsystem/systems/SSRender.h"
 #include "subsystem/systems/SSPhysics.h"
+#include "subsystem/systems/SSWorldCreator.h"
 #include "GlobalSystems.h"
 #include "Timer.h"
 #include "if_Assets.h"
 #include "if_Render.h"
+#include <AssetLoader/script/if_Shader.h>
 #include "entity/if_Entity.h"
 #include "components/if_Components.h"
-#include "script/ScriptEngine.h"
+#include <AngelScript/ScriptEngine.h>
 #include "Profiler.h"
 
 #include <Utility/ScriptWriter.h>
@@ -41,8 +43,8 @@ void Engine::Init() {
 	WindowSettings ws;
 	ws.X = 100;
 	ws.Y = 100;
-	ws.Width = 1920;
-	ws.Height = 1080;
+	ws.Width = 1280;
+	ws.Height = 729;
 	ws.HighDPI = false;
 	ws.OpenGL = true;
 	ws.Title = "Smug Engine";
@@ -70,12 +72,14 @@ void Engine::Init() {
 	globals::g_Physics = new PhysicsEngine();
 	globals::g_Physics->Init();
 
+	//setup script interface
 	g_ScriptEngine.Init();
-
 	if_asset::RegisterInterface();
 	if_entity::RegisterEntityInterface();
 	if_component::InitComponentInterface();
 	if_render::InitInterface();
+	if_shader::InitInterface();
+
 	//set up entity manager
 	globals::g_EntityManager = new EntityManager();
 
@@ -87,12 +91,19 @@ void Engine::Init() {
 	globals::g_Components->AddComponentType(1000, sizeof(ScriptComponent), ScriptComponent::Flag, "ScriptComponent");
 	globals::g_Components->AddComponentType(3, sizeof(CameraComponent), CameraComponent::Flag, "CameraComponent");
 
-
 	AngelScript::asIScriptModule* mod = g_ScriptEngine.CompileScriptToModule("script/LoadingTest.as");
-	g_ScriptEngine.ExecuteModule(mod, "void Load()");
+	g_ScriptEngine.ExecuteModule(mod, "int Load()");
+
+	//shader load test
+	//AngelScript::asIScriptModule* shaderModule = g_ScriptEngine.CompileScriptToModule("assets/shaders/prototype.shader");
+	//g_ScriptEngine.ExecuteModule(shaderModule, "uint LoadPSO()");
+	//uint32_t ret = g_ScriptEngine.GetContext()->GetReturnDWord();
+
+	g_AssetLoader.LoadAsset("assets/shaders/prototype.shader");
 
 	m_MainSubSystemSet = new SubSystemSet();
 	m_MainSubSystemSet->AddSubSystem(new SSCamera(), "SSCamera");
+	m_MainSubSystemSet->AddSubSystem(new SSWorldCreator(), "SSWorldCreator");
 	m_MainSubSystemSet->AddSubSystem(new SSPhysics(), "SSPhysics");
 	m_MainSubSystemSet->AddSubSystem(new SSRender(), "SSRender");
 	m_MainSubSystemSet->StartSubSystems();
@@ -108,6 +119,23 @@ void Engine::Init() {
 	delete imguiData;
 	//assets need to be loaded before this
 	globals::g_Gfx->TransferToGPU();
+
+	//testing the script writer
+	ScriptWriter sw;
+	sw.OpenFunction("SpawnClark");
+	sw.AddReturnVariable(VAR_INT);
+	sw("clark", VAR_STRING) = "noob";
+	sw("Position", VAR_VEC3) = glm::vec3(10, -1, 3);
+	sw("Rotation", VAR_VEC4) = glm::vec4(1,0,0,0);
+	sw("alive", VAR_BOOL) = true;
+	eastl::vector<int> someints;
+	for (int i = 0; i < 32; i++) {
+		someints.push_back(rand() % 255);
+	}
+	sw.AddVariableArray("indices", VAR_INT, 32, someints.data());
+	sw.AddSnippet("return indicies[1];");
+	sw.CloseFunction();
+	sw.WriteToFile("test.as");
 }
 
 void Engine::Run() {

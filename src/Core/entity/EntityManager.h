@@ -5,6 +5,7 @@ namespace smug {
 struct EntityCache {
 	uint64_t ComponentBitMask;
 	eastl::vector<uint32_t> Entities;
+	bool Dirty = false;
 };
 
 class EntityManager {
@@ -18,6 +19,7 @@ class EntityManager {
 	void RemoveAllEntities();
 	eastl::vector<Entity>& GetEntityList();
 	bool IsCacheDirty(const EntityCache& cache);
+	void UpdateCache(EntityCache& cache);
   private:
 
 	eastl::vector<Entity> m_Entities;

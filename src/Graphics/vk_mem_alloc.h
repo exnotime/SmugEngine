@@ -1930,7 +1930,7 @@ void vmaCalculateStats(
     VmaAllocator allocator,
     VmaStats* pStats);
 
-#define VMA_STATS_STRING_ENABLED 1
+//#define VMA_STATS_STRING_ENABLED 0
 
 #if VMA_STATS_STRING_ENABLED
 

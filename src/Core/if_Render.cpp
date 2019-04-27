@@ -1,6 +1,6 @@
 #include "if_Render.h"
 #include <assert.h>
-#include "script/ScriptEngine.h"
+#include <AngelScript/ScriptEngine.h>
 #include <Graphics/GraphicsEngine.h>
 #include <Core/GlobalSystems.h>
 #include <Utility/Hash.h>

@@ -1,5 +1,5 @@
 #include "if_Components.h"
-#include <Core/script/ScriptEngine.h>
+#include <AngelScript/ScriptEngine.h>
 #include <Core/datasystem/ComponentManager.h>
 #include <Core/entity/EntityManager.h>
 #include <Core/GlobalSystems.h>
@@ -98,8 +98,10 @@ void CreateRigidBodyComponent(uint32_t euid, uint32_t shape, float mass, bool st
 	else {
 		rc.Body = globals::g_Physics->CreateDynamicActor(pos, rot, size, mass, (PHYSICS_SHAPE)shape);
 	}
+	rc.Body->UserData = e.UID;
 	globals::g_Components->CreateComponent(&rc, e, RigidBodyComponent::Flag);
 }
+
 #pragma endregion
 
 void InitComponentInterface() {

@@ -10,7 +10,8 @@ ScriptWriter::ScriptWriter(){
 	m_Scopes.push_back(s);
 	m_GlobalScope = &m_Scopes.back();
 	m_CurrentScope = m_GlobalScope;
-	m_VariableData.reserve(4);
+	m_CurrrentData = &m_VariableData.push_back();
+	m_CurrrentData->reserve(CHUNK_SIZE);
 }
 
 ScriptWriter::~ScriptWriter(){
@@ -18,40 +19,54 @@ ScriptWriter::~ScriptWriter(){
 }
 
 void WriteScopeToFile(std::ofstream& fout, Scope& scope) {
+	uint32_t tabCount = 0;
 	if (scope.Name != "Global") {
-		//write out function header
-		fout << VariableTypeNames[scope.ReturnVariable.Type];
-		fout << " " << scope.Name.c_str() << "(";
-		uint32_t inputVarCount = (uint32_t)scope.InputVariables.size();
-		for (uint32_t i = 0; i < inputVarCount; ++i) {
-			fout << VariableTypeNames[scope.InputVariables[i].Type] << " " << scope.InputVariables[i].Name.c_str();
-			if (i != inputVarCount - 1) {
-				fout << ", ";
+		if (scope.Function) {
+			//write out function header
+			fout << VariableTypeNames[scope.ReturnVariable.Type];
+			fout << " " << scope.Name.c_str() << "(";
+			uint32_t inputVarCount = (uint32_t)scope.InputVariables.size();
+			for (uint32_t i = 0; i < inputVarCount; ++i) {
+				fout << VariableTypeNames[scope.InputVariables[i].Type] << " " << scope.InputVariables[i].Name.c_str();
+				if (i != inputVarCount - 1) {
+					fout << ", ";
+				}
 			}
+			fout << "){" << "\n";
+			tabCount++;
 		}
-		fout << "){" << std::endl;
 	}
 
 	//write out local variables
 	uint32_t localVarCount = (uint32_t)scope.LocalVariables.size();
 	for (uint32_t i = 0; i < localVarCount; ++i) {
 		auto& var = scope.LocalVariables[i];
-		fout << VariableTypeNames[var.Type] << " " << var.Name.c_str();
+		for (uint32_t t = 0; t < tabCount; ++t) fout << "\t";
 		if (var.Array) {
-			fout << "[" << var.ArrayCount << "]";
+			fout << "array<" << VariableTypeNames[var.Type] << "> " << var.Name.c_str();
+			tabCount++;
+		}
+		else {
+			fout << VariableTypeNames[var.Type] << " " << var.Name.c_str();
 		}
 		if (var.Data) {
 			fout << " = ";
 			if (var.Array) {
-				fout << "[" << std::endl;
+				fout << "{" << "\n";
 			}
 			for (uint32_t k = 0; k < var.ArrayCount; ++k) {
+				if(var.Array)
+					for (uint32_t t = 0; t < tabCount; ++t) fout << "\t";
+
 				switch (var.Type) {
 				case VAR_INT:
 					fout << ((int*)(var.Data))[k];
 					break;
 				case VAR_BOOL:
 					fout << ((bool*)(var.Data))[k] ? "true" : "false";
+					break;
+				case VAR_STRING:
+					fout << "\"" << (*(eastl::string*)var.Data).c_str() << "\"";
 					break;
 				case VAR_FLOAT:
 					fout << eastl::to_string(((float*)(var.Data))[k]).c_str();
@@ -65,25 +80,26 @@ void WriteScopeToFile(std::ofstream& fout, Scope& scope) {
 				case VAR_VEC4:
 					fout << "vec4(" << ((glm::vec4*)(var.Data))[k].x << "," << ((glm::vec4*)(var.Data))[k].y << "," << ((glm::vec4*)(var.Data))[k].z << "," << ((glm::vec4*)(var.Data))[k].w << ")";
 					break;
-				case VAR_QUAT:
-					fout << "quat(" << ((glm::vec4*)(var.Data))[k].x << "," << ((glm::vec4*)(var.Data))[k].y << "," << ((glm::vec4*)(var.Data))[k].z << "," << ((glm::vec4*)(var.Data))[k].w << ")";
-					break;
 				}
 				if (var.Array) {
-					fout << "," << std::endl;
+					fout << "," << "\n";
 				}
 			}
 			if (var.Array) {
-				fout << "]";
+				tabCount--;
+				for (uint32_t t = 0; t < tabCount; ++t) fout << "\t";
+				fout << "}";
 			}
 		}
-		fout << ";" << std::endl;
+		fout << ";" << "\n";
 	}
 
-	fout << scope.Code.c_str() << std::endl;
+	if (!scope.Code.empty()) {
+		for (uint32_t t = 0; t < tabCount; ++t) fout << "\t";
+		fout << scope.Code.c_str() << "\n";
+	}
 	if (scope.Function)
-		fout << "}" << std::endl;
-	fout << std::endl;
+		fout << "}" << "\n";
 
 }
 
@@ -101,6 +117,7 @@ void ScriptWriter::WriteToFile(const char* file) {
 
 void ScriptWriter::AddSnippet(const char* snippet) {
 	m_CurrentScope->Code += snippet;
+	m_CurrentScope->Code += "\n";
 }
 
 void ScriptWriter::AddVariable(const char* name, VariableType type) {
@@ -174,8 +191,14 @@ void ScriptWriter::CloseFunction() {
 }
 
 void* ScriptWriter::AllocateVariable(uint32_t size) {
-	int oldSize = (uint32_t)m_VariableData.size();
-	void* end = (void*)(m_VariableData.data() + oldSize);
-	m_VariableData.resize(oldSize + size);
+	//if we resize the data vector variables will loose their data pointer validity
+	if (m_CurrrentData->size() + size >= m_CurrrentData->capacity()) {
+		m_CurrrentData = &m_VariableData.push_back();
+		m_CurrrentData->reserve(CHUNK_SIZE);
+	}
+
+	int oldSize = (uint32_t)m_CurrrentData->size();
+	m_CurrrentData->resize(oldSize + size);
+	void* end = (void*)(m_CurrrentData->data() + oldSize);
 	return end;
 }

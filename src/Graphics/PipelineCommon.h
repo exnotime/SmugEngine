@@ -353,4 +353,13 @@ static VkPipelineColorBlendAttachmentState GetDefaultColorBlendAttachmentState()
 	blendAttachStateInfo.colorWriteMask = VkColorComponentFlagBits::VK_COLOR_COMPONENT_R_BIT | VkColorComponentFlagBits::VK_COLOR_COMPONENT_G_BIT | VkColorComponentFlagBits::VK_COLOR_COMPONENT_B_BIT | VkColorComponentFlagBits::VK_COLOR_COMPONENT_A_BIT;
 	return blendAttachStateInfo;
 }
+
+static VkPipelineInputAssemblyStateCreateInfo GetDefaultInputAssemblyState() {
+	VkPipelineInputAssemblyStateCreateInfo inputAssemblyState;
+	inputAssemblyState.primitiveRestartEnable = false;
+	inputAssemblyState.pNext = nullptr;
+	inputAssemblyState.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+	inputAssemblyState.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+	return inputAssemblyState;
+}
 }

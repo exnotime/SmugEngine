@@ -47,6 +47,7 @@ void SSRender::Startup() {
 				globals::g_Components->CreateComponent(&mc, e, mc.Flag);
 				RigidBodyComponent rc;
 				rc.Body = globals::g_Physics->CreateDynamicActor(tc.Position, tc.Orientation, tc.Scale / 2.0f, 1.0f, PHYSICS_SHAPE::CUBE);
+				rc.Body->UserData = e.UID;
 				globals::g_Components->CreateComponent(&rc, e, rc.Flag);
 
 				tc.Transform = glm::toMat4(tc.Orientation) * glm::scale(tc.Scale);
@@ -85,7 +86,7 @@ void SSRender::Update(const double deltaTime) {
 			tc->Transform[1][3] = tc->Position.y;
 			tc->Transform[2][3] = tc->Position.z;
 
-			rq->AddModel(mc->ModelHandle, tc->Transform, mc->Tint);
+			rq->AddModel(mc->ModelHandle, tc->Transform, mc->Tint, mc->Layer);
 		}
 	}
 }

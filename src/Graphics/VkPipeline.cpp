@@ -232,7 +232,7 @@ void PipelineState::LoadPipelineFromFile(const VkDevice& device, const eastl::st
 					}
 				}
 				std::string source = shader["Source"];
-				m_Shaders.push_back(LoadShader(device, source.c_str(), SHADER_KIND(i), entry, lang));
+				m_Shaders.push_back(LoadShaderModule(device, source.c_str(), SHADER_KIND(i), entry, lang));
 				m_ShaderBits |= 1 << i;
 			}
 			else {
@@ -581,7 +581,6 @@ void PipelineState::LoadPipelineFromInfo(const VkDevice& device, const PipelineS
 	vkCreatePipelineLayout(device, &layoutCreateInfo, nullptr, &m_PipelineLayout);
 
 	//create descriptor sets
-
 	eastl::vector<VkPipelineShaderStageCreateInfo> shaderStages;
 	for (uint32_t i = 0; i < psInfo.Shader.ShaderCount; ++i) {
 		VkShaderModuleCreateInfo moduleInfo;

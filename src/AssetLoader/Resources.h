@@ -4,6 +4,9 @@
 #include <glm/glm.hpp>
 #include "AssetExport.h"
 
+#define VK_NO_PROTOTYPES
+#include <vulkan/vulkan.h>
+
 #define RESOURCE_TYPE_MASK 0xffffffff00000000
 #define RESOURCE_HASH_SHIFT 32
 #define RESOURCE_INVALID -1
@@ -120,9 +123,11 @@ struct ASSET_DLL PipelineStateInfo {
 	PushConstantBuffer PushConstants;
 	Descriptor* Descriptors;
 	uint32_t DescriptorCount;
-	uint32_t* RenderTargets;
-	uint32_t RenderTargetCount;
-	uint32_t DepthStencil = UINT_MAX;
+	VkPipelineColorBlendAttachmentState* Attachments;
+	uint32_t AttachmentCount;
+	VkPipelineDepthStencilStateCreateInfo DepthStencilState;
+	VkPipelineRasterizationStateCreateInfo RasterState;
+	VkPrimitiveTopology Topology;
 };
 
 }

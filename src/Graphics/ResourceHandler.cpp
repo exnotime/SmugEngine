@@ -305,14 +305,14 @@ void ResourceHandler::AllocateShader(const PipelineStateInfo& psInfo, ResourceHa
 	PipelineState ps;
 	//create renderpass if needed
 	VkRenderPass rp = nullptr;
-	if (psInfo.RenderTargetCount > 0) {
-		SubPass sp;
-		for (uint32_t i = 0; i < psInfo.RenderTargetCount; ++i) {
-			sp.RenderTargets.push_back(psInfo.RenderTargets[i]);
-		}
-		sp.DepthStencilAttachment = psInfo.DepthStencil;
-		rp = m_FrameBufferManager->CreateRenderPass(0xDEAD1331,{ sp });
-	}
+	//if (psInfo.RenderTargetCount > 0) {
+	//	SubPass sp;
+	//	for (uint32_t i = 0; i < psInfo.RenderTargetCount; ++i) {
+	//		sp.RenderTargets.push_back(psInfo.RenderTargets[i]);
+	//	}
+	//	sp.DepthStencilAttachment = psInfo.DepthStencil;
+	//	rp = m_FrameBufferManager->CreateRenderPass(0xDEAD1331,{ sp });
+	//}
 	ps.LoadPipelineFromInfo(*m_Device, psInfo, rp);
 	m_PipelineStates[handle] = ps;
 }

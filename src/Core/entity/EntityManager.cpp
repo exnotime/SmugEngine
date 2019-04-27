@@ -45,3 +45,14 @@ eastl::vector<Entity>& EntityManager::GetEntityList() {
 bool EntityManager::IsCacheDirty(const EntityCache& cache) {
 	return (cache.ComponentBitMask & m_DirtyComponents) == cache.ComponentBitMask;
 }
+
+void EntityManager::UpdateCache(EntityCache& cache) {
+	cache.Entities.clear();
+	for (int i = 0; i < m_Entities.size(); i++) {
+		Entity& e = m_Entities[i];
+		if ((e.ComponentBitfield & cache.ComponentBitMask) == cache.ComponentBitMask) {
+			cache.Entities.push_back(e.UID);
+		}
+	}
+
+}

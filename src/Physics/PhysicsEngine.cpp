@@ -238,6 +238,7 @@ PhysicsBody* PhysicsEngine::CreateDynamicActor(const glm::vec3& pos, const glm::
 	body->Orientation = orientation;
 	body->Kinematic = kinematic;
 	body->Updated = false;
+	m_Actors[body->Actor]->userData = &body->UserData; //have this as a way to get back to entity when doing picking etc
 	m_Bodies.push_back(body);
 	return body;
 }
@@ -293,6 +294,7 @@ PhysicsBody* PhysicsEngine::CreateStaticActor(const glm::vec3& pos, const glm::q
 	body->Actor = uint32_t(m_Actors.size() - 1);
 	body->Position = pos;
 	body->Orientation = orientation;
+	m_Actors[body->Actor]->userData = &body->UserData; //have this as a way to get back to entity when doing picking etc
 	m_Bodies.push_back(body);
 
 	return body;
@@ -341,6 +343,7 @@ PhysicsBody* PhysicsEngine::CreateStaticActorFromTriMesh(const glm::vec3& pos, c
 	body->Actor = uint32_t(m_Actors.size() - 1);
 	body->Position = pos;
 	body->Orientation = orientation;
+	m_Actors[body->Actor]->userData = &body->UserData; //have this as a way to get back to entity when doing picking etc
 	m_Bodies.push_back(body);
 
 	return body;
@@ -368,6 +371,7 @@ PhysicsBody* PhysicsEngine::CreateController(const glm::vec3& pos, const glm::qu
 	body->Position = pos;
 	body->Orientation = orientation;
 	body->Controller = true;
+	m_Controllers[body->Actor]->setUserData(&body->UserData); //have this as a way to get back to entity when doing picking etc
 	m_Bodies.push_back(body);
 
 	return body;
@@ -410,6 +414,32 @@ void PhysicsEngine::LockRotationAxes(PhysicsBody* body, const glm::bvec3& axes) 
 			}
 		}
 	}
+}
 
-	
+bool PhysicsEngine::RayCast(glm::vec3& origin, glm::vec3& direction, float maxDistance, RayCastResult& result) {
+	PxRaycastBuffer buffer;
+	bool ret = m_Scene->raycast(PxVec3(origin.x, origin.y, origin.z), PxVec3(direction.x, direction.y, direction.z), maxDistance, buffer, PxHitFlag::eDEFAULT);
+	if (ret) {
+		if (buffer.hasBlock) {
+			result.HitObject = *(uint32_t*)buffer.block.actor->userData;
+			result.Distance = buffer.block.distance;
+			result.Positon = glm::vec3(buffer.block.position.x, buffer.block.position.y, buffer.block.position.z);
+			result.Normal = glm::vec3(buffer.block.normal.x, buffer.block.normal.y, buffer.block.normal.z);
+		} else {
+			//look for closest point
+			float d = FLT_MAX;
+			for (uint32_t i = 0; i < buffer.nbTouches; ++i) {
+				PxRaycastHit& h = buffer.touches[i];
+				if (h.distance < d) {
+					d = h.distance;
+					result.HitObject = *(uint32_t*)h.actor->userData;
+					result.Distance = h.distance;
+					result.Positon = glm::vec3(h.position.x, h.position.y, h.position.z);
+					result.Normal = glm::vec3(h.normal.x, h.normal.y, h.normal.z);
+				}
+			}
+		}
+		
+	}
+	return ret;
 }

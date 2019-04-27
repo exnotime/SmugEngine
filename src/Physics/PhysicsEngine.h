@@ -26,11 +26,19 @@ struct PHYSICS_DLL PhysicsBody {
 	bool Kinematic;
 	bool Controller;
 	bool IsOnGround;
+	uint32_t UserData;
 };
 
 struct PHYSICS_DLL PhysicsMesh {
 	eastl::vector<glm::vec3> Vertices;
 	eastl::vector<uint32_t> Indices;
+};
+
+struct PHYSICS_DLL RayCastResult {
+	glm::vec3 Positon;
+	float Distance;
+	glm::vec3 Normal;
+	uint32_t HitObject;
 };
 
 class PHYSICS_DLL PhysicsEngine {
@@ -47,6 +55,8 @@ class PHYSICS_DLL PhysicsEngine {
 	PhysicsBody* CreateDynamicActorFromTriMesh(const glm::vec3& pos, const glm::quat& orientation, const glm::vec3& size, float mass, PhysicsMesh& mesh, bool kinematic = false);
 	PhysicsBody* CreateStaticActorFromTriMesh(const glm::vec3& pos, const glm::quat& orientation, const glm::vec3& size, PhysicsMesh& mesh);
 	PhysicsBody* CreateController(const glm::vec3& pos, const glm::quat& orientation, const glm::vec3& size, PHYSICS_SHAPE shape);
+
+	bool RayCast(glm::vec3& origin, glm::vec3& direction, float maxDistance, RayCastResult& result);
 
 	void LockRotationAxes(PhysicsBody* body, const glm::bvec3& axes);
 	void DeleteActor(uint32_t actor);

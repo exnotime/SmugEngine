@@ -1,6 +1,8 @@
 #include "ShaderLoader.h"
 #include <json.hpp>
-#include <shaderc/shaderc.h>
+#include "script/if_Shader.h"
+#include <AngelScript/ScriptEngine.h>
+#include <angelscript.h>
 #include <fstream>
 #include <Utility/Hash.h>
 #include <Utility/Memory.h>
@@ -242,16 +244,17 @@ char* ShaderLoader::LoadShaders(const eastl::string& filename, ShaderInfo& info)
 	return nullptr;
 }
 
-char* ReflectShaders(ShaderInfo& info, PipelineStateInfo& psInfoOut){
+
+
+char* ReflectShaders(const eastl::vector<ShaderByteCode>& shaders, PipelineStateInfo& psInfoOut){
 	eastl::vector<Descriptor> descs;
 	eastl::vector<uint32_t> renderTargets;
 	psInfoOut.DescriptorCount = 0;
-	psInfoOut.RenderTargetCount = 0;
 	psInfoOut.PushConstants.Offset = 0;
 	psInfoOut.PushConstants.Size = 0;
-
-	for (uint32_t i = 0; i < info.ShaderCount; ++i) {
-		ShaderByteCode& shader = info.Shaders[i];
+	uint32_t shaderCount = shaders.size();
+	for (uint32_t i = 0; i < shaderCount; ++i) {
+		const ShaderByteCode& shader = shaders[i];
 		//since the fuckers who wrote spirv-cross cant write a destructor that does not crash i am just gonna leak this shit until it gets fixed.
 		spirv_cross::Compiler* compiler = new spirv_cross::Compiler((const uint32_t*)shader.ByteCode, (size_t)shader.ByteCodeSize / sizeof(uint32_t));
 		spirv_cross::ShaderResources resources = compiler->get_shader_resources();
@@ -321,27 +324,30 @@ char* ReflectShaders(ShaderInfo& info, PipelineStateInfo& psInfoOut){
 			}
 		}
 	}
-	if (!renderTargets.empty()) {
-		psInfoOut.RenderTargets = (uint32_t*)malloc(sizeof(uint32_t) * renderTargets.size());
-		memcpy(psInfoOut.RenderTargets, renderTargets.data(), sizeof(uint32_t) * renderTargets.size());
-		psInfoOut.RenderTargetCount = (uint32_t)renderTargets.size();
-	}
 	if (!descs.empty()) {
 		psInfoOut.Descriptors = (Descriptor*)malloc(sizeof(Descriptor) * descs.size());
 		memcpy(psInfoOut.Descriptors, descs.data(), sizeof(Descriptor) * descs.size());
 		psInfoOut.DescriptorCount = (uint32_t)descs.size();
 	}
-	psInfoOut.Shader = info;
 
 	return nullptr;
 }
 
 LoadResult ShaderLoader::LoadAsset(const char* filename) {
-	ShaderInfo* info = (ShaderInfo*)malloc(sizeof(ShaderInfo));
-	char* error = LoadShaders(filename, *info);
+	/*ShaderInfo* info = (ShaderInfo*)malloc(sizeof(ShaderInfo));
+	char* error = LoadShaders(filename, *info);*/
+	char* error = nullptr;
+
+	AngelScript::asIScriptModule* shaderModule = g_ScriptEngine.CompileScriptToModule(filename);
+	if_shader::ScriptPipelineState* pso = nullptr;
+	if (shaderModule) {
+		g_ScriptEngine.ExecuteModule(shaderModule, "uint LoadPSO()");
+		pso = if_shader::GetPSO(g_ScriptEngine.GetContext()->GetReturnDWord());
+	}
+
 	PipelineStateInfo* psInfo = (PipelineStateInfo*)malloc(sizeof(PipelineStateInfo));
 	if (!error) {
-		error = ReflectShaders(*info, *psInfo);
+		//error = ReflectShaders(*info, *psInfo);
 	}
 	LoadResult res;
 	if (error) {
@@ -379,23 +385,23 @@ void ShaderLoader::SerializeAsset(FileBuffer* buffer, LoadResult* asset)  {
 		offset += si.Shaders[i].DependencyCount * sizeof(uint32_t);
 		byteCodes.push_back(bc);
 	}
-	PipelineStateInfo psInfo = pi;
-	psInfo.Descriptors = (Descriptor*)offset;
-	offset += sizeof(Descriptor) * pi.DescriptorCount;
-	psInfo.RenderTargets = (uint32_t*)offset;
+	//PipelineStateInfo psInfo = pi;
+	//psInfo.Descriptors = (Descriptor*)offset;
+	//offset += sizeof(Descriptor) * pi.DescriptorCount;
+	//psInfo.RenderTargets = (uint32_t*)offset;
 
-	buffer->Write(sizeof(PipelineStateInfo), &psInfo, asset->Hash);
-	buffer->Write(sizeof(uint32_t), (void*)&si.ShaderCount, asset->Hash);
-	buffer->Write(sizeof(ShaderByteCode) * byteCodes.size(), (void*)byteCodes.data(), asset->Hash);
+	//buffer->Write(sizeof(PipelineStateInfo), &psInfo, asset->Hash);
+	//buffer->Write(sizeof(uint32_t), (void*)&si.ShaderCount, asset->Hash);
+	//buffer->Write(sizeof(ShaderByteCode) * byteCodes.size(), (void*)byteCodes.data(), asset->Hash);
 
-	for (uint32_t i = 0; i < si.ShaderCount; ++i) {
-		buffer->Write(si.Shaders[i].ByteCodeSize, (void*)si.Shaders[i].ByteCode, asset->Hash);
-		buffer->Write(sizeof(uint32_t) * si.Shaders[i].DependencyCount, (void*)si.Shaders[i].DependenciesHashes, asset->Hash);
-	}
-	//serialize descriptors
-	buffer->Write(sizeof(Descriptor) * pi.DescriptorCount, pi.Descriptors, asset->Hash);
-	//serialize render targets
-	buffer->Write(sizeof(uint32_t) * pi.RenderTargetCount, pi.RenderTargets, asset->Hash);
+	//for (uint32_t i = 0; i < si.ShaderCount; ++i) {
+	//	buffer->Write(si.Shaders[i].ByteCodeSize, (void*)si.Shaders[i].ByteCode, asset->Hash);
+	//	buffer->Write(sizeof(uint32_t) * si.Shaders[i].DependencyCount, (void*)si.Shaders[i].DependenciesHashes, asset->Hash);
+	//}
+	////serialize descriptors
+	//buffer->Write(sizeof(Descriptor) * pi.DescriptorCount, pi.Descriptors, asset->Hash);
+	////serialize render targets
+	//buffer->Write(sizeof(uint32_t) * pi.RenderTargetCount, pi.RenderTargets, asset->Hash);
 
 }
 
@@ -422,9 +428,9 @@ DeSerializedResult ShaderLoader::DeSerializeAsset(void* assetBuffer) {
 	//deserialize descriptors
 	dest->Descriptors = (Descriptor*)malloc(sizeof(Descriptor) * source->DescriptorCount);
 	memcpy(dest->Descriptors, PointerAdd(assetBuffer, (uint32_t)source->Descriptors), sizeof(Descriptor) * source->DescriptorCount);
-	//deserialize render targets
-	dest->RenderTargets = (uint32_t*)malloc(sizeof(uint32_t) * source->RenderTargetCount);
-	memcpy(dest->RenderTargets, PointerAdd(assetBuffer, (uint32_t)source->RenderTargets), sizeof(uint32_t) * source->RenderTargetCount);
+	////deserialize render targets
+	//dest->RenderTargets = (uint32_t*)malloc(sizeof(uint32_t) * source->RenderTargetCount);
+	//memcpy(dest->RenderTargets, PointerAdd(assetBuffer, (uint32_t)source->RenderTargets), sizeof(uint32_t) * source->RenderTargetCount);
 
 	DeSerializedResult res;
 	res.Data = dest;

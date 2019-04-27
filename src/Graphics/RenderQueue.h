@@ -21,6 +21,7 @@ struct ShaderInput {
 
 struct ModelInstance {
 	eastl::vector<ShaderInput> Inputs;
+	uint32_t Layer;
 	uint32_t Count;
 	uint32_t Offset;
 };
@@ -32,7 +33,7 @@ class GFX_DLL RenderQueue {
 	void Init(ResourceHandler& resources, int index);
 	void Clear();
 	void AddCamera(const CameraData& cd);
-	void AddModel(ResourceHandle handle, const glm::mat3x4& transform, const glm::vec4& tint);
+	void AddModel(ResourceHandle handle, const glm::mat3x4& transform, const glm::vec4& tint, uint32_t layer);
 	void ScheduleTransfer(DeviceAllocator& memory);
 	void Destroy(ResourceHandler& resources);
 
@@ -42,7 +43,7 @@ class GFX_DLL RenderQueue {
 	const eastl::vector<ShaderInput>& GetInputs() const {
 		return m_Inputs;
 	}
-	const std::map<ResourceHandle, ModelInstance>& GetModels() const {
+	const eastl::unordered_map<ResourceHandle, ModelInstance>& GetModels() const {
 		return m_Models;
 	}
 
@@ -59,7 +60,7 @@ class GFX_DLL RenderQueue {
   private:
 	eastl::vector<CameraData> m_Cameras;
 	eastl::vector<ShaderInput> m_Inputs;
-	std::map<ResourceHandle, ModelInstance> m_Models;
+	eastl::unordered_map<ResourceHandle, ModelInstance> m_Models;
 	VkDescriptorSet m_DescSet;
 	ResourceHandle m_Buffer;
 	ResourceHandler* m_Resources;

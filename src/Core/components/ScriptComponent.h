@@ -1,5 +1,5 @@
 #pragma once
-#include <Core/script/ScriptEngine.h>
+#include <AngelScript/ScriptEngine.h>
 namespace smug {
 /*
 A script file can contain multiple functions

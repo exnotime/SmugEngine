@@ -29,15 +29,16 @@ void RenderQueue::AddCamera(const CameraData & cd) {
 	m_Cameras.push_back(cd);
 }
 
-void RenderQueue::AddModel(ResourceHandle model, const glm::mat3x4& transform, const glm::vec4& tint) {
+void RenderQueue::AddModel(ResourceHandle model, const glm::mat3x4& transform, const glm::vec4& tint, uint32_t layer) {
 	auto& m = m_Models.find(model);
 	if (m == m_Models.end()) {
 		m_Models[model] = ModelInstance();
-		m_Models[model].Count = 0;
+		m = m_Models.find(model);
+		m->second.Count = 0;
 	}
-	m_Models[model].Count++;
+	m->second.Count++;
 	ShaderInput i = { transform, tint };
-	m_Models[model].Inputs.push_back(i);
+	m->second.Inputs.push_back(i);
 }
 
 void RenderQueue::ScheduleTransfer(DeviceAllocator& memory) {
