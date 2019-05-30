@@ -1,6 +1,8 @@
 #pragma once
 #include <stdint.h>
 namespace smug {
+	class Profiler;
+
 class SubSystem {
   public:
 	SubSystem() {}
@@ -8,7 +10,7 @@ class SubSystem {
 
 	virtual void Startup() = 0;
 	virtual void Shutdown() = 0;
-	virtual void Update(const double deltaTime) = 0;
+	virtual void Update(const double deltaTime, Profiler* profiler) = 0;
 
 	void SetID(uint32_t id) {
 		m_ID = id;

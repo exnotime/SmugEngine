@@ -8,7 +8,7 @@ class SSCamera : public SubSystem {
 	~SSCamera();
 
 	virtual void Startup();
-	virtual void Update(const double deltaTime);
+	virtual void Update(const double deltaTime, Profiler* profiler);
 	virtual void Shutdown();
   private:
 	EntityCache* m_Cache;

@@ -26,6 +26,24 @@
                 "SrcAlphaBlendFactor":"Zero",
                 "DstAlphaBlendFactor":"Zero",
                 "AlphaBlendOp":"Add"
+            },
+            {
+                "blendEnable": false,
+                "SrcColorBlendFactor":"Zero",
+                "DstColorBlendFactor":"Zero",
+                "ColorBlendOp":"Add",
+                "SrcAlphaBlendFactor":"Zero",
+                "DstAlphaBlendFactor":"Zero",
+                "AlphaBlendOp":"Add"
+            },
+            {
+                "blendEnable": false,
+                "SrcColorBlendFactor":"Zero",
+                "DstColorBlendFactor":"Zero",
+                "ColorBlendOp":"Add",
+                "SrcAlphaBlendFactor":"Zero",
+                "DstAlphaBlendFactor":"Zero",
+                "AlphaBlendOp":"Add"
             }
         ]
     },

@@ -7,7 +7,7 @@ class SSPhysics : public SubSystem {
 	~SSPhysics();
 
 	virtual void Startup();
-	virtual void Update(const double deltaTime);
+	virtual void Update(const double deltaTime, Profiler* profiler);
 	virtual void Shutdown();
   private:
 };

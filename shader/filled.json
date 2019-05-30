@@ -33,7 +33,25 @@
         "ColorBlendAttachmentStates":
         [
             {
-                "blendEnable": false,
+                "BlendEnable": true,
+                "SrcColorBlendFactor":"SrcAlpha",
+                "DstColorBlendFactor":"OneMinusSrcAlpha",
+                "ColorBlendOp":"Add",
+                "SrcAlphaBlendFactor":"One",
+                "DstAlphaBlendFactor":"Zero",
+                "AlphaBlendOp":"Add"
+            },
+            {
+                "BlendEnable": false,
+                "SrcColorBlendFactor":"Zero",
+                "DstColorBlendFactor":"Zero",
+                "ColorBlendOp":"Add",
+                "SrcAlphaBlendFactor":"Zero",
+                "DstAlphaBlendFactor":"Zero",
+                "AlphaBlendOp":"Add"
+            },
+            {
+                "BlendEnable": false,
                 "SrcColorBlendFactor":"Zero",
                 "DstColorBlendFactor":"Zero",
                 "ColorBlendOp":"Add",

@@ -5,6 +5,7 @@
 #include "VkShader.h"
 #include "PipelineCommon.h"
 #include <AssetLoader/AssetLoader.h>
+#include "Vertex.h"
 using nlohmann::json;
 using namespace smug;
 
@@ -544,11 +545,12 @@ void PipelineState::LoadPipelineFromInfo(const VkDevice& device, const PipelineS
 
 	for (uint32_t i = 0; i < psInfo.DescriptorCount; ++i) {
 		Descriptor& desc = psInfo.Descriptors[i];
-		VkDescriptorSetLayoutBinding bind;
+		VkDescriptorSetLayoutBinding bind = {};
 		bind.binding = desc.Bindpoint;
 		bind.descriptorCount = desc.Count;
 		bind.descriptorType = (VkDescriptorType)desc.Type;
 		bind.stageFlags = VkShaderStageFlagBits::VK_SHADER_STAGE_ALL;
+		bind.pImmutableSamplers = nullptr;
 		bool found = false;
 		for (auto& desc : bindings[desc.Set]) {
 			if (desc.binding == bind.binding) {
@@ -559,15 +561,17 @@ void PipelineState::LoadPipelineFromInfo(const VkDevice& device, const PipelineS
 		if(!found)
 			bindings[desc.Set].push_back(bind);
 	}
-	setLayouts.resize(bindings.size());
+	m_DescSetLayouts.resize(bindings.size());
 	for (uint32_t i = 0; i < bindings.size(); ++i) {
-		VkDescriptorSetLayoutCreateInfo info;
+		VkDescriptorSetLayoutCreateInfo info = {};
+		info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+		info.pNext = nullptr;
 		info.bindingCount = (uint32_t)bindings[i].size();
 		info.pBindings = bindings[i].data();
-		vkCreateDescriptorSetLayout(device, &info, nullptr, &setLayouts[i]);
+		vkCreateDescriptorSetLayout(device, &info, nullptr, &m_DescSetLayouts[i]);
 	}
-	layoutCreateInfo.pSetLayouts = setLayouts.data();
-	layoutCreateInfo.setLayoutCount = (uint32_t)setLayouts.size();
+	layoutCreateInfo.pSetLayouts = m_DescSetLayouts.data();
+	layoutCreateInfo.setLayoutCount = (uint32_t)m_DescSetLayouts.size();
 	
 	if (psInfo.PushConstants.Size > 0) {
 		layoutCreateInfo.pushConstantRangeCount = 1;
@@ -577,31 +581,40 @@ void PipelineState::LoadPipelineFromInfo(const VkDevice& device, const PipelineS
 		pc.stageFlags = VkShaderStageFlagBits::VK_SHADER_STAGE_ALL;
 		layoutCreateInfo.pPushConstantRanges = &pc;
 	}
-	
+	layoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+	layoutCreateInfo.pNext = nullptr;
 	vkCreatePipelineLayout(device, &layoutCreateInfo, nullptr, &m_PipelineLayout);
 
-	//create descriptor sets
+
 	eastl::vector<VkPipelineShaderStageCreateInfo> shaderStages;
-	for (uint32_t i = 0; i < psInfo.Shader.ShaderCount; ++i) {
-		VkShaderModuleCreateInfo moduleInfo;
-		moduleInfo.codeSize = psInfo.Shader.Shaders[i].ByteCodeSize;
-		moduleInfo.pCode = (uint32_t*)psInfo.Shader.Shaders[i].ByteCode;
-		VkPipelineShaderStageCreateInfo shaderInfo;
+	for (uint32_t i = 0; i < psInfo.ShaderCount; ++i) {
+		VkShaderModuleCreateInfo moduleInfo = {};
+		moduleInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+		moduleInfo.pNext = nullptr;
+		moduleInfo.codeSize = psInfo.Shaders[i].ByteCodeSize;
+		moduleInfo.pCode = (uint32_t*)psInfo.Shaders[i].ByteCode;
+		VkPipelineShaderStageCreateInfo shaderInfo = {};
+		shaderInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		shaderInfo.pNext = nullptr;
 		vkCreateShaderModule(device, &moduleInfo, nullptr, &shaderInfo.module);
-		shaderInfo.stage = ShaderKindToVkStage(psInfo.Shader.Shaders[i].Kind);
+		shaderInfo.stage = ShaderKindToVkStage(psInfo.Shaders[i].Kind);
 		shaderInfo.pName = "main";
 		shaderStages.push_back(shaderInfo);
 	}
 	
-	if (psInfo.Shader.Shaders[0].Kind == COMPUTE) {
+	if (psInfo.Shaders[0].Kind == COMPUTE) {
 		VkComputePipelineCreateInfo pipelineInfo = {};
+		pipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+		pipelineInfo.pNext = nullptr;
 		pipelineInfo.layout = m_PipelineLayout;
 		pipelineInfo.stage = shaderStages[0];
 		vkCreateComputePipelines(device, nullptr, 1, &pipelineInfo, nullptr, &m_Pipeline);
 		return;
 	}
 
-	VkGraphicsPipelineCreateInfo pipelineCreateInfo;
+	VkGraphicsPipelineCreateInfo pipelineCreateInfo = {};
+	pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+	pipelineCreateInfo.pNext = nullptr;
 	pipelineCreateInfo.layout = m_PipelineLayout;
 	pipelineCreateInfo.pStages = shaderStages.data();
 	pipelineCreateInfo.stageCount = (uint32_t)shaderStages.size();
@@ -613,28 +626,43 @@ void PipelineState::LoadPipelineFromInfo(const VkDevice& device, const PipelineS
 	dynamicStates.push_back(VkDynamicState::VK_DYNAMIC_STATE_VIEWPORT);
 	dynamicStates.push_back(VkDynamicState::VK_DYNAMIC_STATE_SCISSOR);
 	dynamicStates.push_back(VkDynamicState::VK_DYNAMIC_STATE_BLEND_CONSTANTS);
-	VkPipelineDynamicStateCreateInfo dynamicStateCreateInfo;
+	VkPipelineDynamicStateCreateInfo dynamicStateCreateInfo = {};
+	dynamicStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+	dynamicStateCreateInfo.pNext = nullptr;
 	dynamicStateCreateInfo.dynamicStateCount = (uint32_t)dynamicStates.size();
 	dynamicStateCreateInfo.pDynamicStates = dynamicStates.data();
 
-	VkPipelineInputAssemblyStateCreateInfo inputAssemblyInfo;
-	inputAssemblyInfo.topology = VkPrimitiveTopology::VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+	VkPipelineInputAssemblyStateCreateInfo inputAssemblyInfo = {};
+	inputAssemblyInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+	inputAssemblyInfo.pNext = nullptr;
+	inputAssemblyInfo.topology = psInfo.Topology;
 	inputAssemblyInfo.primitiveRestartEnable = false;
 
-	auto blendState = GetDefaultColorBlendState();
-	auto blendattachmentState = GetDefaultColorBlendAttachmentState();
-	auto dsState = GetDefaultDepthStencilstate();
-	auto rasterState = GetDefaultRasterState();
+	VkPipelineColorBlendStateCreateInfo blendState = GetDefaultColorBlendState();
+	blendState.attachmentCount = psInfo.AttachmentCount;
+	blendState.pAttachments = psInfo.Attachments;
+
 	auto msState = GetDefaultMultiSampleState();
+
+	VkPipelineVertexInputStateCreateInfo vertexState = Geometry::GetVertexState();
+	
+	VkPipelineViewportStateCreateInfo viewportState = {};
+	viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+	viewportState.pNext = nullptr;
+	viewportState.viewportCount = 1;
+	viewportState.scissorCount = 1;
+	viewportState.pViewports = nullptr;
+	viewportState.pScissors = nullptr;
+
 	pipelineCreateInfo.pColorBlendState = &blendState;
 	pipelineCreateInfo.renderPass = rp;
 	pipelineCreateInfo.pMultisampleState = &msState;
-	pipelineCreateInfo.pDepthStencilState = &dsState;
+	pipelineCreateInfo.pDepthStencilState = &psInfo.DepthStencilState;
 	pipelineCreateInfo.pDynamicState = &dynamicStateCreateInfo;
-	pipelineCreateInfo.pViewportState = nullptr;
+	pipelineCreateInfo.pViewportState = &viewportState;
 	pipelineCreateInfo.pInputAssemblyState = &inputAssemblyInfo;
-	pipelineCreateInfo.pRasterizationState = &rasterState;
-	pipelineCreateInfo.pVertexInputState = &m_DefaultVertexState;
+	pipelineCreateInfo.pRasterizationState = &psInfo.RasterState;
+	pipelineCreateInfo.pVertexInputState = &vertexState;
 	pipelineCreateInfo.pTessellationState = nullptr;
 
 	vkCreateGraphicsPipelines(device, nullptr, 1, &pipelineCreateInfo, nullptr, &m_Pipeline);
@@ -660,7 +688,7 @@ void PipelineState::SetDefaultMulitSampleState(const VkPipelineMultisampleStateC
 	m_DefaultMultiSampleStateSet = true;
 }
 
-eastl::vector<VkDescriptorSetLayout>& PipelineState::GetDescriptorSetLayouts() {
+const eastl::vector<VkDescriptorSetLayout>& PipelineState::GetDescriptorSetLayouts() const {
 	return m_DescSetLayouts;
 }
 

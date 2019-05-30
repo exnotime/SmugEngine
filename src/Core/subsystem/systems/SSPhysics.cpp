@@ -7,6 +7,7 @@
 #include <Core/datasystem/ComponentManager.h>
 #include <Core/entity/EntityManager.h>
 #include <Core/Input.h>
+#include <Core/Profiler.h>
 
 using namespace smug;
 SSPhysics::SSPhysics() {
@@ -20,10 +21,12 @@ SSPhysics::~SSPhysics() {
 void SSPhysics::Startup() {
 }
 
-void SSPhysics::Update(const double deltaTime) {
+void SSPhysics::Update(const double deltaTime, Profiler* profiler) {
+	profiler->Stamp("PhysX");
 	//tick physics
 	globals::g_Physics->Update(deltaTime);
 
+	profiler->Stamp("Fetch physics results");
 	//fetch results
 	int flag = TransformComponent::Flag | RigidBodyComponent::Flag;
 	int cameraFlag = CameraComponent::Flag;
@@ -34,7 +37,6 @@ void SSPhysics::Update(const double deltaTime) {
 		if ((e.ComponentBitfield & flag) == flag) {
 			TransformComponent* tc = (TransformComponent*)globals::g_Components->GetComponent(e, TransformComponent::Flag);
 			RigidBodyComponent* rc = (RigidBodyComponent*)globals::g_Components->GetComponent(e, RigidBodyComponent::Flag);
-
 			tc->Position = rc->Body->Position;
 			tc->Orientation = rc->Body->Orientation;
 		}

@@ -271,6 +271,15 @@ void FrameBufferManager::ChangeLayout(CommandBuffer& cmdBuffer, const eastl::vec
 	}
 }
 
+void FrameBufferManager::ChangeLayout(CommandBuffer& cmdBuffer, uint32_t renderTarget, VkImageLayout newLayout) {
+	RenderTarget& rt = m_RenderTargets[renderTarget];
+	if (rt.Layout == newLayout) {
+		return;
+	}
+	cmdBuffer.ImageBarrier(rt.Handle, rt.Layout, newLayout);
+	rt.Layout = newLayout;
+}
+
 void FrameBufferManager::SetLayouts(const eastl::vector<VkImageLayout>& newLayouts) {
 	uint32_t size = (uint32_t)newLayouts.size();
 	for (uint32_t i = 0; i < size; ++i) {
@@ -278,14 +287,14 @@ void FrameBufferManager::SetLayouts(const eastl::vector<VkImageLayout>& newLayou
 	}
 }
 
-void FrameBufferManager::AllocRenderTarget(uint32_t name, uint32_t width, uint32_t height, uint32_t depth, VkFormat format, VkImageLayout initialLayout) {
+void FrameBufferManager::AllocRenderTarget(uint32_t name, uint32_t width, uint32_t height, uint32_t depth, VkFormat format) {
 	RenderTarget rt;
 	rt.Name = name;
 	rt.Format = format;
 	rt.Width = width;
 	rt.Height = height;
 	rt.Depth = depth;
-	rt.Layout = initialLayout;
+	rt.Layout = VK_IMAGE_LAYOUT_UNDEFINED;
 
 	VkImageCreateInfo imageInfo = {};
 	imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -294,7 +303,7 @@ void FrameBufferManager::AllocRenderTarget(uint32_t name, uint32_t width, uint32
 	imageInfo.arrayLayers = 1;
 	imageInfo.format = format;
 	imageInfo.imageType = VkImageType::VK_IMAGE_TYPE_2D;
-	imageInfo.initialLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED;
+	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	imageInfo.mipLevels = 1;
 	imageInfo.samples = VkSampleCountFlagBits::VK_SAMPLE_COUNT_1_BIT;
 	imageInfo.sharingMode = VkSharingMode::VK_SHARING_MODE_EXCLUSIVE;
@@ -306,6 +315,7 @@ void FrameBufferManager::AllocRenderTarget(uint32_t name, uint32_t width, uint32
 	} else {
 		imageInfo.usage = VkImageUsageFlagBits::VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 		imageInfo.usage |= VkImageUsageFlagBits::VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
+		imageInfo.usage |= VkImageUsageFlagBits::VK_IMAGE_USAGE_STORAGE_BIT;
 		imageInfo.usage |= VkImageUsageFlagBits::VK_IMAGE_USAGE_SAMPLED_BIT;
 		imageInfo.usage |= VkImageUsageFlagBits::VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 		imageInfo.usage |= VkImageUsageFlagBits::VK_IMAGE_USAGE_TRANSFER_DST_BIT;
@@ -322,7 +332,7 @@ void FrameBufferManager::AllocRenderTarget(uint32_t name, uint32_t width, uint32
 	}
 	vmaBindImageMemory(m_DeviceAllocator, rt.Memory, rt.Handle);
 
-	VkImageViewCreateInfo viewInfo;
+	VkImageViewCreateInfo viewInfo = {};
 	viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 	viewInfo.pNext = nullptr;
 	viewInfo.components = { VkComponentSwizzle::VK_COMPONENT_SWIZZLE_R, VkComponentSwizzle::VK_COMPONENT_SWIZZLE_G, VkComponentSwizzle::VK_COMPONENT_SWIZZLE_B, VkComponentSwizzle::VK_COMPONENT_SWIZZLE_A };
@@ -344,71 +354,53 @@ void FrameBufferManager::AllocRenderTarget(uint32_t name, uint32_t width, uint32
 	m_RenderTargets[name] = rt;
 }
 
-VkRenderPass FrameBufferManager::CreateRenderPass(uint32_t name, eastl::vector<SubPass> subPasses) {
-	//create hash and see if we already have a renderpass that matches
-	eastl::vector<uint32_t> subpassHashes;
-	meow_hash hash = MeowHash_Accelerated(0xBEEFC0DE, (int)(sizeof(uint32_t) * subpassHashes.size()), subpassHashes.data());
-	uint32_t rpHash = MeowU32From(hash, 0);
+VkRenderPass FrameBufferManager::CreateRenderPass(uint32_t name, const eastl::vector<uint32_t>& renderTargets) {
+	
 	eastl::vector<VkAttachmentDescription> attachments;
-	eastl::unordered_map<uint32_t, uint32_t> nameToIndex;
-	eastl::vector<eastl::vector<VkAttachmentReference>> attachmentRefs;
-	attachmentRefs.resize(subPasses.size());
+	uint32_t depthStencil = UINT_MAX;
 	eastl::vector<VkSubpassDescription> subPassesDescs;
-	uint32_t subPassIndex = 0;
-	for (auto& sp : subPasses) {
-		for (auto& rt : sp.RenderTargets) {
-			if (nameToIndex.find(rt) != nameToIndex.end()) {
-				VkAttachmentDescription a;
-				a.initialLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED; //we handle transitions ourselves with barriers
-				a.finalLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED;
-				a.loadOp = VkAttachmentLoadOp::VK_ATTACHMENT_LOAD_OP_LOAD;
-				a.storeOp = VkAttachmentStoreOp::VK_ATTACHMENT_STORE_OP_STORE;
-				a.stencilLoadOp = VkAttachmentLoadOp::VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-				a.stencilStoreOp = VkAttachmentStoreOp::VK_ATTACHMENT_STORE_OP_DONT_CARE;
-				a.format = m_RenderTargets[rt].Format;
-				nameToIndex[rt] = (uint32_t)attachments.size();
-				attachments.push_back(a);
-			}
-		}
-		if (sp.DepthStencilAttachment != UINT_MAX) {
-			VkAttachmentDescription a;
-			a.initialLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED; //we handle transitions ourselves with barriers
-			a.finalLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED;
-			a.loadOp = VkAttachmentLoadOp::VK_ATTACHMENT_LOAD_OP_LOAD;
-			a.storeOp = VkAttachmentStoreOp::VK_ATTACHMENT_STORE_OP_STORE;
-			a.stencilLoadOp = VkAttachmentLoadOp::VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-			a.stencilStoreOp = VkAttachmentStoreOp::VK_ATTACHMENT_STORE_OP_DONT_CARE;
-			a.format = m_RenderTargets[sp.DepthStencilAttachment].Format;
-			nameToIndex[sp.DepthStencilAttachment] = (uint32_t)attachments.size();
-			attachments.push_back(a);
-		}
-	}
-	for (auto& sp : subPasses) {
-		VkSubpassDescription spDesc;
-		spDesc.inputAttachmentCount = 0;
-		spDesc.pInputAttachments = nullptr;
-		spDesc.preserveAttachmentCount = 0;
-		spDesc.pPreserveAttachments = nullptr;
-		spDesc.pResolveAttachments = nullptr;
-		for (uint32_t i = 0; i < sp.RenderTargets.size(); ++i) {
-			VkAttachmentReference ref;
-			ref.attachment = nameToIndex[sp.RenderTargets[i]];
-			ref.layout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED;
-			attachmentRefs[subPassIndex].push_back(ref);
-		}
-		spDesc.colorAttachmentCount = (uint32_t)sp.RenderTargets.size();
-		spDesc.pDepthStencilAttachment = attachmentRefs[subPassIndex].data();
-		if (sp.DepthStencilAttachment != UINT_MAX) {
-			VkAttachmentReference ref;
-			ref.attachment = nameToIndex[sp.RenderTargets[sp.DepthStencilAttachment]];
-			ref.layout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED;
-			attachmentRefs[subPassIndex].push_back(ref);
-			spDesc.pDepthStencilAttachment = &attachmentRefs[subPassIndex].back();
-		}
-		subPassesDescs.push_back(spDesc);
-	}
+	for (uint32_t i = 0; i < renderTargets.size(); ++i) {
+		VkImageLayout layout = IsDepthStencil(m_RenderTargets[renderTargets[i]].Format) ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		VkAttachmentDescription a = {};
+		a.initialLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED; //we handle transitions ourselves with barriers
+		a.finalLayout = layout;
+		a.loadOp = VkAttachmentLoadOp::VK_ATTACHMENT_LOAD_OP_CLEAR;
+		a.storeOp = VkAttachmentStoreOp::VK_ATTACHMENT_STORE_OP_STORE;
+		a.stencilLoadOp = VkAttachmentLoadOp::VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		a.stencilStoreOp = VkAttachmentStoreOp::VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		a.samples = VK_SAMPLE_COUNT_1_BIT;
+		a.format = m_RenderTargets[renderTargets[i]].Format;
+		if (IsDepthStencil(a.format))
+			depthStencil = i;
 
-	VkRenderPassCreateInfo renderPassInfo;
+		attachments.push_back(a);
+	}
+	VkAttachmentReference depthStencilRef;
+	eastl::vector<VkAttachmentReference> attachmentRefs;
+	for (uint32_t i = 0; i < renderTargets.size(); ++i) {
+		VkImageLayout layout = IsDepthStencil(m_RenderTargets[renderTargets[i]].Format) ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		VkAttachmentReference ref = {};
+		ref.attachment = i;
+		ref.layout = layout;
+		if (i == depthStencil) {
+			depthStencilRef = ref;
+		} else {
+			attachmentRefs.push_back(ref);
+		}
+	}
+	VkSubpassDescription spDesc = {};
+	spDesc.inputAttachmentCount = 0;
+	spDesc.pInputAttachments = nullptr;
+	spDesc.preserveAttachmentCount = 0;
+	spDesc.pPreserveAttachments = nullptr;
+	spDesc.pResolveAttachments = nullptr;
+	spDesc.pColorAttachments = attachmentRefs.data();
+	spDesc.colorAttachmentCount = attachmentRefs.size();
+	spDesc.pDepthStencilAttachment = &depthStencilRef;
+
+	subPassesDescs.push_back(spDesc);
+
+	VkRenderPassCreateInfo renderPassInfo = {};
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
 	renderPassInfo.pNext = nullptr;
 	renderPassInfo.attachmentCount = (uint32_t)attachments.size();
@@ -422,20 +414,14 @@ VkRenderPass FrameBufferManager::CreateRenderPass(uint32_t name, eastl::vector<S
 
 	uint32_t w = 0, h = 0, d = 0;
 	eastl::vector<VkImageView> fbViews;
-	for (auto& sp : subPasses) {
-		for (auto& rt : sp.RenderTargets) {
-			fbViews.push_back(m_RenderTargets[rt].View);
-			w = glm::max(w, m_RenderTargets[rt].Width);
-			h = glm::max(h, m_RenderTargets[rt].Height);
-			d = glm::max(d, m_RenderTargets[rt].Depth);
-		}
-		if (sp.DepthStencilAttachment != UINT_MAX) {
-			fbViews.push_back(m_RenderTargets[sp.DepthStencilAttachment].View);
-		}
-
+	for (auto& rt : renderTargets) {
+		fbViews.push_back(m_RenderTargets[rt].View);
+		w = glm::max(w, m_RenderTargets[rt].Width);
+		h = glm::max(h, m_RenderTargets[rt].Height);
+		d = glm::max(d, m_RenderTargets[rt].Depth);
 	}
 
-	VkFramebufferCreateInfo fbInfo;
+	VkFramebufferCreateInfo fbInfo = {};
 	fbInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 	fbInfo.pNext = nullptr;
 	fbInfo.attachmentCount = (uint32_t)fbViews.size();
@@ -445,7 +431,7 @@ VkRenderPass FrameBufferManager::CreateRenderPass(uint32_t name, eastl::vector<S
 	fbInfo.layers = d;
 	fbInfo.renderPass = m_RenderPasses[name];
 
-	vkCreateFramebuffer(m_Device, &fbInfo, nullptr, &m_FrameBuffersT[name]);
+	vkCreateFramebuffer(m_Device, &fbInfo, nullptr, &m_FrameBuffers[name]);
 
 	return m_RenderPasses[name];
 }

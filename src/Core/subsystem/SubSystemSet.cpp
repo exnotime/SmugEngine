@@ -48,12 +48,12 @@ void SubSystemSet::UpdateSubSystems(const double deltaTime, Profiler* prof) {
 #if defined(_DEBUG)
 	prof->Stamp("SubSystemSet");
 	for (auto& system : m_Entries) {
-		system.ss->Update(deltaTime);
+		system.ss->Update(deltaTime, prof);
 		prof->Stamp(system.debug_name.c_str());
 	}
 #else
 	for (auto& system : m_Entries) {
-		system.ss->Update(deltaTime);
+		system.ss->Update(deltaTime, prof);
 	}
 #endif
 }

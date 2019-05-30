@@ -41,7 +41,9 @@ solution "SmugEngine"
 		kind "ConsoleApp"
 		files { "src/Core/**", "src/Imgui/**"}
 		includedirs { "include", "src" }
-		links {  "Graphics", "AssetLoader", "Physics", "glfw3", "Utility", "Script"}
+        links {  "Graphics", "AssetLoader", "Physics", "glfw3", "Utility", "Script"}
+        configuration { "rtx-on" }
+            defines { "RTX_ON" }
 
     project "Graphics"
     	targetname "Graphics"
@@ -69,11 +71,11 @@ solution "SmugEngine"
     	files { "src/Assetloader/**"}
     	includedirs { "include", "src" }
         kind "StaticLib"
-        links { "assimp", "Utility", "Script" }
+        links { "Utility", "Script" }
         configuration { "Debug" }
-                links { "spirv-cross-coreD", "spirv-cross-glslD", "angelscript64d", "as_integrationD"  }
+                links { "spirv-cross-coreD", "spirv-cross-glslD", "angelscript64d", "as_integrationD", "assimpD"  }
         configuration { "Release" }
-                links { "spirv-cross-core", "spirv-cross-glsl", "angelscript64", "as_integration" }
+                links { "spirv-cross-core", "spirv-cross-glsl", "angelscript64", "as_integration", "assimp" }
 
     project "Physics"
         targetname "Physics"

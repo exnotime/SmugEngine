@@ -64,7 +64,9 @@ layout(location = 4) in vec3 BiNormOut;
 layout(location = 5) in vec3 ColorOut;
 layout(location = 6) in vec3 ViewOut;
 
-layout(location = 0) out vec4 outColor;
+layout(location = 0) out vec4 outAlbedo;
+layout(location = 1) out vec4 outNormal;
+layout(location = 2) out vec4 outMaterial;
 
 layout (set = 0, binding = 0) uniform WVP{
     mat4 view_proj;
@@ -77,7 +79,6 @@ layout (set = 0, binding = 0) uniform WVP{
     float ShadowSplits[4];
 };
 #include "lighting.glsl"
-layout(set = 1, binding = 2) uniform sampler2D g_ShadowCascades;
 layout(set = 3, binding = 0) uniform sampler2D g_Material[4];
 
 vec3 CalcBumpedNormal(vec3 Bump, vec3 Normal, vec3 Tangent, vec3 BiNorm){
@@ -140,20 +141,26 @@ float SampleShadowMap(vec3 posW){
 }
 
 void main(){
+    // vec3 bump = texture(g_Material[1], TexCoordOut).xyz * 2.0 - 1.0;
+    // vec3 normal = CalcBumpedNormal(bump, NormalW, TangentW, BiNormOut);
+    // vec3 lightDir = normalize(LightDir.xyz);
+    // vec3 toCam = normalize(CamPos.xyz - PosW);
+    // vec3 texColor = pow(texture(g_Material[0], TexCoordOut).rgb, vec3(GAMMA)) * ColorOut;
+    // vec3 mat = pow(texture(g_Material[2], TexCoordOut).rgb, vec3(GAMMA));
+
+    // mat.r *= mat.r;
+    // mat.r = saturate(mat.r * Material.r);
+    // mat.r = clamp( mat.r, 0.001, 0.999);
+
+    // vec3 lightColor = CalcDirLight(-lightDir, texColor, normal, toCam, mat.r, mat.g);// * SampleShadowMap(PosW);
+    // lightColor += CalcIBLLight( normal, toCam, texColor, mat.r, mat.g);
+    // outColor = saturate(vec4(lightColor, 1));
+
     vec3 bump = texture(g_Material[1], TexCoordOut).xyz * 2.0 - 1.0;
     vec3 normal = CalcBumpedNormal(bump, NormalW, TangentW, BiNormOut);
-    vec3 lightDir = normalize(LightDir.xyz);
-    vec3 toCam = normalize(CamPos.xyz - PosW);
-    vec3 texColor = pow(texture(g_Material[0], TexCoordOut).rgb, vec3(GAMMA)) * ColorOut;
+    outNormal = vec4(normal * 0.5 + 0.5, 1);
+    outAlbedo = pow(texture(g_Material[0], TexCoordOut).rgba, vec4(GAMMA)) * vec4(ColorOut,1);
     vec3 mat = pow(texture(g_Material[2], TexCoordOut).rgb, vec3(GAMMA));
-
-    mat.r *= mat.r;
-    mat.r = saturate(mat.r * Material.r);
-    mat.r = clamp( mat.r, 0.001, 0.999);
-
-    vec3 lightColor = CalcDirLight(-lightDir, texColor, normal, toCam, mat.r, mat.g);// * SampleShadowMap(PosW);
-    lightColor += CalcIBLLight( normal, toCam, texColor, mat.r, mat.g);
-    outColor = saturate(vec4(lightColor, 1));
-
+    outMaterial = vec4(mat.r, mat.g, mat.b, 1.0);
 }
 #endif

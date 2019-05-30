@@ -8,7 +8,6 @@ class ShaderLoader : public LoaderInterface {
   public:
 	ShaderLoader();
 	~ShaderLoader();
-	char* LoadShaders(const eastl::string& filename, ShaderInfo& info);
 
 	virtual LoadResult LoadAsset(const char* filename) override;
 	virtual void UnloadAsset(void* asset) override;

@@ -1,6 +1,7 @@
 #include "ToneMapProgram.h"
 #include "Vertex.h"
 #include <Imgui/imgui.h>
+#include <Utility/Hash.h>
 
 using namespace smug;
 ToneMapProgram::ToneMapProgram() {
@@ -63,7 +64,7 @@ void ToneMapProgram::Init(VkDevice& device, const glm::vec2& screenSize, FrameBu
 	for (uint32_t i = 0; i < 1; i++) {
 		imageInfo[i].imageLayout = VkImageLayout::VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		imageInfo[i].sampler = m_Sampler;
-		imageInfo[i].imageView = fbo.GetView(0, i);
+		imageInfo[i].imageView = fbo.GetRenderTarget(HashString("HDR")).View;
 
 		writeSet[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		writeSet[i].pNext = nullptr;

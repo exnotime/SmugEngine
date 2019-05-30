@@ -231,68 +231,96 @@ void ResourceHandler::AllocateModel(const ModelInfo& model, ResourceHandle handl
 
 #ifdef RTX_ON
 	//allocate blas
-	VkGeometryNV blasGeometry = {};
-	blasGeometry.geometryType = VK_GEOMETRY_TYPE_TRIANGLES_NV;
-	blasGeometry.geometry.triangles.indexCount = internalModel.IndexCount;
-	blasGeometry.geometry.triangles.indexData = internalModel.IndexBuffer.buffer;
-	blasGeometry.geometry.triangles.indexOffset = 0;
-	blasGeometry.geometry.triangles.indexType = VkIndexType::VK_INDEX_TYPE_UINT32;
-	blasGeometry.geometry.triangles.vertexCount = positions.size();
-	blasGeometry.geometry.triangles.vertexData = internalModel.VertexBuffers[POSITION].buffer;
-	blasGeometry.geometry.triangles.vertexFormat = VK_FORMAT_R32G32B32_SFLOAT;
-	blasGeometry.geometry.triangles.vertexOffset = 0;
-	blasGeometry.geometry.triangles.vertexStride = sizeof(glm::vec3);
-	blasGeometry.geometry.triangles.sType = VK_STRUCTURE_TYPE_GEOMETRY_TRIANGLES_NV;
-	blasGeometry.geometry.triangles.pNext = nullptr;
-	blasGeometry.geometry.triangles.transformData = nullptr;
-	blasGeometry.geometry.triangles.transformOffset = 0;
-	blasGeometry.geometry.aabbs.sType = VK_STRUCTURE_TYPE_GEOMETRY_AABB_NV;
-	blasGeometry.geometry.aabbs.pNext = nullptr;
-	blasGeometry.geometry.aabbs.aabbData = nullptr;
-	blasGeometry.geometry.aabbs.numAABBs = 0;
-	blasGeometry.geometry.aabbs.offset = 0;
-	blasGeometry.geometry.aabbs.stride = 0;
-	blasGeometry.flags = VK_GEOMETRY_OPAQUE_BIT_NV;
-	blasGeometry.sType = VK_STRUCTURE_TYPE_GEOMETRY_NV;
-	blasGeometry.pNext = nullptr;
+	for (uint32_t i = 0; i < model.MeshCount; ++i) {
+		Mesh& m = internalModel.Meshes[i];
+		VkGeometryNV blasGeometry = {};
+		blasGeometry.geometryType = VK_GEOMETRY_TYPE_TRIANGLES_NV;
+		blasGeometry.geometry.triangles.indexCount = m.IndexCount;
+		blasGeometry.geometry.triangles.indexData = internalModel.IndexBuffer.buffer;
+		blasGeometry.geometry.triangles.indexOffset = m.IndexOffset * sizeof(uint32_t);
+		blasGeometry.geometry.triangles.indexType = VkIndexType::VK_INDEX_TYPE_UINT32;
+		blasGeometry.geometry.triangles.vertexCount = positions.size();
+		blasGeometry.geometry.triangles.vertexData = internalModel.VertexBuffers[POSITION].buffer;
+		blasGeometry.geometry.triangles.vertexFormat = VK_FORMAT_R32G32B32_SFLOAT;
+		blasGeometry.geometry.triangles.vertexOffset = 0;
+		blasGeometry.geometry.triangles.vertexStride = sizeof(glm::vec3);
+		blasGeometry.geometry.triangles.sType = VK_STRUCTURE_TYPE_GEOMETRY_TRIANGLES_NV;
+		blasGeometry.geometry.triangles.pNext = nullptr;
+		blasGeometry.geometry.triangles.transformData = nullptr;
+		blasGeometry.geometry.triangles.transformOffset = 0;
+		blasGeometry.geometry.aabbs.sType = VK_STRUCTURE_TYPE_GEOMETRY_AABB_NV;
+		blasGeometry.geometry.aabbs.pNext = nullptr;
+		blasGeometry.geometry.aabbs.aabbData = nullptr;
+		blasGeometry.geometry.aabbs.numAABBs = 0;
+		blasGeometry.geometry.aabbs.offset = 0;
+		blasGeometry.geometry.aabbs.stride = 0;
+		blasGeometry.flags = VK_GEOMETRY_OPAQUE_BIT_NV;
+		m.Blas.opaque = true;
+		if (model.Materials[model.Meshes[i].Material].MaterialFlags & MAT_FLAG_TRANSPARENT) {
+			//blasGeometry.flags = 0;
+			//m.Blas.opaque = false;
+		} else {
+			blasGeometry.flags = VK_GEOMETRY_OPAQUE_BIT_NV;
+			m.Blas.opaque = true;
+		}
+		blasGeometry.sType = VK_STRUCTURE_TYPE_GEOMETRY_NV;
+		blasGeometry.pNext = nullptr;
 
-	VkAccelerationStructureCreateInfoNV blasCreateInfo = {};
-	blasCreateInfo.info.instanceCount = 0;
-	blasCreateInfo.info.geometryCount = 1;
-	blasCreateInfo.info.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_NV;
-	blasCreateInfo.info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_INFO_NV;
-	blasCreateInfo.info.pNext = nullptr;
-	blasCreateInfo.info.pGeometries = &blasGeometry;
-	blasCreateInfo.info.flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_NV;
-	blasCreateInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_NV;
-	blasCreateInfo.pNext = nullptr;
-	//create blas
-	vkCreateAccelerationStructureNV(*m_Device, &blasCreateInfo, nullptr, &internalModel.Blas.Handle);
-	//calc scratch buffer size
-	VkAccelerationStructureMemoryRequirementsInfoNV asMemReqInfo = {};
-	asMemReqInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_INFO_NV;
-	asMemReqInfo.pNext = nullptr;
-	asMemReqInfo.type = VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_OBJECT_NV;
-	asMemReqInfo.accelerationStructure = internalModel.Blas.Handle;
-	VkMemoryRequirements2KHR memReqs = {};
-	memReqs.sType = VK_STRUCTURE_TYPE_MEMORY_REQUIREMENTS_2_KHR;
-	memReqs.pNext = nullptr;
-	vkGetAccelerationStructureMemoryRequirementsNV(*m_Device, &asMemReqInfo, &memReqs);
-	internalModel.Blas.Size = memReqs.memoryRequirements.size;
-	internalModel.Blas.Memory = m_DeviceAllocator->AllocateBuffer(VK_BUFFER_USAGE_RAY_TRACING_BIT_NV, internalModel.Blas.Size, nullptr, memReqs.memoryRequirements.memoryTypeBits);
+		m_BLASGeometry[handle + i] = blasGeometry;
 
-	VkBindAccelerationStructureMemoryInfoNV blasBindInfo = {};
-	blasBindInfo.accelerationStructure = internalModel.Blas.Handle;
-	blasBindInfo.memory = m_DeviceAllocator->GetMemory(internalModel.Blas.Memory.memory);
-	blasBindInfo.sType = VK_STRUCTURE_TYPE_BIND_ACCELERATION_STRUCTURE_MEMORY_INFO_NV;
-	blasBindInfo.pNext = nullptr;
-	blasBindInfo.memoryOffset = m_DeviceAllocator->GetMemoryOffset(internalModel.Blas.Memory.memory);
-	blasBindInfo.deviceIndexCount = 0;
-	blasBindInfo.pDeviceIndices = nullptr;
-	vkBindAccelerationStructureMemoryNV(*m_Device, 1, &blasBindInfo);
+		VkAccelerationStructureCreateInfoNV blasCreateInfo = {};
+		m.Blas.Info.instanceCount = 0;
+		m.Blas.Info.geometryCount = 1;
+		m.Blas.Info.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_NV;
+		m.Blas.Info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_INFO_NV;
+		m.Blas.Info.pNext = nullptr;
+		m.Blas.Info.pGeometries = &m_BLASGeometry[handle + i];
+		m.Blas.Info.flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_NV;
+		m.Blas.Info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_INFO_NV;
+		m.Blas.Info.pNext = nullptr;
+		blasCreateInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_NV;
+		blasCreateInfo.pNext = nullptr;
+		blasCreateInfo.info = m.Blas.Info;
+		//create blas
+		vkCreateAccelerationStructureNV(*m_Device, &blasCreateInfo, nullptr, &m.Blas.AS);
+		//calc scratch buffer size
+		VkAccelerationStructureMemoryRequirementsInfoNV asMemReqInfo = {};
+		asMemReqInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_INFO_NV;
+		asMemReqInfo.pNext = nullptr;
+		asMemReqInfo.type = VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_OBJECT_NV;
+		asMemReqInfo.accelerationStructure = m.Blas.AS;
+		VkMemoryRequirements2KHR memReqs = {};
+		memReqs.sType = VK_STRUCTURE_TYPE_MEMORY_REQUIREMENTS_2_KHR;
+		memReqs.pNext = nullptr;
+		vkGetAccelerationStructureMemoryRequirementsNV(*m_Device, &asMemReqInfo, &memReqs);
+		m.Blas.Size = memReqs.memoryRequirements.size;
+		m.Blas.Memory = m_DeviceAllocator->AllocateBuffer(VK_BUFFER_USAGE_RAY_TRACING_BIT_NV, m.Blas.Size, nullptr, memReqs.memoryRequirements.memoryTypeBits);
+
+		asMemReqInfo.type = VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_BUILD_SCRATCH_NV;
+		vkGetAccelerationStructureMemoryRequirementsNV(*m_Device, &asMemReqInfo, &memReqs);
+		m_BLASScratchBuffersize = glm::max(m_BLASScratchBuffersize, memReqs.memoryRequirements.size);
+		m_ScratchBufferMemBits = memReqs.memoryRequirements.memoryTypeBits;
+
+		VkBindAccelerationStructureMemoryInfoNV blasBindInfo = {};
+		blasBindInfo.accelerationStructure = m.Blas.AS;
+		blasBindInfo.memory = m_DeviceAllocator->GetMemory(m.Blas.Memory.memory);
+		blasBindInfo.sType = VK_STRUCTURE_TYPE_BIND_ACCELERATION_STRUCTURE_MEMORY_INFO_NV;
+		blasBindInfo.pNext = nullptr;
+		blasBindInfo.memoryOffset = m_DeviceAllocator->GetMemoryOffset(m.Blas.Memory.memory);
+		blasBindInfo.deviceIndexCount = 0;
+		blasBindInfo.pDeviceIndices = nullptr;
+		vkBindAccelerationStructureMemoryNV(*m_Device, 1, &blasBindInfo);
+
+		vkGetAccelerationStructureHandleNV(*m_Device, m.Blas.AS, sizeof(uint64_t), &m.Blas.Handle);
+		m_BLASBuildQueue.push_back(&m.Blas);
+	}
 #endif
 
 	m_Models[handle] = internalModel;
+
+#ifdef RTX_ON
+	
+#endif
 }
 
 void ResourceHandler::AllocateTexture(const TextureInfo& tex, ResourceHandle handle) {
@@ -304,15 +332,8 @@ void ResourceHandler::AllocateTexture(const TextureInfo& tex, ResourceHandle han
 void ResourceHandler::AllocateShader(const PipelineStateInfo& psInfo, ResourceHandle handle) {
 	PipelineState ps;
 	//create renderpass if needed
-	VkRenderPass rp = nullptr;
-	//if (psInfo.RenderTargetCount > 0) {
-	//	SubPass sp;
-	//	for (uint32_t i = 0; i < psInfo.RenderTargetCount; ++i) {
-	//		sp.RenderTargets.push_back(psInfo.RenderTargets[i]);
-	//	}
-	//	sp.DepthStencilAttachment = psInfo.DepthStencil;
-	//	rp = m_FrameBufferManager->CreateRenderPass(0xDEAD1331,{ sp });
-	//}
+	VkRenderPass rp = m_FrameBufferManager->GetRenderPass(psInfo.RenderPass);
+	VkFramebuffer fb = m_FrameBufferManager->GetFrameBuffer(psInfo.RenderPass);
 	ps.LoadPipelineFromInfo(*m_Device, psInfo, rp);
 	m_PipelineStates[handle] = ps;
 }
@@ -342,11 +363,11 @@ void ResourceHandler::DeAllocateModel(ResourceHandle handle) {
 		//deallocate materials
 		for (uint32_t i = 0; i < m.MeshCount; ++i) {
 			auto& mesh = m.Meshes[i];
-			if (mesh.Material.Textures) {
-				for (uint32_t t = 0; t < mesh.Material.TextureCount; ++t) {
-					m_DeviceAllocator->DeAllocateImage(mesh.Material.Textures[t]);
-				}
-			}
+			//if (mesh.Material.Textures) {
+			//	for (uint32_t t = 0; t < mesh.Material.TextureCount; ++t) {
+			//		m_DeviceAllocator->DeAllocateImage(mesh.Material.Textures[t]);
+			//	}
+			//}
 		}
 		delete[] m.Meshes;
 	}
@@ -389,4 +410,33 @@ void ResourceHandler::Clear() {
 	m_DeviceAllocator->DeAllocateImage(m_DefaultMetal.GetImageHandle());
 	m_DeviceAllocator->DeAllocateImage(m_DefaultNormal.GetImageHandle());
 	m_DeviceAllocator->DeAllocateImage(m_DefaultRoughness.GetImageHandle());
+}
+
+void ResourceHandler::BuildBLAS(CommandBuffer& cmdBuffer, int maxCount) {
+	if (!m_ScratchBufferAllocated) {
+		m_ScratchBuffer = m_DeviceAllocator->AllocateBuffer(VK_BUFFER_USAGE_RAY_TRACING_BIT_NV, m_BLASScratchBuffersize, nullptr, m_ScratchBufferMemBits);
+	}
+
+	int buildCount = glm::min(maxCount, (int)m_BLASBuildQueue.size());
+
+	VkMemoryBarrier memoryBarrier = {};
+	memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+	memoryBarrier.pNext = nullptr;
+	memoryBarrier.srcAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV | VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV;
+	memoryBarrier.dstAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV | VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV;
+
+	int s = m_BLASBuildQueue.size() - 1;
+
+	for (int i = 0; i < buildCount; ++i) {
+		BLAS* blas = m_BLASBuildQueue[s - i];
+		vkCmdBuildAccelerationStructureNV(cmdBuffer.CmdBuffer(), &blas->Info, nullptr, 0, false, blas->AS, nullptr, m_ScratchBuffer.buffer, 0);
+
+		vkCmdPipelineBarrier(cmdBuffer.CmdBuffer(),
+			VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV,
+			VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV,
+			0, 1, &memoryBarrier, 0, nullptr, 0, nullptr);
+
+		m_BLASBuildQueue.pop_back();
+		blas->Built = true;
+	}
 }

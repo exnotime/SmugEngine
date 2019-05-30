@@ -4,3 +4,4 @@ data/
 AS_DEBUG/
 ./imgui.ini
 shader/cache/
+assets/models/ignored/

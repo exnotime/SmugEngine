@@ -1,11 +1,13 @@
 #include "GraphicsEngine.h"
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
+#include <Utility/Hash.h>
 #include "Vertex.h"
 #include "Core/Timer.h"
 #include "Core/Input.h"
 #include "RaytracingProgram.h"
-//#define USE_DEBUG_LAYER
+#include "LightingProgram.h"
+#define USE_DEBUG_LAYER
 
 using namespace smug;
 
@@ -275,7 +277,6 @@ void GraphicsEngine::CreateSwapChain(VkSurfaceKHR surface) {
 	framebufferInfo.pAttachments = fbViews2;
 	vkCreateFramebuffer(VK_DEVICE, &framebufferInfo, nullptr, &m_VKSwapChain.FrameBuffers[1]);
 
-
 	//hdr offscreen framebuffer
 	eastl::vector<VkFormat> fboFormats;
 	fboFormats.push_back(VkFormat::VK_FORMAT_R16G16B16A16_UNORM);
@@ -328,24 +329,6 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	m_Viewport.y = 0;
 	m_Scissor.extent = { (uint32_t)windowSize.x, (uint32_t)windowSize.y };
 	m_Scissor.offset = { 0,0 };
-	//load pipelines
-	m_Pipeline.SetDefaultVertexState(Geometry::GetVertexState());
-
-	m_Pipeline.LoadPipelineFromFile(VK_DEVICE, "shader/filled.json", m_FrameBuffer.GetRenderPass());
-
-	m_PerFrameBuffer = m_DeviceAllocator.AllocateBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(PerFrameBuffer), nullptr);
-
-	MemoryBudget memBudget;
-	memBudget.GeometryBudget = 0;
-	memBudget.MaterialBudget = 0;
-	m_Resources = new ResourceHandler();
-	m_Resources->Init(&VK_DEVICE, VK_PHYS_DEVICE, memBudget, m_DeviceAllocator, m_FrameBuffer);
-	m_RenderQueues = new RenderQueue[BUFFER_COUNT];
-	for (int q = 0; q < BUFFER_COUNT; ++q) {
-		m_RenderQueues[q].Init(*m_Resources, q);
-	}
-	m_StaticRenderQueue = new RenderQueue();
-	m_StaticRenderQueue->Init(*m_Resources, BUFFER_COUNT);
 
 	VkDescriptorPoolCreateInfo descPoolInfo = {};
 	descPoolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -366,6 +349,25 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	descPoolInfo.poolSizeCount = (uint32_t)poolSizes.size();
 	vkCreateDescriptorPool(VK_DEVICE, &descPoolInfo, nullptr, &VK_DESC_POOL);
 
+	MemoryBudget memBudget;
+	memBudget.GeometryBudget = 0;
+	memBudget.MaterialBudget = 0;
+	m_Resources = new ResourceHandler();
+	m_Resources->Init(&VK_DEVICE, VK_PHYS_DEVICE, memBudget, m_DeviceAllocator, m_FrameBuffer);
+	m_RenderQueues = new RenderQueue[BUFFER_COUNT];
+	for (int q = 0; q < BUFFER_COUNT; ++q) {
+		m_RenderQueues[q].Init(*m_Resources, q);
+	}
+	m_StaticRenderQueue = new RenderQueue();
+	m_StaticRenderQueue->Init(*m_Resources, BUFFER_COUNT);
+}
+
+void GraphicsEngine::InitPipeline() {
+	//load pipelines
+	m_Pipeline.SetDefaultVertexState(Geometry::GetVertexState());
+	m_Pipeline.LoadPipelineFromFile(VK_DEVICE, "shader/filled.json", m_FrameBuffer.GetRenderPass(HashString("ColorPass")));
+	m_PerFrameBuffer = m_DeviceAllocator.AllocateBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(PerFrameBuffer), nullptr);
+
 	//tonemapping
 	m_ToneMapping = new ToneMapProgram();
 	m_ToneMapping->Init(VK_DEVICE, m_ScreenSize, m_FrameBuffer, VK_DESC_POOL, m_RenderPass, m_DeviceAllocator);
@@ -373,8 +375,15 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	m_ShadowProgram->Init(m_VKContext, m_DeviceAllocator);
 #if defined(RTX_ON)
 	m_RaytracingProgram = new RaytracingProgram();
-	m_RaytracingProgram->Init(VK_DEVICE, VK_PHYS_DEVICE, m_VKContext.Instance, m_VKContext.DescriptorPool, m_FrameBuffer.GetView(0, 0), m_DeviceAllocator);
+	m_RaytracingProgram->Init(VK_DEVICE, VK_PHYS_DEVICE, m_VKContext.Instance, m_VKContext.DescriptorPool,
+		m_FrameBuffer.GetRenderTarget(HashString("Shadows")).View,
+		m_FrameBuffer.GetRenderTarget(HashString("DepthStencil")).View,
+		m_FrameBuffer.GetRenderTarget(HashString("Normals")).View,
+		m_DeviceAllocator);
 #endif
+	m_LightProgram = new LightingProgram();
+	m_LightProgram->Init(VK_DEVICE, VK_DESC_POOL, m_Resources, &m_FrameBuffer, &m_DeviceAllocator);
+
 	{
 		//uniform set
 		VkDescriptorSetAllocateInfo descSetAllocInfo = {};
@@ -471,7 +480,7 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	}
 
 	vkUpdateDescriptorSets(VK_DEVICE, c + BUFFER_COUNT + 1, descWrites, 0, nullptr);
-	m_SkyBox.Init(VK_DEVICE, VK_PHYS_DEVICE, "assets/textures/skybox.dds", m_Viewport, m_FrameBuffer.GetRenderPass(), m_DeviceAllocator);
+	m_SkyBox.Init(VK_DEVICE, VK_PHYS_DEVICE, "assets/textures/skybox.dds", m_Viewport, m_FrameBuffer.GetRenderPass(HashString("ColorPass")), m_DeviceAllocator);
 	//prepare initial transfer
 	CommandBuffer* cmdBuffer = m_CmdBufferFactory->GetNextBuffer();
 	cmdBuffer->Begin(nullptr, nullptr);
@@ -479,17 +488,30 @@ void GraphicsEngine::Init(glm::vec2 windowSize, bool vsync, HWND hWnd) {
 	for (int i = 0; i < BUFFER_COUNT; i++) {
 		cmdBuffer->ImageBarrier(m_VKSwapChain.Images[i], VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED, VkImageLayout::VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 	}
-
 	eastl::vector<VkImageLayout> layouts;
 	layouts.push_back(VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 	layouts.push_back(VkImageLayout::VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 	m_FrameBuffer.ChangeLayout(*cmdBuffer, layouts);
 	m_DeviceAllocator.ScheduleTransfers(cmdBuffer);
 
+#if defined(RTX_ON)
+	m_Resources->BuildBLAS(*cmdBuffer, 256);
+#endif
+
 	m_CmdBufferFactory->EndBuffer(cmdBuffer);
 	m_vkQueue.Submit(cmdBuffer->CmdBuffer());
 	vkQueueWaitIdle(m_vkQueue.GetQueue());
 	m_Profiler.Init(VK_DEVICE, VK_PHYS_DEVICE);
+
+	m_ColorPassHash = HashString("ColorPass");
+	m_AlbedoTargetHash = HashString("Albedo");
+	m_NormalsTargetHash = HashString("Normals");
+	m_MaterialTargetHash = HashString("Material");
+	m_DepthTargetHash = HashString("DepthStencil");
+	m_ShadowTargetHash = HashString("Shadows");
+	m_HDRTargetHash = HashString("HDR");
+
+
 }
 
 void GraphicsEngine::DeInit() {
@@ -522,32 +544,44 @@ void GraphicsEngine::DeInit() {
 	m_DeviceAllocator.DeInit();
 }
 
-void GraphicsEngine::RenderModels(RenderQueue& rq, CommandBuffer& cmdBuffer) {
+void GraphicsEngine::RenderModels(RenderQueue& rq, CommandBuffer& cmdBuffer, VkViewport vp) {
 	if (rq.GetModels().size() == 0) {
 		return;
 	}
 	VkDescriptorSet sets[] = { m_PerFrameSet, m_IBLDescSet, rq.GetDescriptorSet() };
-	vkCmdBindDescriptorSets(cmdBuffer.CmdBuffer(), VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline.GetPipelineLayout(), 0, _countof(sets), sets, 0, nullptr);
+	
+	ResourceHandle shader = 0;
 	auto& models = rq.GetModels();
 	for (auto& m : models) {
 		uint32_t instanceCount = m.second.Count;
 		m_Stats.ModelCount += instanceCount;
+		//pipeline state
+		const PipelineState& ps = m.second.Shader != UINT_MAX ? m_Resources->GetPipelineState(m.second.Shader) : m_Pipeline;
+		if(m.second.Shader != shader){
+			vkCmdBindPipeline(cmdBuffer.CmdBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, ps.GetPipeline());
+			vkCmdBindDescriptorSets(cmdBuffer.CmdBuffer(), VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_GRAPHICS, ps.GetPipelineLayout(), 0, _countof(sets), sets, 0, nullptr);
+			vkCmdSetViewport(cmdBuffer.CmdBuffer(), 0, 1, &vp);
+			VkRect2D scissor = { 0, 0, vp.width, vp.height };
+			vkCmdSetScissor(cmdBuffer.CmdBuffer(), 0, 1, &scissor);
 
+			shader = m.second.Shader;
+		}
+		
+		//vertex buffers
 		const Model& model = m_Resources->GetModel(m.first);
-		const VkBuffer vertexBuffers[4] = { model.VertexBuffers[0].buffer, model.VertexBuffers[1].buffer,
-		                                      model.VertexBuffers[2].buffer, model.VertexBuffers[3].buffer
-		                                    };
+		const VkBuffer vertexBuffers[4] = { model.VertexBuffers[0].buffer, model.VertexBuffers[1].buffer, model.VertexBuffers[2].buffer, model.VertexBuffers[3].buffer};
 		const VkDeviceSize offsets[4] = { 0,0,0,0 };
 		vkCmdBindVertexBuffers(cmdBuffer.CmdBuffer(), 0, 4, vertexBuffers, offsets);
+		//index buffers
 		vkCmdBindIndexBuffer(cmdBuffer.CmdBuffer(), model.IndexBuffer.buffer, 0, VkIndexType::VK_INDEX_TYPE_UINT32);
-		vkCmdPushConstants(cmdBuffer.CmdBuffer(), m_Pipeline.GetPipelineLayout(), VkShaderStageFlagBits::VK_SHADER_STAGE_ALL, 0, sizeof(unsigned), &m.second.Offset);
+		vkCmdPushConstants(cmdBuffer.CmdBuffer(), ps.GetPipelineLayout(), VkShaderStageFlagBits::VK_SHADER_STAGE_ALL, 0, sizeof(unsigned), &m.second.Offset);
 		VkDescriptorSet mat = nullptr;
 		for (uint32_t meshIt = 0; meshIt < model.MeshCount; ++meshIt) {
 			m_Stats.MeshCount += instanceCount;
 			Mesh& mesh = model.Meshes[meshIt];
 			if (mat != mesh.Material.DescSet) {
 				mat = mesh.Material.DescSet;
-				vkCmdBindDescriptorSets(cmdBuffer.CmdBuffer(), VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline.GetPipelineLayout(), 3, 1, &mesh.Material.DescSet, 0, nullptr);
+				vkCmdBindDescriptorSets(cmdBuffer.CmdBuffer(), VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_GRAPHICS, ps.GetPipelineLayout(), 3, 1, &mesh.Material.DescSet, 0, nullptr);
 			}
 			m_Stats.TriangleCount += (mesh.IndexCount / 3) * instanceCount;
 			vkCmdDrawIndexed(cmdBuffer.CmdBuffer(), mesh.IndexCount, instanceCount, mesh.IndexOffset, 0, 0);
@@ -557,18 +591,12 @@ void GraphicsEngine::RenderModels(RenderQueue& rq, CommandBuffer& cmdBuffer) {
 
 void GraphicsEngine::Render() {
 	m_Profiler.Print();
-	//pipelineEditor.Update();
 	RenderQueue& rq = m_RenderQueues[VK_FRAME_INDEX];
 	//reset stats
 	{
 		m_Stats.ModelCount = 0;
 		m_Stats.MeshCount = 0;
 		m_Stats.TriangleCount = 0;
-	}
-
-	if (ImGui::Button("Recompile Shader")) {
-		m_ShadowProgram->Recompile();
-		m_Pipeline.ReloadPipelineFromFile(VK_DEVICE, "shader/filled.json", m_RenderPass);
 	}
 	//Transfer new frame data to GPU
 	{
@@ -580,15 +608,13 @@ void GraphicsEngine::Render() {
 		uniformBuffer.ViewProj = cd.ProjView;
 		uniformBuffer.View = cd.View;
 		uniformBuffer.CameraPos = glm::vec4(cd.Position, 1);
-		static glm::vec3 lightDir = glm::vec3(0.1f, -1.0f, -0.5f);
+		static glm::vec3 lightDir = glm::vec3(0.2f, -1.0f, -0.7f);
 		static float globalRoughness = 1.0f;
 		static bool metallic = false;
-		//ImGui::Begin("Scene");
-		//ImGui::DragFloat3("Lighting direction", &lightDir[0], 0.001f, -1.0f, 1.0f);
-		//ImGui::SliderFloat("Global Roughness", &globalRoughness,0, 1.0f);
-		//ImGui::Checkbox("Metal", &metallic);
-		//ImGui::End();
-		uniformBuffer.LightDir = glm::normalize(glm::vec4(lightDir, 1.0f));
+
+		ImGui::SliderFloat3("LightDir", &lightDir[0], -1, 1);
+		lightDir = glm::normalize(lightDir);
+		uniformBuffer.LightDir = glm::vec4(lightDir, 1.0f);
 		uniformBuffer.Material.x = globalRoughness;
 		uniformBuffer.Material.y = metallic ? 1.0f : 0.0f;
 		uniformBuffer.LightViewProj[0] = m_ShadowProgram->GetShadowMatrix(0);
@@ -600,22 +626,28 @@ void GraphicsEngine::Render() {
 
 		m_DeviceAllocator.UpdateBuffer(m_PerFrameBuffer, sizeof(PerFrameBuffer), &uniformBuffer);
 		m_ToneMapping->Update(m_DeviceAllocator);
-		
+		m_LightProgram->Update(&m_DeviceAllocator, lightDir, glm::inverse(cd.ProjView), cd.Position, m_ScreenSize);
 		rq.ScheduleTransfer(m_DeviceAllocator);
+		m_SkyBox.PrepareUniformBuffer(m_DeviceAllocator, cd.ProjView, glm::translate(cd.Position));
 
+#ifdef RTX_ON
+		m_RaytracingProgram->AddRenderQueueToTLAS(m_StaticRenderQueue, true, m_DeviceAllocator, *m_Resources);
+		m_RaytracingProgram->AddRenderQueueToTLAS(&rq, false, m_DeviceAllocator, *m_Resources);
+		m_RaytracingProgram->Update(&m_DeviceAllocator, &cd, lightDir);
+#endif
 		m_CmdBufferFactory->Reset(VK_DEVICE, VK_FRAME_INDEX);
-
 		CommandBuffer* cmdBuffer = m_CmdBufferFactory->GetNextBuffer();
 		cmdBuffer->Begin(nullptr, nullptr);
 		m_Profiler.Stamp(cmdBuffer->CmdBuffer(), "Start");
-#ifdef RTX_ON
-		m_RaytracingProgram->Update(cmdBuffer, &m_DeviceAllocator, &cd);
-#endif
-		m_SkyBox.PrepareUniformBuffer(m_DeviceAllocator, cd.ProjView, glm::translate(cd.Position));
 		m_DeviceAllocator.ScheduleTransfers(cmdBuffer);
+
+#ifdef RTX_ON
+		m_Resources->BuildBLAS(*cmdBuffer, 100);
+		m_Profiler.Stamp(cmdBuffer->CmdBuffer(), "Build TLAS");
+		m_RaytracingProgram->BuildTLAS(cmdBuffer);
+#endif
 		m_Profiler.Stamp(cmdBuffer->CmdBuffer(), "Transfer frame data");
 		m_CmdBufferFactory->EndBuffer(cmdBuffer);
-
 		m_vkQueue.Submit(cmdBuffer->CmdBuffer(), nullptr, m_TransferComplete, nullptr);
 
 	}
@@ -629,29 +661,34 @@ void GraphicsEngine::Render() {
 		//cmdBuffers.push_back(*cmdBuffer);
 
 		CommandBuffer* cmdBuffer = m_CmdBufferFactory->GetNextBuffer();
-		cmdBuffer->Begin(m_FrameBuffer.GetFrameBuffer(), m_FrameBuffer.GetRenderPass());
+		VkRenderPass colorPass = m_FrameBuffer.GetRenderPass(m_ColorPassHash);
+		VkFramebuffer colorBuffer = m_FrameBuffer.GetFrameBuffer(m_ColorPassHash);
 
-		eastl::vector<VkImageLayout> newLayouts;
-		newLayouts.push_back(VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-		newLayouts.push_back(VkImageLayout::VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+		cmdBuffer->Begin(colorBuffer, colorPass);
 
-		m_FrameBuffer.ChangeLayout(*cmdBuffer, newLayouts);
+		m_FrameBuffer.ChangeLayout(*cmdBuffer, m_AlbedoTargetHash, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+		m_FrameBuffer.ChangeLayout(*cmdBuffer, m_NormalsTargetHash, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+		m_FrameBuffer.ChangeLayout(*cmdBuffer, m_MaterialTargetHash, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+		m_FrameBuffer.ChangeLayout(*cmdBuffer, m_DepthTargetHash, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+
 		cmdBuffer->PushPipelineBarrier();
 
 		VkRenderPassBeginInfo renderPassInfo = {};
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		renderPassInfo.pNext = nullptr;
-		renderPassInfo.framebuffer = m_FrameBuffer.GetFrameBuffer();
-		renderPassInfo.renderPass = m_FrameBuffer.GetRenderPass();
+		renderPassInfo.framebuffer = colorBuffer;
+		renderPassInfo.renderPass = colorPass;
 		glm::vec4 color = glm::vec4(0);
-		VkClearValue clearValues[2];
-		clearValues[0].color.float32[0] = color.r;
-		clearValues[0].color.float32[1] = color.g;
-		clearValues[0].color.float32[2] = color.b;
-		clearValues[0].color.float32[3] = 1;
-		clearValues[1].depthStencil.depth = 1.0f;
-		clearValues[1].depthStencil.stencil = 0x0;
-		renderPassInfo.clearValueCount = 2;
+		VkClearValue clearValues[4];
+		for (uint32_t i = 0; i < 3; ++i) {
+			clearValues[i].color.float32[0] = color.r;
+			clearValues[i].color.float32[1] = color.g;
+			clearValues[i].color.float32[2] = color.b;
+			clearValues[i].color.float32[3] = 1;
+		}
+		clearValues[3].depthStencil.depth = 1.0f;
+		clearValues[3].depthStencil.stencil = 0x0;
+		renderPassInfo.clearValueCount = 4;
 		renderPassInfo.pClearValues = clearValues;
 		renderPassInfo.renderArea = { 0, 0, (uint32_t)m_FrameBuffer.GetSize().x, (uint32_t)m_FrameBuffer.GetSize().y };
 		vkCmdBeginRenderPass(cmdBuffer->CmdBuffer(), &renderPassInfo, VkSubpassContents::VK_SUBPASS_CONTENTS_INLINE);
@@ -661,15 +698,42 @@ void GraphicsEngine::Render() {
 		m_Profiler.Stamp(cmdBuffer->CmdBuffer(), "SkyBox");
 		m_SkyBox.Render(cmdBuffer);
 		//render here
-		vkCmdBindPipeline(cmdBuffer->CmdBuffer(), VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline.GetPipeline());
 		m_Profiler.Stamp(cmdBuffer->CmdBuffer(), "Render Statics");
-		RenderModels(*m_StaticRenderQueue, *cmdBuffer);
+		RenderModels(*m_StaticRenderQueue, *cmdBuffer, m_Viewport);
 		m_Profiler.Stamp(cmdBuffer->CmdBuffer(), "Render Dynamics");
-		RenderModels(rq, *cmdBuffer);
+		RenderModels(rq, *cmdBuffer, m_Viewport);
 		vkCmdEndRenderPass(cmdBuffer->CmdBuffer());
+
+		m_FrameBuffer.ChangeLayout(*cmdBuffer, m_AlbedoTargetHash, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		m_FrameBuffer.ChangeLayout(*cmdBuffer, m_NormalsTargetHash, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		m_FrameBuffer.ChangeLayout(*cmdBuffer, m_MaterialTargetHash, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		m_FrameBuffer.ChangeLayout(*cmdBuffer, m_DepthTargetHash, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		//m_FrameBuffer.ChangeLayout(*cmdBuffer, m_ShadowTargetHash, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+		cmdBuffer->PushPipelineBarrier();
+
+		VkClearColorValue clearValue = {};
+		clearValue.float32[0] = 1.0f;
+		VkImageSubresourceRange range = {};
+		range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		range.baseArrayLayer = 0;
+		range.baseMipLevel = 0;
+		range.layerCount = 1;
+		range.levelCount = 1;
+		//vkCmdClearColorImage(cmdBuffer->CmdBuffer(), m_FrameBuffer.GetRenderTarget(m_ShadowTargetHash).Handle, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clearValue, 1, &range);
+		m_FrameBuffer.ChangeLayout(*cmdBuffer, m_ShadowTargetHash, VK_IMAGE_LAYOUT_GENERAL);
+		cmdBuffer->PushPipelineBarrier();
+
 #if defined(RTX_ON)
+		m_Profiler.Stamp(cmdBuffer->CmdBuffer(), "Raytrace");
 		m_RaytracingProgram->Render(cmdBuffer);
 #endif
+		m_Profiler.Stamp(cmdBuffer->CmdBuffer(), "Lighting");
+		m_FrameBuffer.ChangeLayout(*cmdBuffer, m_ShadowTargetHash, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		m_FrameBuffer.ChangeLayout(*cmdBuffer, m_HDRTargetHash, VK_IMAGE_LAYOUT_GENERAL);
+		cmdBuffer->PushPipelineBarrier();
+
+		m_LightProgram->Render(cmdBuffer->CmdBuffer(), m_Resources, m_IBLDescSet, m_ScreenSize);
+
 		m_CmdBufferFactory->EndBuffer(cmdBuffer);
 		cmdBuffers.push_back(cmdBuffer->CmdBuffer());
 
@@ -704,11 +768,8 @@ void GraphicsEngine::Render() {
 		VkClearValue cv = { cc };
 		rpBeginInfo.pClearValues = &cv;
 
-		eastl::vector<VkImageLayout> newLayouts;
-		newLayouts.push_back(VkImageLayout::VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-		newLayouts.push_back(VkImageLayout::VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
-
-		m_FrameBuffer.ChangeLayout(*cmdBuffer, newLayouts);
+		m_FrameBuffer.ChangeLayout(*cmdBuffer, m_HDRTargetHash, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		
 		cmdBuffer->PushPipelineBarrier();
 		vkCmdBeginRenderPass(cmdBuffer->CmdBuffer(), &rpBeginInfo, VkSubpassContents::VK_SUBPASS_CONTENTS_INLINE);
 		vkCmdSetViewport(cmdBuffer->CmdBuffer(), 0, 1, &m_Viewport);
@@ -765,6 +826,9 @@ void GraphicsEngine::TransferToGPU() {
 	m_Resources->ScheduleTransfer(*cmdBuffer);
 	m_CmdBufferFactory->EndBuffer(cmdBuffer);
 	m_StaticRenderQueue->ScheduleTransfer(m_DeviceAllocator);
+#if defined(RTX_ON)
+	m_RaytracingProgram->AddRenderQueueToTLAS(m_StaticRenderQueue, true, m_DeviceAllocator, *m_Resources);
+#endif
 	m_vkQueue.Submit(cmdBuffer->CmdBuffer());
 	vkQueueWaitIdle(m_vkQueue.GetQueue());
 }

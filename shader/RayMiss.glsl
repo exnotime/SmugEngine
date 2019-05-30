@@ -4,5 +4,5 @@
 layout(location = 0) rayPayloadInNV vec4 ColorPayload;
 
 void main(){
-    ColorPayload = vec4(1.0f, 0, 0, 0.0f);
+    ColorPayload = vec4(1.0f, 1.0f, 1.0f, 1.0f);
 }

@@ -15,240 +15,9 @@ using namespace smug;
 ShaderLoader::ShaderLoader() {}
 ShaderLoader::~ShaderLoader() {}
 
-#define USE_GLSLANGVALIDATOR
-
-#ifdef USE_SHADERC
-ShaderByteCode* CompileShader(const eastl::string& file, SHADER_KIND kind, const eastl::string& entryPoint, SHADER_LANGUAGE lang, bool debug) {
-	//load shader file
-	struct stat fileBuf;
-	stat(file.c_str(), &fileBuf);
-
-	FILE* fin = fopen(file.c_str(), "rb");
-	char* code = new char[fileBuf.st_size];
-	fread(code, sizeof(char), fileBuf.st_size, fin);
-	fclose(fin);
-
-	//compile into spir-v
-	shaderc_compiler_t compiler = shaderc_compiler_initialize();
-	shaderc_compile_options_t options = shaderc_compile_options_initialize();
-
-	if (lang == GLSL)
-		shaderc_compile_options_set_source_language(options, shaderc_source_language_glsl);
-	else if (lang == HLSL)
-		shaderc_compile_options_set_source_language(options, shaderc_source_language_hlsl);
-
-	if(debug)
-		shaderc_compile_options_set_generate_debug_info(options);
-	shaderc_compile_options_set_optimization_level(options, shaderc_optimization_level::shaderc_optimization_level_zero);
-
-	auto includeResolver = [](void* user_data, const char* requested_source, int type,
-	const char* requesting_source, size_t include_depth) -> shaderc_include_result* {
-		eastl::string filename;
-		if (type == shaderc_include_type_relative) {
-			eastl::string reqSrc = eastl::string(requesting_source);
-			filename = reqSrc.substr(0, reqSrc.find_last_of('/')) + '/' + eastl::string(requested_source);
-		} else if (type == shaderc_include_type_standard) {
-			filename = "shaders/" + eastl::string(requested_source);
-		}
-		FILE* fin = fopen(filename.c_str(), "rb");
-		fseek(fin, 0, SEEK_END);
-		size_t size = ftell(fin);
-		rewind(fin);
-		char* src = new char[size];
-		fread(src, sizeof(char), size, fin);
-		fclose(fin);
-
-		char* srcfile = new char[filename.size()];
-		strcpy(srcfile, filename.c_str());
-
-		eastl::vector<eastl::string>* includes = (eastl::vector<eastl::string>*)user_data;
-		includes->push_back(filename);
-
-		shaderc_include_result* res = new shaderc_include_result();
-		res->content = src;
-		res->content_length = size;
-		res->source_name = srcfile;
-		res->source_name_length = filename.size();
-		res->user_data = nullptr;
-		return res;
-	};
-
-	auto includeResRelease = [](void* user_data, shaderc_include_result* include_result) {
-		delete include_result;
-	};
-	//used to keep track of dependences
-	eastl::vector<eastl::string> includes;
-	shaderc_compile_options_set_include_callbacks(options, includeResolver, includeResRelease, &includes);
-
-	shaderc_shader_kind shaderType;
-	if (kind == VERTEX) {
-		shaderType = shaderc_glsl_vertex_shader;
-	} else if (kind == FRAGMENT) {
-		shaderType = shaderc_glsl_fragment_shader;
-	} else if (kind == GEOMETRY) {
-		shaderType = shaderc_glsl_geometry_shader;
-	} else if (kind == CONTROL) {
-		shaderType = shaderc_glsl_tess_control_shader;
-	} else if (kind == EVALUATION) {
-		shaderType = shaderc_glsl_tess_evaluation_shader;
-	} else if (kind == COMPUTE) {
-		shaderType = shaderc_glsl_compute_shader;
-	}
-
-	shaderc_compilation_result_t result = shaderc_compile_into_spv(compiler, code, fileBuf.st_size, shaderType, file.c_str(), "main", options);
-	if (shaderc_result_get_compilation_status(result) != shaderc_compilation_status_success) {
-		const char* errors = shaderc_result_get_error_message(result);
-		shaderc_result_release(result);
-		shaderc_compile_options_release(options);
-		shaderc_compiler_release(compiler);
-		return nullptr;
-	}
-	delete[] code;
-	ShaderByteCode* bc = new ShaderByteCode();
-	bc->ByteCodeSize = (uint32_t)shaderc_result_get_length(result);
-	bc->Kind = kind;
-	bc->SrcLanguage = lang;
-	bc->Type = SPIRV;
-	bc->ByteCode = malloc(bc->ByteCodeSize);
-	memcpy(bc->ByteCode, shaderc_result_get_bytes(result), bc->ByteCodeSize);
-	bc->DependencyCount = (uint32_t)includes.size();
-	if(bc->DependencyCount) {
-		bc->DependenciesHashes = (uint32_t*)malloc(sizeof(uint32_t) * bc->DependencyCount);
-		for (uint32_t i = 0; i < bc->DependencyCount; ++i) {
-			bc->DependenciesHashes[i] = HashString(includes[i]);
-		}
-	}
-
-	//clean up
-	shaderc_result_release(result);
-	shaderc_compile_options_release(options);
-	shaderc_compiler_release(compiler);
-
-	return bc;
-}
-#endif
-#ifdef USE_GLSLANGVALIDATOR
-ShaderByteCode* CompileShader(const eastl::string& file, SHADER_KIND kind, const eastl::string& entryPoint, SHADER_LANGUAGE lang, bool debug){
-	//use the program glslangvalidator
-	eastl::string command;
-	command += "%VULKAN_SDK%/Bin/glslangValidator.exe -V ";
-	switch (kind) {
-	case smug::VERTEX:
-		command += "-S vert -DVERTEX";
-		break;
-	case smug::FRAGMENT:
-		command += "-S frag -DFRAGMENT";
-		break;
-	case smug::GEOMETRY:
-		command += "-S geom -DGEOMETRY";
-		break;
-	case smug::EVALUATION:
-		command += "-S tese -DEVALUATION";
-		break;
-	case smug::CONTROL:
-		command += "-S tesc -DCONTROL";
-		break;
-	case smug::COMPUTE:
-		command += "-S comp -DCOMPUTE";
-		break;
-	}
-	command += " -e " + entryPoint;
-	if (debug)
-		command += " -g ";
-	command += " -I./shader";
-	command += " -o ./temp.spv";
-	command += " ./" + file;
-
-	system(command.c_str());
-	FILE* fin = fopen("./temp.spv", "rb");
-	if (fin) {
-		fseek(fin, 0, SEEK_END);
-		size_t size = ftell(fin);
-		rewind(fin);
-		ShaderByteCode* bc = new ShaderByteCode();
-		bc->Kind = kind;
-		bc->SrcLanguage = lang;
-		bc->Type = SPIRV;
-		bc->ByteCode = malloc(size);
-		bc->ByteCodeSize = (uint32_t)size;
-		fread(bc->ByteCode, sizeof(uint8_t), size, fin);
-		fclose(fin);
-		return bc;
-	}
-	fclose(fin);
-	return nullptr;
-}
-#endif
-
-char* ShaderLoader::LoadShaders(const eastl::string& filename, ShaderInfo& info) {
-	using namespace nlohmann;
-
-	std::ifstream fin(filename.c_str());
-	if (!fin.is_open()) {
-		//printf("Error opening pipeline file %s\n", filename.c_str());
-		fin.close();
-		return "Could not open shader file";
-	}
-	json root;
-	try {
-		fin >> root;
-	} catch (std::exception e) {
-		printf("json: %s\n", e.what());
-		return "json error";
-	}
-	fin.close();
-	//Find shaders
-	if (root.find("Shaders") != root.end()) {
-		json shaders = root["Shaders"];
-		eastl::vector<ShaderByteCode*> byte_codes;
-		const char* shader_types[] = { "Vertex", "Fragment", "Geometry", "Evaluation", "Control", "Compute" };
-		for (int i = 0; i < COMPUTE + 1; ++i) {
-			if (shaders.find(shader_types[i]) != shaders.end()) {
-				json shader = shaders[shader_types[i]];
-				eastl::string entry = "main";
-				SHADER_LANGUAGE lang = GLSL;
-
-				if (shader.find("EntryPoint") != shader.end()) {
-					std::string entry_name = shader["EntryPoint"];
-					entry = entry_name.c_str();
-				}
-
-				if (shader.find("Language") != shader.end()) {
-					if (shader["Language"] == "GLSL") {
-						lang = GLSL;
-					} else if (shader["Language"] == "HLSL") {
-						lang = HLSL;
-					}
-				}
-				if (entry.empty())
-					entry = "main";
-
-				std::string source = shader["Source"];
-
-				ShaderByteCode* bc = CompileShader(source.c_str(), SHADER_KIND(i), entry, lang, false);
-				if (!bc) {
-					return "Failed to compile shaders";
-				}
-				byte_codes.push_back(bc);
-			}
-		}
-		info.ShaderCount = (uint32_t)byte_codes.size();
-		info.Shaders = new ShaderByteCode[info.ShaderCount];
-		for (uint32_t i = 0; i < info.ShaderCount; ++i) {
-			info.Shaders[i] = *byte_codes[i];
-		}
-
-	} else {
-		return "No Shaders found in File";
-	}
-	return nullptr;
-}
-
-
 
 char* ReflectShaders(const eastl::vector<ShaderByteCode>& shaders, PipelineStateInfo& psInfoOut){
 	eastl::vector<Descriptor> descs;
-	eastl::vector<uint32_t> renderTargets;
 	psInfoOut.DescriptorCount = 0;
 	psInfoOut.PushConstants.Offset = 0;
 	psInfoOut.PushConstants.Size = 0;
@@ -317,25 +86,29 @@ char* ReflectShaders(const eastl::vector<ShaderByteCode>& shaders, PipelineState
 				psInfoOut.PushConstants.Offset = glm::min(psInfoOut.PushConstants.Offset, (uint32_t)r.offset);
 			}
 		}
-		//fragment shader outputs through framebuffers
-		if (shader.Kind == SHADER_KIND::FRAGMENT) {
-			for (auto& res : resources.stage_outputs) {
-				renderTargets.push_back(HashString((compiler->get_name(res.id).c_str())));
+		if (shader.Kind == SHADER_KIND::VERTEX) {
+			for (auto& v : resources.stage_inputs) {
+
 			}
 		}
+		delete compiler;
 	}
+	if (shaderCount) {
+		psInfoOut.ShaderCount = shaderCount;
+		psInfoOut.Shaders = (ShaderByteCode*)malloc(shaderCount * sizeof(ShaderByteCode));
+		memcpy(psInfoOut.Shaders, shaders.data(), shaderCount * sizeof(ShaderByteCode));
+	}
+
 	if (!descs.empty()) {
 		psInfoOut.Descriptors = (Descriptor*)malloc(sizeof(Descriptor) * descs.size());
 		memcpy(psInfoOut.Descriptors, descs.data(), sizeof(Descriptor) * descs.size());
 		psInfoOut.DescriptorCount = (uint32_t)descs.size();
 	}
-
+	
 	return nullptr;
 }
 
 LoadResult ShaderLoader::LoadAsset(const char* filename) {
-	/*ShaderInfo* info = (ShaderInfo*)malloc(sizeof(ShaderInfo));
-	char* error = LoadShaders(filename, *info);*/
 	char* error = nullptr;
 
 	AngelScript::asIScriptModule* shaderModule = g_ScriptEngine.CompileScriptToModule(filename);
@@ -344,10 +117,17 @@ LoadResult ShaderLoader::LoadAsset(const char* filename) {
 		g_ScriptEngine.ExecuteModule(shaderModule, "uint LoadPSO()");
 		pso = if_shader::GetPSO(g_ScriptEngine.GetContext()->GetReturnDWord());
 	}
-
-	PipelineStateInfo* psInfo = (PipelineStateInfo*)malloc(sizeof(PipelineStateInfo));
+	PipelineStateInfo* psInfo = nullptr;
 	if (!error) {
-		//error = ReflectShaders(*info, *psInfo);
+		psInfo = (PipelineStateInfo*)malloc(sizeof(PipelineStateInfo));
+		error = ReflectShaders(pso->shaders, *psInfo);
+		psInfo->AttachmentCount = pso->AttachmentInfos.size();
+		psInfo->Attachments = (VkPipelineColorBlendAttachmentState*)malloc(pso->AttachmentInfos.size() * sizeof(VkPipelineColorBlendAttachmentState));
+		memcpy(psInfo->Attachments, pso->AttachmentInfos.data(), pso->AttachmentInfos.size() * sizeof(VkPipelineColorBlendAttachmentState));
+		psInfo->DepthStencilState = pso->DepthStencilInfo;
+		psInfo->RasterState = pso->RasterInfo;
+		psInfo->Topology = pso->InputAssemblyInfo.topology;
+		psInfo->RenderPass = pso->RenderPass;
 	}
 	LoadResult res;
 	if (error) {
@@ -361,30 +141,64 @@ LoadResult ShaderLoader::LoadAsset(const char* filename) {
 }
 
 void ShaderLoader::UnloadAsset(void* asset) {
-	ShaderInfo* info = (ShaderInfo*)asset;
+	PipelineStateInfo* info = (PipelineStateInfo*)asset;
 	for (uint32_t i = 0; i < info->ShaderCount; ++i) {
 		free(info->Shaders[i].ByteCode);
-		free(info->Shaders[i].DependenciesHashes);
 	}
+	free(info->Attachments);
+	free(info->Descriptors);
 	free(info->Shaders);
 	free(info);
 }
 
+//psoinfo
+//shader byte code array
+//shader data
+//descriptors
+//attachments
+
+void WriteShaderToFile(FileBuffer* buffer, ShaderByteCode* sbc, uint32_t& offset, uint32_t hash) {
+	offset += sizeof(ShaderByteCode);
+	ShaderByteCode shader = *sbc;
+	shader.ByteCode = (void*)offset;
+	offset += shader.ByteCodeSize;
+	buffer->Write(sizeof(ShaderByteCode), &shader, hash);
+	buffer->Write(sbc->ByteCodeSize, sbc->ByteCode, hash);
+}
+
 void ShaderLoader::SerializeAsset(FileBuffer* buffer, LoadResult* asset)  {
 	PipelineStateInfo& pi = *(PipelineStateInfo*)asset->Data;
-	ShaderInfo& si = pi.Shader;
+	
+	PipelineStateInfo psInfo = pi;
+	uint32_t offset = sizeof(PipelineStateInfo);
+	psInfo.Shaders = (ShaderByteCode*)offset;
+	
+	buffer->Write(sizeof(PipelineStateInfo), &psInfo, asset->Hash);
+	for (uint32_t i = 0; i < pi.ShaderCount; ++i) {
+		WriteShaderToFile(buffer, &pi.Shaders[i], offset, asset->Hash);
+	}
+
+	psInfo.Descriptors = (Descriptor*)offset;
+	offset += sizeof(Descriptor) * pi.DescriptorCount;
+	buffer->Write(sizeof(Descriptor) * pi.DescriptorCount, pi.Descriptors, asset->Hash);
+
+	psInfo.Attachments = (VkPipelineColorBlendAttachmentState*)offset;
+	offset += sizeof(VkPipelineColorBlendAttachmentState) * pi.AttachmentCount;
+	buffer->Write(sizeof(VkPipelineColorBlendAttachmentState) * pi.DescriptorCount, pi.Descriptors, asset->Hash);
+
+	//ShaderInfo& si = pi.Shader;
 	//ps state = psInfo + shaders + descriptors + rendertargets
 	//serialize shaders
-	uint32_t offset = sizeof(PipelineStateInfo) + sizeof(uint32_t) + sizeof(ShaderByteCode) * si.ShaderCount;
-	eastl::vector<ShaderByteCode> byteCodes;
-	for (uint32_t i = 0; i < si.ShaderCount; ++i) {
-		ShaderByteCode bc = si.Shaders[i];
-		bc.ByteCode = (void*)offset;
-		offset += si.Shaders[i].ByteCodeSize;
-		bc.DependenciesHashes = (uint32_t*)offset;
-		offset += si.Shaders[i].DependencyCount * sizeof(uint32_t);
-		byteCodes.push_back(bc);
-	}
+	//uint32_t offset = sizeof(PipelineStateInfo) + sizeof(uint32_t) + sizeof(ShaderByteCode) * si.ShaderCount;
+	//eastl::vector<ShaderByteCode> byteCodes;
+	//for (uint32_t i = 0; i < si.ShaderCount; ++i) {
+	//	ShaderByteCode bc = si.Shaders[i];
+	//	bc.ByteCode = (void*)offset;
+	//	offset += si.Shaders[i].ByteCodeSize;
+	//	bc.DependenciesHashes = (uint32_t*)offset;
+	//	offset += si.Shaders[i].DependencyCount * sizeof(uint32_t);
+	//	byteCodes.push_back(bc);
+	//}
 	//PipelineStateInfo psInfo = pi;
 	//psInfo.Descriptors = (Descriptor*)offset;
 	//offset += sizeof(Descriptor) * pi.DescriptorCount;
@@ -405,29 +219,48 @@ void ShaderLoader::SerializeAsset(FileBuffer* buffer, LoadResult* asset)  {
 
 }
 
+void LoadShaderFromFile(void* buffer, uint32_t& offset, ShaderByteCode* dest) {
+	ShaderByteCode* src = (ShaderByteCode*)PointerAdd(buffer, offset);
+	*dest = *src;
+	dest->ByteCode = malloc(src->ByteCodeSize);
+	memcpy(dest->ByteCode, PointerAdd(buffer, (uint32_t)src->ByteCode), src->ByteCodeSize);
+	offset += sizeof(ShaderByteCode) + src->ByteCodeSize;
+}
+
 DeSerializedResult ShaderLoader::DeSerializeAsset(void* assetBuffer) {
 	PipelineStateInfo* source = (PipelineStateInfo*)assetBuffer;
 	PipelineStateInfo* dest = new PipelineStateInfo();
-	ShaderInfo& sourceShader = source->Shader;
-	//deserialize shaders
-	ShaderByteCode* destByteCode = (ShaderByteCode*)malloc(sizeof(ShaderByteCode) * sourceShader.ShaderCount);
-	uint32_t offset = sizeof(PipelineStateInfo) + sizeof(uint32_t);
-	ShaderByteCode* sourceByteCode = (ShaderByteCode*)PointerAdd(assetBuffer, offset);
-
-	memcpy(destByteCode, sourceByteCode, sizeof(ShaderByteCode) * sourceShader.ShaderCount);
-
-	for (uint32_t i = 0; i < sourceShader.ShaderCount; ++i) {
-		destByteCode[i].ByteCode = malloc(sourceByteCode[i].ByteCodeSize);
-		memcpy(destByteCode[i].ByteCode, PointerAdd(assetBuffer, (uint32_t)sourceByteCode[i].ByteCode), sourceByteCode[i].ByteCodeSize);
-
-		destByteCode[i].DependenciesHashes = (uint32_t*)malloc(sourceByteCode[i].DependencyCount * sizeof(uint32_t));
-		memcpy(destByteCode[i].DependenciesHashes, PointerAdd(assetBuffer,(uint32_t)sourceByteCode[i].DependenciesHashes), sourceByteCode[i].DependencyCount * sizeof(uint32_t));
+	*dest = *source;
+	dest->Shaders = (ShaderByteCode*)malloc(sizeof(ShaderByteCode) * source->ShaderCount);
+	uint32_t offset = sizeof(PipelineStateInfo);
+	for (int i = 0; i < dest->ShaderCount; ++i) {
+		LoadShaderFromFile(assetBuffer, offset, &dest->Shaders[i]);
 	}
-	dest->Shader.ShaderCount = sourceShader.ShaderCount;
-	dest->Shader.Shaders = destByteCode;
-	//deserialize descriptors
-	dest->Descriptors = (Descriptor*)malloc(sizeof(Descriptor) * source->DescriptorCount);
-	memcpy(dest->Descriptors, PointerAdd(assetBuffer, (uint32_t)source->Descriptors), sizeof(Descriptor) * source->DescriptorCount);
+	dest->Descriptors = (Descriptor*)malloc(sizeof(Descriptor) * dest->DescriptorCount);
+	memcpy(dest->Descriptors, PointerAdd(assetBuffer, (uint32_t)source->Descriptors), sizeof(Descriptor) * dest->DescriptorCount);
+
+	dest->Attachments = (VkPipelineColorBlendAttachmentState*)malloc(sizeof(VkPipelineColorBlendAttachmentState) * dest->AttachmentCount);
+	memcpy(dest->Attachments, PointerAdd(assetBuffer, (uint32_t)source->Attachments), sizeof(VkPipelineColorBlendAttachmentState) * dest->AttachmentCount);
+	//ShaderInfo& sourceShader = source->Shader;
+	////deserialize shaders
+	//ShaderByteCode* destByteCode = (ShaderByteCode*)malloc(sizeof(ShaderByteCode) * sourceShader.ShaderCount);
+	//uint32_t offset = sizeof(PipelineStateInfo) + sizeof(uint32_t);
+	//ShaderByteCode* sourceByteCode = (ShaderByteCode*)PointerAdd(assetBuffer, offset);
+
+	//memcpy(destByteCode, sourceByteCode, sizeof(ShaderByteCode) * sourceShader.ShaderCount);
+
+	//for (uint32_t i = 0; i < sourceShader.ShaderCount; ++i) {
+	//	destByteCode[i].ByteCode = malloc(sourceByteCode[i].ByteCodeSize);
+	//	memcpy(destByteCode[i].ByteCode, PointerAdd(assetBuffer, (uint32_t)sourceByteCode[i].ByteCode), sourceByteCode[i].ByteCodeSize);
+
+	//	destByteCode[i].DependenciesHashes = (uint32_t*)malloc(sourceByteCode[i].DependencyCount * sizeof(uint32_t));
+	//	memcpy(destByteCode[i].DependenciesHashes, PointerAdd(assetBuffer,(uint32_t)sourceByteCode[i].DependenciesHashes), sourceByteCode[i].DependencyCount * sizeof(uint32_t));
+	//}
+	//dest->Shader.ShaderCount = sourceShader.ShaderCount;
+	//dest->Shader.Shaders = destByteCode;
+	////deserialize descriptors
+	//dest->Descriptors = (Descriptor*)malloc(sizeof(Descriptor) * source->DescriptorCount);
+	//memcpy(dest->Descriptors, PointerAdd(assetBuffer, (uint32_t)source->Descriptors), sizeof(Descriptor) * source->DescriptorCount);
 	////deserialize render targets
 	//dest->RenderTargets = (uint32_t*)malloc(sizeof(uint32_t) * source->RenderTargetCount);
 	//memcpy(dest->RenderTargets, PointerAdd(assetBuffer, (uint32_t)source->RenderTargets), sizeof(uint32_t) * source->RenderTargetCount);

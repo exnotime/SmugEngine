@@ -1,6 +1,8 @@
 #version 430 core
 layout(location = 0) in vec3 Pos;
 layout(location = 0) out vec4 Color;
+layout(location = 1) out vec4 normals;
+layout(location = 2) out vec4 material;
 layout(binding = 1) uniform samplerCube g_Tex;
 
 #define MOD3 vec3(443.8975,397.2973, 491.1871)
@@ -16,4 +18,6 @@ vec3 ditherRGB(vec3 c, vec2 seed){
 
 void main(){
     Color = vec4( ditherRGB(pow(texture(g_Tex, Pos).rgb, vec3(2.2)),gl_FragCoord.xy), 1);
+    normals = vec4(0,0,0,0);
+    material = vec4(0,0,0,0);
 }

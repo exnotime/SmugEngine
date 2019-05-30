@@ -9,7 +9,7 @@ class SSRender : public SubSystem {
 	~SSRender();
 
 	virtual void Startup();
-	virtual void Update(const double deltaTime);
+	virtual void Update(const double deltaTime, Profiler* profiler);
 	virtual void Shutdown();
   private:
 	Timer m_Timer;

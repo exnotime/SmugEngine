@@ -31,7 +31,7 @@ void ShadowMapProgram::Init(VulkanContext& vc, DeviceAllocator& allocator) {
 	descAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 	descAllocInfo.pNext = nullptr;
 	descAllocInfo.descriptorPool = vc.DescriptorPool;
-	eastl::vector<VkDescriptorSetLayout>& descLayouts = m_State.GetDescriptorSetLayouts();
+	const eastl::vector<VkDescriptorSetLayout>& descLayouts = m_State.GetDescriptorSetLayouts();
 	descAllocInfo.pSetLayouts = descLayouts.data();
 	descAllocInfo.descriptorSetCount = (uint32_t)descLayouts.size();
 	vkAllocateDescriptorSets(vc.Device, &descAllocInfo, &m_DescSet);

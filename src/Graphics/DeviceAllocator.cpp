@@ -211,19 +211,19 @@ void DeviceAllocator::UpdateBuffer(VkBufferHandle& handle, uint64_t size, void* 
 		}
 		void* ptr = nullptr;
 		vmaMapMemory(m_Allocator, transfer.memory, &ptr);
-		memcpy((char*)ptr + offset, data, size);
+		memcpy((char*)ptr, data, size);
 
 		VkMappedMemoryRange range = {};
 		range.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
 		range.pNext = nullptr;
 		range.memory = info.deviceMemory;
-		range.offset = info.offset + offset;
+		range.offset = info.offset;
 		range.size = info.size;
 		vkFlushMappedMemoryRanges(*m_Device, 1, &range);
 		vmaUnmapMemory(m_Allocator, transfer.memory);
 
 		transfer.dst = handle.buffer;
-		transfer.copy.dstOffset = 0;
+		transfer.copy.dstOffset = offset;
 		transfer.copy.srcOffset = 0;
 		transfer.copy.size = size;
 		m_BufferCopies.push_back(transfer);

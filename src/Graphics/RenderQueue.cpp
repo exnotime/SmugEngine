@@ -39,6 +39,20 @@ void RenderQueue::AddModel(ResourceHandle model, const glm::mat3x4& transform, c
 	m->second.Count++;
 	ShaderInput i = { transform, tint };
 	m->second.Inputs.push_back(i);
+	m->second.Shader = UINT_MAX;
+}
+
+void RenderQueue::AddModel(ResourceHandle handle, ResourceHandle shader, const glm::mat3x4& transform, const glm::vec4& tint, uint32_t layer) {
+	auto& m = m_Models.find(handle);
+	if (m == m_Models.end()) {
+		m_Models[handle] = ModelInstance();
+		m = m_Models.find(handle);
+		m->second.Count = 0;
+	}
+	m->second.Count++;
+	ShaderInput i = { transform, tint };
+	m->second.Inputs.push_back(i);
+	m->second.Shader = shader;
 }
 
 void RenderQueue::ScheduleTransfer(DeviceAllocator& memory) {
@@ -49,7 +63,6 @@ void RenderQueue::ScheduleTransfer(DeviceAllocator& memory) {
 
 	if (m_Inputs.size() > 0) {
 		m_Resources->UpdateBuffer(m_Buffer, m_Inputs.size() * sizeof(ShaderInput), m_Inputs.data());
-		m_Inputs.clear();
 	}
 }
 

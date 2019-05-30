@@ -2,46 +2,51 @@ typedef uint64 ResourceHandle;
 
 ResourceHandle koopaModel;
 ResourceHandle planeModel;
-ResourceHandle timmyModel;
+ResourceHandle A18Model;
+ResourceHandle SkylineModel;
 uint koopaEntity;
 uint planeEntity;
-uint timmyEntity;
+uint A18Entity;
+uint SkylineEntity;
 
 void Load(){
-	//array<string> rts = {"HDR", "DepthStencil", "GBuffer0_AlbedoMatIndex", "GBuffer1_Normal_AO"};
-	//float renderScale = 1.0f;
-	//int width = 1920 * renderScale;
-	//int height = 1080 * renderScale;
-	//AllocateRenderTarget(width, height, RENDER_TARGET_FORMAT::R16G16B16A16, "HDR");
-	//AllocateRenderTarget(width, height, RENDER_TARGET_FORMAT::D24S8, "DepthStencil");
-	//AllocateRenderTarget(width, height, RENDER_TARGET_FORMAT::R8G8B8A8, "GBuffer0_AlbedoMatIndex");
-	//AllocateRenderTarget(width, height, RENDER_TARGET_FORMAT::R16G16B16A16, "GBuffer1_Normal_AO");
-
-	//ResourceHandle computeshader = LoadShader("assets/shaders/compute.shader");
-	//ResourceHandle tonemapShader = LoadShader("assets/shaders/ToneMap.shader");
-	////build render pipeline
-	//BeginRenderPass("Main");
-	//array<string> colorPass = {"HDR", "DepthStencil"};
-	//BindRenderTargets(colorPass);
-	//Render(RENDER_KEY_OPAQUE | RENDER_KEY_TRANSPARENT | RENDER_KEY_DYNAMIC | RENDER_KEY_STATIC, 0);
-	//Dispatch(tonemapShader, width / 32, height / 32, 1, RENDER_QUEUE_GFX);
-	//EndRenderPass();
+	
+	float renderScale = 1.0f;
+	int width = 1920 * renderScale;
+	int height = 1080 * renderScale;
+	AllocateRenderTarget(width, height, RENDER_TARGET_FORMAT::R8G8B8A8, "Albedo");
+	AllocateRenderTarget(width, height, RENDER_TARGET_FORMAT::R16G16B16A16, "Normals");
+	AllocateRenderTarget(width, height, RENDER_TARGET_FORMAT::R8G8B8A8, "Material");
+	AllocateRenderTarget(width, height, RENDER_TARGET_FORMAT::R8G8B8A8, "Shadows");
+	AllocateRenderTarget(width, height, RENDER_TARGET_FORMAT::R16G16B16A16, "HDR");
+	AllocateRenderTarget(width, height, RENDER_TARGET_FORMAT::D24S8, "DepthStencil");
+	array<string> rts = {"Albedo", "Normals", "Material", "DepthStencil"};
+	CreateRenderPass("ColorPass", rts);
 
 	koopaModel = LoadModel("assets/models/KoopaTroopa/Koopa.obj");
-	timmyModel = LoadModel("assets/models/TimmyTommy/lrn00.obj");
+	A18Model = LoadModel("assets/models/ignored/2019 May - Android 18/model/a18.fbx");
+	SkylineModel = LoadModel("assets/models/ignored/Skyline/model/skyline.dae");
 	LoadModel("assets/models/sphere/sphere.obj");
 
 	koopaEntity = CreateEntity();
-	CreateTransformComponent(koopaEntity, vec3(5,-5,0), vec3(20));
-	CreateModelComponent(koopaEntity, koopaModel);
+	CreateTransformComponent(koopaEntity, vec3(15,-10,0), vec3(20));
+	CreateModelComponent(koopaEntity, koopaModel, true);
+	AddToStaticQueue(koopaEntity);
 
-	timmyEntity = CreateEntity();
-	CreateTransformComponent(timmyEntity, vec3(10,-5,0), vec3(20));
-	CreateModelComponent(timmyEntity, timmyModel);
+	A18Entity = CreateEntity();
+	CreateTransformComponent(A18Entity, vec3(10,-10,0), vec3(0.01));
+	CreateModelComponent(A18Entity, A18Model, true);
+	AddToStaticQueue(A18Entity);
+
+	SkylineEntity = CreateEntity();
+	CreateTransformComponent(SkylineEntity, vec3(20,-10,0), vec3(3));
+	CreateModelComponent(SkylineEntity, SkylineModel, true);
+	AddToStaticQueue(SkylineEntity);
 
 	planeEntity = CreateEntity();
 	planeModel = LoadModel("assets/models/plane/plane.obj");
 	CreateTransformComponent(planeEntity, vec3(0,-10.,0));
-	CreateModelComponent(planeEntity, planeModel);
+	CreateModelComponent(planeEntity, planeModel, true);
 	CreateRigidBodyComponent(planeEntity, PHYSICS_SHAPE::PLANE, 0, true, true);
+	AddToStaticQueue(planeEntity);
 }

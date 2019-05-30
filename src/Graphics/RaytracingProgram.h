@@ -1,22 +1,22 @@
 #pragma once
 #include "VulkanContext.h"
 #include "DeviceAllocator.h"
+#include "ResourceHandler.h"
 
 #if defined(RTX_ON)
 namespace smug {
 	struct CameraData;
 	class CommandBuffer;
-	class DeviceAllocator;
 	struct CameraData;
 	class RenderQueue;
 	class RaytracingProgram {
 	public:
 		RaytracingProgram() {}
 		~RaytracingProgram(){}
-		void Init(VkDevice device, VkPhysicalDevice gpu, VkInstance instance, VkDescriptorPool descPool, VkImageView frameBufferDesc, DeviceAllocator& allocator);
-		void AddRenderQueueToTLAS(RenderQueue* queue, bool staticRenderQueue, DeviceAllocator& allocator);
+		void Init(VkDevice device, VkPhysicalDevice gpu, VkInstance instance, VkDescriptorPool descPool, VkImageView outputTarget, VkImageView depthStencil, VkImageView normals, DeviceAllocator& allocator);
+		void AddRenderQueueToTLAS(RenderQueue* queue, bool staticRenderQueue, DeviceAllocator& allocator, ResourceHandler& resources);
 		void BuildTLAS(CommandBuffer* cmdBuffer);
-		void Update(CommandBuffer* cmdBuffer, DeviceAllocator* allocator, const CameraData* cd);
+		void Update(DeviceAllocator* allocator, const CameraData* cd, const glm::vec3& lightDir);
 		void Render(CommandBuffer* cmdBuffer);
 		void DeInit(DeviceAllocator* allocator);
 	private:
@@ -41,6 +41,8 @@ namespace smug {
 		VkBufferHandle m_BLASBuffer;
 		VkBufferHandle m_TLASBuffer;
 		VkGeometryNV m_blasGeo;
+
+		VkSampler m_Sampler;
 
 		uint32_t m_StaticInstanceCount = 0;
 	};

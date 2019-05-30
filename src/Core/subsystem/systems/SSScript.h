@@ -7,7 +7,7 @@ class SSScript : public SubSystem {
 	~SSScript();
 
 	virtual void Startup();
-	virtual void Update(const double deltaTime);
+	virtual void Update(const double deltaTime, Profiler* profiler);
 	virtual void Shutdown();
   private:
 };

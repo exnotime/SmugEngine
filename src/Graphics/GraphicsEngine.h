@@ -12,6 +12,7 @@
 #include "PipelineStateEditor.h"
 #include "RenderPipeline.h"
 #include "VulkanProfiler.h"
+
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
@@ -25,6 +26,7 @@
 namespace smug {
 
 	class RaytracingProgram;
+	class LightingProgram;
 
 struct PerFrameBuffer {
 	glm::mat4 ViewProj;
@@ -48,6 +50,7 @@ class GFX_DLL GraphicsEngine {
 	GraphicsEngine();
 	~GraphicsEngine();
 	void Init(glm::vec2 windowSize, bool vsync, HWND hWnd);
+	void InitPipeline();
 	void DeInit();
 	void TransferToGPU();
 	void Render();
@@ -56,14 +59,13 @@ class GFX_DLL GraphicsEngine {
 	RenderQueue* GetStaticQueue();
 	ResourceAllocator& GetResourceAllocator() { return m_Resources->GetResourceAllocator(); }
 	FrameBufferManager& GetFrameBufferManager() { return m_FrameBuffer; }
-	//RenderPipeline& GetRenderPipeline() { return m_RenderPipeline; }
 	ResourceHandler& GetResourceHandler() { return *m_Resources; }
 	void PrintStats();
 
   private:
 	void CreateContext();
 	void CreateSwapChain(VkSurfaceKHR surface);
-	void RenderModels(RenderQueue& rq, CommandBuffer& cmdBuffer);
+	void RenderModels(RenderQueue& rq, CommandBuffer& cmdBuffer, VkViewport vp);
 
 	VulkanContext m_VKContext;
 	VulkanSwapChain m_VKSwapChain;
@@ -73,6 +75,7 @@ class GFX_DLL GraphicsEngine {
 	PipelineState m_Pipeline;
 
 	VkRenderPass m_RenderPass;
+
 	VkSemaphore m_ImageAquiredSemaphore;
 	VkSemaphore m_TransferComplete;
 	VkSemaphore m_RenderCompleteSemaphore;
@@ -91,6 +94,7 @@ class GFX_DLL GraphicsEngine {
 
 	FrameBufferManager m_FrameBuffer;
 	
+	LightingProgram* m_LightProgram;
 	bool m_VSync;
 	glm::vec2 m_ScreenSize;
 	VkPipelineMultisampleStateCreateInfo m_MSState;
@@ -104,6 +108,14 @@ class GFX_DLL GraphicsEngine {
 	PerFrameStatistics m_Stats;
 	DeviceAllocator m_DeviceAllocator;
 	VulkanProfiler m_Profiler;
+
+	uint32_t m_ColorPassHash = 0;
+	uint32_t m_AlbedoTargetHash = 0;
+	uint32_t m_NormalsTargetHash = 0;
+	uint32_t m_MaterialTargetHash = 0;
+	uint32_t m_DepthTargetHash = 0;
+	uint32_t m_ShadowTargetHash = 0;
+	uint32_t m_HDRTargetHash = 0;
 
 #ifdef USE_IMGUI
   public:

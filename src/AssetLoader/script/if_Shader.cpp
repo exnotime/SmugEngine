@@ -11,15 +11,6 @@ namespace smug {
 	//angelscript interface for building pipeline states and shaders
 	namespace if_shader {
 
-		struct ScriptPipelineState {
-			eastl::vector<ShaderByteCode> shaders;
-			VkPipelineDepthStencilStateCreateInfo DepthStencilInfo;
-			VkPipelineRasterizationStateCreateInfo RasterInfo;
-			VkPipelineColorBlendStateCreateInfo BlendInfo;
-			eastl::vector<VkPipelineColorBlendAttachmentState> AttachmentInfos;
-			VkPipelineInputAssemblyStateCreateInfo InputAssemblyInfo;
-		};
-
 		static eastl::unordered_map<uint32_t, ScriptPipelineState> psos;
 
 		uint32_t CreatePSO(eastl::string name) {
@@ -85,7 +76,7 @@ namespace smug {
 			command += " -e " + entryPoint;
 
 
-			command += " -I./shader";
+			command += " -Ishader/";
 			command += " -o ./temp.spv";
 			command += " ./" + filename;
 
@@ -99,23 +90,29 @@ namespace smug {
 				rewind(fin);
 				sbc.ByteCode = (uint8_t*)malloc(sbc.ByteCodeSize);
 				fread(sbc.ByteCode, sizeof(uint8_t), sbc.ByteCodeSize, fin);
-
-				sbc.DependenciesHashes = nullptr;
-				sbc.DependencyCount = 0;
 				sbc.Kind = stage;
 				sbc.SrcLanguage = language;
 				sbc.Type = SPIRV;
 
 			}
 			fclose(fin);
-			system("del ./temp.spv");
+			//system("del ./temp.spv");
 
 			return sbc;
 		}
 
 		void AddShader(uint32_t pso, eastl::string filename, SHADER_KIND kind) {
 			auto& p = psos.find(pso); assert(p != psos.end());
-			p->second.shaders.push_back(LoadShaderByteCode(filename, kind, "void main()", GLSL));
+			p->second.shaders.push_back(LoadShaderByteCode(filename, kind, "main", GLSL));
+		}
+
+		void AddVertexInput(uint32_t pso, uint32_t binding, uint32_t stream, VkFormat format) {
+			auto& p = psos.find(pso); assert(p != psos.end());
+			VertexInput vi;
+			vi.Binding = binding;
+			vi.Stream = stream;
+			vi.Format = format;
+			p->second.VertexInputLayout.push_back(vi);
 		}
 
 		void SetPrimitiveTopology(uint32_t pso, VkPrimitiveTopology topology) {
@@ -171,6 +168,11 @@ namespace smug {
 			p->second.DepthStencilInfo = state;
 		}
 
+		void SetRenderPass(uint32_t pso, eastl::string renderPass) {
+			auto& p = psos.find(pso); assert(p != psos.end());
+			p->second.RenderPass = HashString(renderPass);
+		}
+
 		ASSET_DLL void InitInterface() {
 			AngelScript::asIScriptEngine* engine = g_ScriptEngine.GetEngine();
 
@@ -193,7 +195,7 @@ namespace smug {
 
 			r = engine->RegisterGlobalFunction("uint CreatePSO(string name)", AngelScript::asFUNCTION(CreatePSO), AngelScript::asCALL_CDECL); assert(r >= 0);
 			r = engine->RegisterGlobalFunction("void AddShader(uint pso, string filename, SHADER_KIND kind)", AngelScript::asFUNCTION(AddShader), AngelScript::asCALL_CDECL); assert(r >= 0);
-
+			
 			//Register vulkan enums
 			engine->RegisterEnum("DescriptorType");
 			engine->RegisterEnumValue("DescriptorType", "Sampler", VkDescriptorType::VK_DESCRIPTOR_TYPE_SAMPLER);
@@ -449,6 +451,8 @@ namespace smug {
 			r = engine->RegisterGlobalFunction("void AddDefaultAttachmentInfo(uint pso)", AngelScript::asFUNCTION(AddDefaultAttachmentInfo), AngelScript::asCALL_CDECL); assert(r >= 0);
 			r = engine->RegisterGlobalFunction("void SetRasterStateInfo(uint pso, CullMode cullMode, FrontFace frontFace, bool depthClampEnable, bool discardEnable, PolygonMode polygonMode, bool depthBiasEnable, float depthBiasConstant, float depthBiasClamp, float depthBiasSlope, float lineWidth)", AngelScript::asFUNCTION(SetRasterStateInfo), AngelScript::asCALL_CDECL); assert(r >= 0);
 			r = engine->RegisterGlobalFunction("void SetDepthStencilStateInfo(uint pso, bool depthTestEnable, bool depthWriteEnable, uint stencilMask)", AngelScript::asFUNCTION(SetDepthStencilStateInfo), AngelScript::asCALL_CDECL); assert(r >= 0);
+			r = engine->RegisterGlobalFunction("void AddVertexInput(uint pso, uint binding, uint stream, Format format)", AngelScript::asFUNCTION(AddVertexInput), AngelScript::asCALL_CDECL); assert(r >= 0);
+			r = engine->RegisterGlobalFunction("void SetRenderPass(uint pso, string binding)", AngelScript::asFUNCTION(SetRenderPass), AngelScript::asCALL_CDECL); assert(r >= 0);
 		}
 
 		ScriptPipelineState* GetPSO(uint32_t hash) {

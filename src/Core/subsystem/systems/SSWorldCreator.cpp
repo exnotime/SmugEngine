@@ -10,6 +10,7 @@
 #include <Core/components/RigidBodyComponent.h>
 #include <Core/entity/EntityManager.h>
 #include <Core/GlobalSystems.h>
+#include <Core/Profiler.h>
 #include <glm/gtx/transform.hpp>
 
 using namespace smug;
@@ -33,10 +34,11 @@ void SSWorldCreator::Startup() {
 	TransformComponent tc;
 	tc.Scale = glm::vec3(1.0f);
 	tc.Position = glm::vec3(10, 5, 5);
-	tc.Orientation = glm::rotate(glm::pi<float>() * 0.5f, glm::vec3(0, 1, 0));
+	tc.Orientation = glm::rotate(glm::pi<float>() * 0.5f, glm::vec3(0, 0, 1));
 	globals::g_Components->CreateComponent(&tc, xAxisEntity, TransformComponent::Flag);
 	ModelComponent mc;
 	mc.ModelHandle = model;
+	//mc.Shader = g_AssetLoader.LoadAsset("assets/shaders/prototype.shader");
 	mc.Static = false;
 	mc.Tint = glm::vec4(1, 0, 0, 1);
 	globals::g_Components->CreateComponent(&mc, xAxisEntity, ModelComponent::Flag);
@@ -90,7 +92,7 @@ void SSWorldCreator::PickFromCamera(const glm::vec2& pos){
 	}
 }
 
-void SSWorldCreator::Update(const double deltaTime) {
+void SSWorldCreator::Update(const double deltaTime, Profiler* profiler) {
 	//picking
 	//only screen pick if we are not hovering on any window.
 	if(!ImGui::IsAnyWindowHovered() && ImGui::IsMouseClicked(0) ){
@@ -105,8 +107,6 @@ void SSWorldCreator::Update(const double deltaTime) {
 			tc->Position = selectedPos;
 		}
 	}
-	
-
 }
 
 void SSWorldCreator::Shutdown() {

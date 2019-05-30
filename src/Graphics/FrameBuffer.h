@@ -33,10 +33,11 @@ class GFX_DLL FrameBufferManager {
 	void Init(const VkDevice& device, const VkPhysicalDevice& gpu, const glm::vec2& size, const eastl::vector<VkFormat>& formats, const eastl::vector<VkImageUsageFlags>& usages);
 	void Resize(const glm::vec2& size);
 	void ChangeLayout(CommandBuffer& cmdBuffer, const eastl::vector<VkImageLayout>& newLayouts);
+	void ChangeLayout(CommandBuffer& cmdBuffer, uint32_t renderTarget, VkImageLayout newLayout);
 	void SetLayouts(const eastl::vector<VkImageLayout>& newLayouts);
 
-	void AllocRenderTarget(uint32_t name, uint32_t width, uint32_t height, uint32_t depth, VkFormat format, VkImageLayout initialLayout);
-	VkRenderPass CreateRenderPass(uint32_t name, eastl::vector<SubPass> subPasses);
+	void AllocRenderTarget(uint32_t name, uint32_t width, uint32_t height, uint32_t depth, VkFormat format);
+	VkRenderPass CreateRenderPass(uint32_t name, const eastl::vector<uint32_t>& renderTargets);
 
 	//Getters
 	eastl::vector<VkImage>& GetImages() {
@@ -59,6 +60,16 @@ class GFX_DLL FrameBufferManager {
 	}
 	VkFramebuffer GetFrameBuffer() {
 		return m_FrameBuffer;
+	}
+
+	VkRenderPass GetRenderPass(uint32_t name) {
+		return m_RenderPasses[name];
+	}
+	VkFramebuffer GetFrameBuffer(uint32_t name) {
+		return m_FrameBuffers[name];
+	}
+	const RenderTarget& GetRenderTarget(uint32_t name) {
+		return m_RenderTargets[name];
 	}
 
 	VkImage GetImage(uint32_t index, uint32_t frameIndex) {
@@ -91,7 +102,7 @@ class GFX_DLL FrameBufferManager {
 	VmaAllocator m_DeviceAllocator;
 	eastl::unordered_map<uint32_t, RenderTarget> m_RenderTargets;
 	eastl::unordered_map<uint32_t, VkRenderPass> m_RenderPasses;
-	eastl::unordered_map<uint32_t, VkFramebuffer> m_FrameBuffersT;
+	eastl::unordered_map<uint32_t, VkFramebuffer> m_FrameBuffers;
 
 	glm::vec2 m_FrameBufferSize;
 	VkFramebuffer m_FrameBuffer;

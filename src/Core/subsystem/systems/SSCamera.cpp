@@ -7,6 +7,7 @@
 #include "Core/components/RigidBodyComponent.h"
 #include "Core/entity/EntityManager.h"
 #include "Core/Input.h"
+#include "Core/Profiler.h"
 #include <Graphics/GraphicsEngine.h>
 #include <AssetLoader/AssetLoader.h>
 #include <glm/gtx/transform.hpp>
@@ -32,7 +33,7 @@ void SSCamera::Startup() {
 	Entity& e = globals::g_EntityManager->CreateEntity();
 
 	TransformComponent tc;
-	tc.Position = glm::vec3(0, 10, -15);
+	tc.Position = glm::vec3(0, 0, -15);
 	tc.Scale = glm::vec3(1.0f);
 	globals::g_Components->CreateComponent(&tc, e, TransformComponent::Flag);
 
@@ -46,7 +47,7 @@ void SSCamera::Startup() {
 	globals::g_Components->CreateComponent(&sc, e, ScriptComponent::Flag);
 
 	RigidBodyComponent rc;
-	rc.Body =  globals::g_Physics->CreateController(tc.Position, tc.Orientation, glm::vec3(0.25f, 1.0f, 0.0f), CAPSULE);
+	rc.Body =  globals::g_Physics->CreateController(tc.Position, tc.Orientation, glm::vec3(0.25f, 0.85f, 0.0f), CAPSULE);
 	globals::g_Components->CreateComponent(&rc, e, RigidBodyComponent::Flag);
 
 	m_Cache = new EntityCache();
@@ -58,7 +59,7 @@ void SSCamera::Startup() {
 
 }
 
-void SSCamera::Update(const double deltaTime) {
+void SSCamera::Update(const double deltaTime, Profiler* profiler) {
 	using namespace glm;
 	int flag = CameraComponent::Flag | TransformComponent::Flag | RigidBodyComponent::Flag;
 	auto& entityManager = globals::g_EntityManager;
@@ -171,11 +172,9 @@ void SSCamera::Update(const double deltaTime) {
 				m_JumpVelocity += -9.82f * (float)deltaTime;
 
 				//get last physics position
-				cc->Cam.SetPosition(rc->Body->Position + glm::vec3(0, 0.5f,0));
+				cc->Cam.SetPosition(rc->Body->Position + glm::vec3(0, 0.42f,0));
 				//update body
 				rc->Body->Force = (velocity + m_JumpVelocity * glm::vec3(0,1,0)) * (float)(deltaTime);
-
-				ImGui::Text("Force: x:%f y:%f :z%f", rc->Body->Force.x, rc->Body->Force.y, rc->Body->Force.z);
 			}
 			cc->Cam.CalculateViewProjection();
 

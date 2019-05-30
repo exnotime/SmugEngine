@@ -34,7 +34,7 @@ class PipelineState {
 	void SetDefaultVertexState(const VkPipelineVertexInputStateCreateInfo& vertexState);
 	void SetDefaultMulitSampleState(const VkPipelineMultisampleStateCreateInfo& msState);
 
-	eastl::vector<VkDescriptorSetLayout>& GetDescriptorSetLayouts();
+	const eastl::vector<VkDescriptorSetLayout>& GetDescriptorSetLayouts() const;
 	VkPipeline GetPipeline() const;
 	VkPipelineLayout GetPipelineLayout() const;
 

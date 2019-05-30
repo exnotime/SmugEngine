@@ -35,7 +35,7 @@ enum MaterialChannels {
 
 struct MaterialSet {
 	uint32_t TextureCount;
-	VkImageHandle* Textures;
+	uint32_t* TextureOffsets;
 	VkDescriptorSet DescSet;
 };
 
@@ -43,9 +43,12 @@ struct MaterialSet {
 struct BLAS {
 	uint64_t Size;
 	VkBufferHandle Memory;
-	VkAccelerationStructureNV Handle;
+	VkAccelerationStructureNV AS;
+	VkAccelerationStructureInfoNV Info;
+	uint64_t Handle;
 	bool Updatable = false;
 	bool Built = false;
+	bool opaque = true;
 };
 #endif
 
@@ -53,6 +56,9 @@ struct Mesh {
 	unsigned IndexCount;
 	unsigned IndexOffset;
 	MaterialSet Material;
+#ifdef RTX_ON
+	BLAS Blas;
+#endif
 };
 
 struct Model {
@@ -61,9 +67,6 @@ struct Model {
 	VkBufferHandle VertexBuffers[NUM_VERTEX_CHANNELS];
 	unsigned MeshCount;
 	Mesh* Meshes;
-#ifdef RTX_ON
-	BLAS Blas;
-#endif
 };
 
 struct MemoryBudget {
@@ -93,6 +96,8 @@ class ResourceHandler {
 	void DeAllocateTexture(ResourceHandle handle);
 	void DeAllocateBuffer(ResourceHandle handle);
 	ResourceAllocator& GetResourceAllocator() { return m_ResourceAllocator; }
+	void BuildBLAS(CommandBuffer& cmdBuffer, int maxCount);
+
   private:
 	VkDevice* m_Device;
 	DeviceAllocator* m_DeviceAllocator;
@@ -111,5 +116,12 @@ class ResourceHandler {
 	VkDescriptorPool m_DescPool;
 	VkDescriptorSetLayout m_MaterialLayout;
 	VkDescriptorSet m_DefaultMaterial;
+
+	uint64_t m_BLASScratchBuffersize = 0;
+	uint32_t m_ScratchBufferMemBits = 0;
+	VkBufferHandle m_ScratchBuffer;
+	bool m_ScratchBufferAllocated = false;
+	eastl::vector<BLAS*> m_BLASBuildQueue;
+	eastl::unordered_map<ResourceHandle, VkGeometryNV> m_BLASGeometry;
 };
 }

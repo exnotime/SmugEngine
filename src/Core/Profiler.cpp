@@ -29,7 +29,7 @@ void Profiler::Print() {
 	ImGui::Begin("Profiler");
 	uint32_t entryCount = m_Entries.size();
 	for (uint32_t i = 1; i < entryCount - 1; ++i) {
-		ImGui::Text("%s : %f ms", m_Entries[i].name, m_Entries[i].time * 1000.0);
+		ImGui::Text("%s : %f ms", m_Entries[i].name, m_Entries[i + 1].time * 1000.0);
 	}
 	ImGui::End();
 }

@@ -68,12 +68,12 @@ void CreateTransformComponent(uint32_t euid, glm::vec3 position, glm::vec3 scale
 #pragma endregion
 
 #pragma region ModelComponent
-void CreateModelComponent(uint32_t euid, uint64_t modelResource) {
+void CreateModelComponent(uint32_t euid, uint64_t modelResource, bool staticModel) {
 	Entity& e = globals::g_EntityManager->GetEntity(euid);
 	ModelComponent mc;
 	mc.ModelHandle = modelResource;
 	mc.Tint = glm::vec4(1);
-	mc.Static = false;
+	mc.Static = staticModel;
 	globals::g_Components->CreateComponent(&mc, e, ModelComponent::Flag);
 }
 #pragma endregion
@@ -117,7 +117,7 @@ void InitComponentInterface() {
 	engine->RegisterGlobalFunction("void CreateTransformComponent(uint euid, vec3 position)", asFUNCTIONPR(CreateTransformComponent, (uint32_t euid, glm::vec3 position), void), asCALL_CDECL);
 	engine->RegisterGlobalFunction("void CreateTransformComponent(uint euid, vec3 position, vec3 scale)", asFUNCTIONPR(CreateTransformComponent, (uint32_t euid, glm::vec3 position, glm::vec3 scale), void), asCALL_CDECL);
 	engine->RegisterGlobalFunction("void CreateTransformComponent(uint euid, vec3 position, vec3 scale, quat rotation)", asFUNCTIONPR(CreateTransformComponent, (uint32_t euid, glm::vec3 position, glm::vec3 scale, glm::quat rot), void), asCALL_CDECL);
-	engine->RegisterGlobalFunction("void CreateModelComponent(uint euid, uint64 resource)", asFUNCTIONPR(CreateModelComponent, (uint32_t euid, uint64_t mr), void), asCALL_CDECL);
+	engine->RegisterGlobalFunction("void CreateModelComponent(uint euid, uint64 resource, bool static)", asFUNCTIONPR(CreateModelComponent, (uint32_t euid, uint64_t mr, bool s), void), asCALL_CDECL);
 	engine->RegisterGlobalFunction("void CreateRigidBodyComponent(uint euid, uint shape, float mass, bool staticActor, bool useTransform)", asFUNCTIONPR(CreateRigidBodyComponent, (uint32_t euid, uint32_t shape, float mass, bool s, bool t), void), asCALL_CDECL);
 	engine->RegisterEnum("PHYSICS_SHAPE");
 	engine->RegisterEnumValue("PHYSICS_SHAPE", "SPHERE", PHYSICS_SHAPE::SPHERE);

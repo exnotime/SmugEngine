@@ -43,8 +43,8 @@ void Engine::Init() {
 	WindowSettings ws;
 	ws.X = 100;
 	ws.Y = 100;
-	ws.Width = 1280;
-	ws.Height = 729;
+	ws.Width = 1920;
+	ws.Height = 1080;
 	ws.HighDPI = false;
 	ws.OpenGL = true;
 	ws.Title = "Smug Engine";
@@ -92,14 +92,9 @@ void Engine::Init() {
 	globals::g_Components->AddComponentType(3, sizeof(CameraComponent), CameraComponent::Flag, "CameraComponent");
 
 	AngelScript::asIScriptModule* mod = g_ScriptEngine.CompileScriptToModule("script/LoadingTest.as");
-	g_ScriptEngine.ExecuteModule(mod, "int Load()");
+	g_ScriptEngine.ExecuteModule(mod, "void Load()");
 
-	//shader load test
-	//AngelScript::asIScriptModule* shaderModule = g_ScriptEngine.CompileScriptToModule("assets/shaders/prototype.shader");
-	//g_ScriptEngine.ExecuteModule(shaderModule, "uint LoadPSO()");
-	//uint32_t ret = g_ScriptEngine.GetContext()->GetReturnDWord();
-
-	g_AssetLoader.LoadAsset("assets/shaders/prototype.shader");
+	globals::g_Gfx->InitPipeline();
 
 	m_MainSubSystemSet = new SubSystemSet();
 	m_MainSubSystemSet->AddSubSystem(new SSCamera(), "SSCamera");

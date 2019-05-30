@@ -22,8 +22,7 @@ eastl::string GetDir(const eastl::string& file) {
 
 char* ModelLoader::LoadModel(const eastl::string& filename, ModelInfo& model) {
 	Assimp::Importer importer;
-	const aiScene* scene = importer.ReadFile(filename.c_str(), aiProcess_CalcTangentSpace | aiProcess_FlipUVs
-	                       | aiProcess_GenUVCoords | aiProcess_JoinIdenticalVertices | aiProcess_Triangulate);
+	const aiScene* scene = importer.ReadFile(filename.c_str(), aiProcess_CalcTangentSpace | aiProcess_ConvertToLeftHanded | aiProcess_GenUVCoords | aiProcess_GenSmoothNormals | aiProcess_JoinIdenticalVertices | aiProcess_Triangulate | aiProcess_PreTransformVertices);
 	if (scene) {
 		//meshes
 		if (scene->HasMeshes()) {
@@ -33,19 +32,31 @@ char* ModelLoader::LoadModel(const eastl::string& filename, ModelInfo& model) {
 			for (uint32_t m = 0; m < model.MeshCount; ++m) {
 				MeshInfo& meshInfo = model.Meshes[m];
 				aiMesh* mesh = scene->mMeshes[m];
+				if (mesh->mPrimitiveTypes != aiPrimitiveType_TRIANGLE) {
+					meshInfo.IndexCount = 0;
+					meshInfo.VertexCount = 0;
+					meshInfo.Vertices = nullptr;
+					meshInfo.Indices = nullptr;
+					meshInfo.Material = 0;
+					continue;
+				}
 				meshInfo.Material = mesh->mMaterialIndex;
 				meshInfo.VertexCount = mesh->mNumVertices;
 				meshInfo.Vertices = new Vertex[meshInfo.VertexCount];
 				for (uint32_t v = 0; v < meshInfo.VertexCount; ++v) {
 					meshInfo.Vertices[v].Position = glm::vec3(mesh->mVertices[v].x, mesh->mVertices[v].y, mesh->mVertices[v].z);
 					meshInfo.Vertices[v].Normal = glm::normalize(glm::vec3(mesh->mNormals[v].x, mesh->mNormals[v].y, mesh->mNormals[v].z));
-					glm::vec3 t = glm::normalize(glm::vec3(mesh->mTangents[v].x, mesh->mTangents[v].y, mesh->mTangents[v].z));
-					glm::vec3 b = glm::normalize(glm::vec3(mesh->mBitangents[v].x, mesh->mBitangents[v].y, mesh->mBitangents[v].z));
-					if (glm::dot(glm::cross(meshInfo.Vertices[v].Normal, t), b) < 0.0f) {
-						t *= -1;
+					if (mesh->HasTangentsAndBitangents()) {
+						glm::vec3 t = glm::normalize(glm::vec3(mesh->mTangents[v].x, mesh->mTangents[v].y, mesh->mTangents[v].z));
+						glm::vec3 b = glm::normalize(glm::vec3(mesh->mBitangents[v].x, mesh->mBitangents[v].y, mesh->mBitangents[v].z));
+						if (glm::dot(glm::cross(meshInfo.Vertices[v].Normal, t), b) < 0.0f) {
+							t *= -1;
+						}
+						meshInfo.Vertices[v].Tangent = t;
 					}
-					meshInfo.Vertices[v].Tangent = t;
-					meshInfo.Vertices[v].TexCoord = glm::vec2(mesh->mTextureCoords[0][v].x, mesh->mTextureCoords[0][v].y);
+					if (mesh->GetNumUVChannels() > 0) {
+						meshInfo.Vertices[v].TexCoord = glm::vec2(mesh->mTextureCoords[0][v].x, mesh->mTextureCoords[0][v].y);
+					}
 				}
 				meshInfo.IndexCount = mesh->mNumFaces * 3;
 				meshInfo.Indices = new uint32_t[meshInfo.IndexCount];
@@ -62,6 +73,11 @@ char* ModelLoader::LoadModel(const eastl::string& filename, ModelInfo& model) {
 			model.Materials = new MaterialInfo[model.MaterialCount];
 			for (uint32_t m = 0; m < model.MaterialCount; ++m) {
 				aiMaterial* mat = scene->mMaterials[m];
+				printf("Material key %s\n", mat->GetName().C_Str());
+				for (uint32_t p = 0; p < mat->mNumProperties; ++p) {
+					printf("Material key %s\n", mat->mProperties[p]->mKey.C_Str());
+				}
+
 				eastl::string dir = GetDir(filename);// filename.substr(0, filename.find_last_of() + 1);
 				aiString path;
 				if (mat->GetTextureCount(aiTextureType_DIFFUSE) > 0) {
@@ -230,7 +246,7 @@ DeSerializedResult ModelLoader::DeSerializeAsset(void* assetBuffer) {
 }
 
 bool ModelLoader::IsExtensionSupported(const char* extension) {
-	const char* extensions[] = { "obj", "dae" };
+	const char* extensions[] = { "obj", "dae", "blend", "gltf2", "gltf", "fbx" };
 	for (auto& ext : extensions) {
 		if (strcmp(ext, extension) == 0)
 			return true;

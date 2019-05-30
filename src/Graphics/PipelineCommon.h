@@ -21,6 +21,7 @@ static eastl::unordered_map<eastl::string, VkBlendFactor> ToBlendFactor = {
 	{ "Zero", VkBlendFactor::VK_BLEND_FACTOR_ZERO },
 	{ "One", VkBlendFactor::VK_BLEND_FACTOR_ONE },
 	{ "SrcColor", VkBlendFactor::VK_BLEND_FACTOR_SRC_COLOR },
+	{ "SrcAlpha", VkBlendFactor::VK_BLEND_FACTOR_SRC_ALPHA },
 	{ "OneMinusSrcColor", VkBlendFactor::VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR },
 	{ "DstColor", VkBlendFactor::VK_BLEND_FACTOR_DST_COLOR },
 	{ "OneMinusDstColor", VkBlendFactor::VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR },

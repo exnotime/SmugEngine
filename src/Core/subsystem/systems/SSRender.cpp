@@ -9,6 +9,7 @@
 #include <glm/gtx/transform.hpp>
 #include <glm/gtx/quaternion.hpp>
 #include "../../GlobalSystems.h"
+#include <Core/Profiler.h>
 
 using namespace smug;
 SSRender::SSRender() {
@@ -24,14 +25,13 @@ float randf() {
 }
 
 void SSRender::Startup() {
-	const int c = 3;
+	const int c = 2;
 	const float d = 1;
 	const float s = 1.0f;
 	ModelComponent mc;
 	mc.ModelHandle = g_AssetLoader.LoadAsset("assets/models/cube/cube.obj");
 	//ResourceHandle shader = g_AssetLoader.LoadAsset("assets/shaders/filled.shader");
 	//RenderQueue* rq = globals::g_Gfx->GetStaticQueue();
-
 	for (int z = -c; z < c; z++) {
 		for (int y = -c; y < c; y++) {
 			for (int x = -c; x < c; x++) {
@@ -61,7 +61,7 @@ void SSRender::Startup() {
 	}
 }
 
-void SSRender::Update(const double deltaTime) {
+void SSRender::Update(const double deltaTime, Profiler* profiler) {
 	int flag = ModelComponent::Flag | TransformComponent::Flag;
 	RenderQueue* rq = globals::g_Gfx->GetRenderQueue();
 	//models
@@ -86,7 +86,7 @@ void SSRender::Update(const double deltaTime) {
 			tc->Transform[1][3] = tc->Position.y;
 			tc->Transform[2][3] = tc->Position.z;
 
-			rq->AddModel(mc->ModelHandle, tc->Transform, mc->Tint, mc->Layer);
+			rq->AddModel(mc->ModelHandle, mc->Shader, tc->Transform, mc->Tint, mc->Layer);
 		}
 	}
 }

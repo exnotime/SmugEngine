@@ -7,6 +7,7 @@
 #define saturate(x) clamp(x, 0.0, 1.0)
 layout(set = 1,binding = 0) uniform sampler2D g_IBLTex;
 layout(set = 1,binding = 1) uniform samplerCube g_IBLCube[2];
+layout(set = 1, binding = 2) uniform sampler2D g_ShadowCascades;
 
 
 float LambertDiffuse(vec3 normal, vec3 lightDir){

@@ -1,6 +1,10 @@
 #include "if_Render.h"
 #include <assert.h>
 #include <AngelScript/ScriptEngine.h>
+#include <Core/entity/EntityManager.h>
+#include <Core/datasystem/ComponentManager.h>
+#include <Core/components/ModelComponent.h>
+#include <Core/components/TransformComponent.h>
 #include <Graphics/GraphicsEngine.h>
 #include <Core/GlobalSystems.h>
 #include <Utility/Hash.h>
@@ -11,6 +15,7 @@ namespace smug {
 #define DEF_ENUM(v) #v, v
 
 		enum RENDER_TARGET_FORMAT {
+			R8,
 			R8G8B8A8,
 			R16G16B16A16,
 			D32,
@@ -28,8 +33,10 @@ namespace smug {
 		};
 
 		VkFormat RTFormatToVKFormat(RENDER_TARGET_FORMAT format) {
-			switch (format)
-			{
+			switch (format){
+			case smug::if_render::R8:
+					return VkFormat::VK_FORMAT_R8_UNORM;
+					break;
 			case smug::if_render::R8G8B8A8:
 				return VkFormat::VK_FORMAT_R8G8B8A8_UNORM;
 				break;
@@ -47,7 +54,19 @@ namespace smug {
 		}
 
 		void AllocateRenderTarget(int width, int height, int format, const eastl::string name) {
-			//globals::g_Gfx->GetFrameBufferManager().AllocRenderTarget(HashString(name), width, height, 1, RTFormatToVKFormat((RENDER_TARGET_FORMAT)format), VkImageLayout::eColorAttachmentOptimal);
+			globals::g_Gfx->GetFrameBufferManager().AllocRenderTarget(HashString(name), width, height, 1, RTFormatToVKFormat((RENDER_TARGET_FORMAT)format));
+		}
+
+		void CreateRenderPass(eastl::string name, const CScriptArray* renderTargets) {
+			eastl::vector<uint32_t> renderTargetHashes;
+			uint32_t rtCount = renderTargets->GetSize();
+			for (uint32_t i = 0; i < rtCount; i++) {
+				const eastl::string* rt = (const eastl::string*)renderTargets->At(i);
+				renderTargetHashes.push_back(HashString(*rt));
+			}
+			renderTargets->Release();
+			globals::g_Gfx->GetFrameBufferManager().CreateRenderPass(HashString(name), renderTargetHashes);
+			
 		}
 
 		enum BUFFER_USAGE {
@@ -78,17 +97,6 @@ namespace smug {
 			return h;
 		}
 
-		void BindRenderTargets(const CScriptArray* renderTargets) {
-			//BindRenderTargetCmd rtCmd;
-			//rtCmd.RenderTargetCount = renderTargets->GetSize();
-			//rtCmd.RenderTargets = (uint32_t*)malloc(sizeof(uint32_t) * rtCmd.RenderTargetCount);
-			//for (uint32_t i = 0; i < renderTargets->GetSize(); ++i) {
-			//	rtCmd.RenderTargets[i] = HashString(*(eastl::string*)renderTargets->At(i));
-			//}
-			//globals::g_Gfx->GetRenderPipeline().RecordBindRenderTargetCommand(rtCmd);
-			//renderTargets->Release();
-		}
-
 		void Render(int key, uint32_t stencilRef) {
 			RenderCmd cmd;
 			cmd.RenderKey = (RENDER_KEY)key;
@@ -115,18 +123,30 @@ namespace smug {
 
 		}
 
-		void BeginRenderPass(const eastl::string name) {
-			//globals::g_Gfx->GetRenderPipeline().StartRecord();
-		}
+		void AddToStaticQueue(uint32_t entity) {
+			RenderQueue* rq = globals::g_Gfx->GetStaticQueue();
+			int flag = ModelComponent::Flag | TransformComponent::Flag;
+			auto& e = globals::g_EntityManager->GetEntity(entity);
+			if ((e.ComponentBitfield & flag) == flag) {
+				ModelComponent* mc = (ModelComponent*)globals::g_Components->GetComponent(e, ModelComponent::Flag);
+				TransformComponent* tc = (TransformComponent*)globals::g_Components->GetComponent(e, TransformComponent::Flag);
+				tc->Transform = glm::transpose(glm::toMat4(tc->Orientation));
+				tc->Transform[0] *= tc->Scale.x;
+				tc->Transform[1] *= tc->Scale.y;
+				tc->Transform[2] *= tc->Scale.z;
+				tc->Transform[0][3] = tc->Position.x;
+				tc->Transform[1][3] = tc->Position.y;
+				tc->Transform[2][3] = tc->Position.z;
 
-		void EndRenderPass() {
-			//globals::g_Gfx->GetRenderPipeline().EndRecord();
+				rq->AddModel(mc->ModelHandle, mc->Shader, tc->Transform, mc->Tint, mc->Layer);
+			}
 		}
 
 		void InitInterface() {
 			
 			asIScriptEngine* engine = g_ScriptEngine.GetEngine();
 			engine->RegisterEnum("RENDER_TARGET_FORMAT");
+			engine->RegisterEnumValue("RENDER_TARGET_FORMAT", DEF_ENUM(R8));
 			engine->RegisterEnumValue("RENDER_TARGET_FORMAT", DEF_ENUM(R8G8B8A8));
 			engine->RegisterEnumValue("RENDER_TARGET_FORMAT", DEF_ENUM(R16G16B16A16));
 			engine->RegisterEnumValue("RENDER_TARGET_FORMAT", DEF_ENUM(D32));
@@ -160,12 +180,12 @@ namespace smug {
 			int r = 0;
 			r = engine->RegisterGlobalFunction("void AllocateRenderTarget(int width, int height, RENDER_TARGET_FORMAT format, string name)", asFUNCTION(AllocateRenderTarget), asCALL_CDECL); assert(r >= 0);
 			r = engine->RegisterGlobalFunction("void AllocateBuffer(uint64 size, int usage, string name)", asFUNCTION(AllocateBuffer), asCALL_CDECL); assert(r >= 0);
-			r = engine->RegisterGlobalFunction("void BeginRenderPass(const string name)", asFUNCTION(BeginRenderPass), asCALL_CDECL); assert(r >= 0);
-			r = engine->RegisterGlobalFunction("void EndRenderPass()", asFUNCTION(EndRenderPass), asCALL_CDECL); assert(r >= 0);
 			r = engine->RegisterGlobalFunction("uint64 LoadShader(string name)", asFUNCTION(LoadShader), asCALL_CDECL); assert(r >= 0);
 			r = engine->RegisterGlobalFunction("void Render(int key, uint stencilRef)", asFUNCTION(Render), asCALL_CDECL); assert(r >= 0);
 			r = engine->RegisterGlobalFunction("void Dispatch(const uint64 shader, int workGroupX, int workGroupY, int workGroupZ, int queue)", asFUNCTION(Dispatch), asCALL_CDECL); assert(r >= 0);
-			r = engine->RegisterGlobalFunction("void BindRenderTargets(const array<string>@ names)", asFUNCTION(BindRenderTargets), asCALL_CDECL); assert(r >= 0);
+			r = engine->RegisterGlobalFunction("void CreateRenderPass(string name, const array<string>@ renderTargets)", asFUNCTION(CreateRenderPass), asCALL_CDECL); assert(r >= 0);
+			r = engine->RegisterGlobalFunction("void AddToStaticQueue(uint entity)", asFUNCTION(AddToStaticQueue), asCALL_CDECL); assert(r >= 0);
+			
 		}
 	}
 }

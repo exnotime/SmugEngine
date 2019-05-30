@@ -14,7 +14,7 @@ namespace smug {
 		~SSWorldCreator();
 
 		virtual void Startup();
-		virtual void Update(const double deltaTime);
+		virtual void Update(const double deltaTime, Profiler* profiler);
 		virtual void Shutdown();
 	private:
 		void PickFromCamera(const glm::vec2& pos);

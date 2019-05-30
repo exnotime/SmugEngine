@@ -49,11 +49,19 @@ struct ASSET_DLL TextureInfo {
 	void* Data = nullptr;
 };
 
+
+enum MATERIAL_FLAGS {
+	MAT_FLAG_NONE = 0x0,
+	MAT_FLAG_TRANSPARENT = 0x1,
+	MAT_FLAG_NO_SHADOW = 0x2,
+};
+
 struct ASSET_DLL MaterialInfo {
 	ResourceHandle Albedo = RESOURCE_INVALID;
 	ResourceHandle Normal = RESOURCE_INVALID;
 	ResourceHandle Roughness = RESOURCE_INVALID;
 	ResourceHandle Metal = RESOURCE_INVALID;
+	uint32_t MaterialFlags = MAT_FLAG_NONE;
 };
 
 struct ASSET_DLL Vertex {
@@ -95,13 +103,6 @@ struct ASSET_DLL ShaderByteCode {
 	SHADER_LANGUAGE SrcLanguage;
 	uint32_t ByteCodeSize;
 	void* ByteCode;
-	uint32_t DependencyCount;
-	uint32_t* DependenciesHashes;
-};
-
-struct ASSET_DLL ShaderInfo {
-	uint32_t ShaderCount;
-	ShaderByteCode* Shaders;
 };
 
 struct ASSET_DLL Descriptor {
@@ -119,15 +120,17 @@ struct ASSET_DLL PushConstantBuffer {
 };
 
 struct ASSET_DLL PipelineStateInfo {
-	ShaderInfo Shader;
+	uint32_t ShaderCount;
+	ShaderByteCode* Shaders;
 	PushConstantBuffer PushConstants;
-	Descriptor* Descriptors;
 	uint32_t DescriptorCount;
-	VkPipelineColorBlendAttachmentState* Attachments;
+	Descriptor* Descriptors;
 	uint32_t AttachmentCount;
+	VkPipelineColorBlendAttachmentState* Attachments;
 	VkPipelineDepthStencilStateCreateInfo DepthStencilState;
 	VkPipelineRasterizationStateCreateInfo RasterState;
 	VkPrimitiveTopology Topology;
+	uint32_t RenderPass;
 };
 
 }

@@ -61,18 +61,16 @@ static VkAccessFlags LayoutToAccessMask(VkImageLayout layout) {
 	return VkAccessFlags();
 }
 
-static VkImageAspectFlags LayoutToAspectMask(VkImageLayout layout) {
-	if (layout == VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL || layout == VkImageLayout::VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ||
-	        layout == VkImageLayout::VK_IMAGE_LAYOUT_GENERAL || layout == VkImageLayout::VK_IMAGE_LAYOUT_PRESENT_SRC_KHR || layout == VkImageLayout::VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL ||
-	        layout == VkImageLayout::VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL) {
-		return VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT;
-	}
-	else if (layout == VkImageLayout::VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
+static VkImageAspectFlags LayoutToAspectMask(VkImageLayout layout, VkImageLayout oldLayout) {
+	if (layout == VkImageLayout::VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL || oldLayout == VkImageLayout::VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
 		return VkImageAspectFlagBits::VK_IMAGE_ASPECT_DEPTH_BIT | VkImageAspectFlagBits::VK_IMAGE_ASPECT_STENCIL_BIT;
-	}else if (layout == VkImageLayout::VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL){
+	if (layout == VkImageLayout::VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL || oldLayout == VkImageLayout::VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL) {
 		return VkImageAspectFlagBits::VK_IMAGE_ASPECT_DEPTH_BIT;
-	} else {
-		return VkImageAspectFlagBits::VK_IMAGE_ASPECT_METADATA_BIT;
+	}
+	if (layout == VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL || layout == VkImageLayout::VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ||
+		layout == VkImageLayout::VK_IMAGE_LAYOUT_GENERAL || layout == VkImageLayout::VK_IMAGE_LAYOUT_PRESENT_SRC_KHR || layout == VkImageLayout::VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL ||
+		layout == VkImageLayout::VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL) {
+		return VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT;
 	}
 	return VkImageAspectFlagBits::VK_IMAGE_ASPECT_METADATA_BIT;
 }
@@ -115,7 +113,7 @@ class CommandBuffer {
 		imgBarrier.newLayout = newLayout;
 		imgBarrier.srcAccessMask = LayoutToAccessMask(oldLayout);
 		imgBarrier.dstAccessMask = LayoutToAccessMask(newLayout);
-		imgBarrier.subresourceRange.aspectMask = LayoutToAspectMask(newLayout);
+		imgBarrier.subresourceRange.aspectMask = LayoutToAspectMask(newLayout, oldLayout);
 		imgBarrier.subresourceRange.baseArrayLayer = 0;
 		imgBarrier.subresourceRange.baseMipLevel = 0;
 		imgBarrier.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;

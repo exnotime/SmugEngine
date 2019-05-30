@@ -16,7 +16,7 @@ vec3 TriLerp3(vec3 a, vec3 b, vec3 c, float u, float v){
 hitAttributeNV vec2 barycentricCoords;
 
 void main(){
-    ColorPayload = vec4(1.0f -  barycentricCoords.x - barycentricCoords.y, barycentricCoords.x, barycentricCoords.y, 1.0f);
+    ColorPayload = vec4(0);
     // vec3 worldPos = gl_WorldRayOriginNV + gl_WorldRayDirectionNV * gl_HitTNV;
     // uint indexOffset = g_InstanceIndexOffsets[gl_InstanceID] + gl_PrimitiveID * 3;
     // vec3 normal = TriLerp3( g_VertexNormals[g_IndexBuffer[indexOffset]],
